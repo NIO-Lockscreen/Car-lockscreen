@@ -11,9 +11,9 @@
         @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@700&family=Roboto:wght@400;500&display=swap');
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html, body { height: 100%; width: 100%; overflow: hidden; font-family: 'Roboto', sans-serif; }
-        body { background-color: #1a1a1a; color: white; }
+        body { background-color: #1a1a1a; color: white; text-align: center; }
 
-        #lock-screen { position: relative; width: 100vw; height: 100vh; background-image: url('https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?auto=format&fit=crop&w=1950'); background-size: cover; background-position: center center; overflow: hidden; transition: background-image 0.5s ease-in-out; }
+        #lock-screen { position: relative; width: 100vw; height: 100vh; background-image: url('https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?auto=format&fit=crop&w=1950'); background-size: cover; background-position: center center; overflow: hidden; transition: background-image 0.5s ease-in-out; text-align: left; }
         #lock-screen.panning-active { cursor: grab; } #lock-screen.panning-active:active { cursor: grabbing; }
         #status-bar { position: absolute; top: 20px; left: 30px; font-size: 1rem; text-shadow: 1px 1px 3px rgba(0,0,0,0.6); z-index: 20; }
         #weather-info { display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; padding: 10px 15px; border-radius: 12px; transition: background-color 0.2s; background-color: rgba(0, 0, 0, 0.2); }
@@ -34,15 +34,21 @@
         .remove-thumb-btn { position: absolute; top: 2px; right: 2px; width: 20px; height: 20px; background-color: rgba(0,0,0,0.6); color: white; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 14px; line-height: 20px; font-family: sans-serif; cursor: pointer; opacity: 0; transition: opacity 0.2s; }
         .wallpaper-thumbnail:hover .remove-thumb-btn { opacity: 1; }
         
-        /* QR Code and Uploader Styles */
         #qr-upload-btn { background-color: #0a84ff; color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-size: 0.9em; margin-top: 15px; }
         #qr-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); display: none; justify-content: center; align-items: center; z-index: 1001; }
         #qr-modal-content { background: #fff; padding: 25px; border-radius: 16px; text-align: center; color: #333; }
-        #qr-code { padding: 10px; background: white; margin-bottom: 15px; display: inline-block; } /* Added display property for better centering */
-        #qr-code img { display: block; margin: auto; } /* Ensure image inside is centered */
-        #upload-view { display: none; justify-content: center; align-items: center; width: 100%; height: 100%; text-align: center; padding: 20px; }
-        #upload-label { background-color: #0a84ff; color: white; padding: 20px 40px; border-radius: 12px; cursor: pointer; font-size: 1.2rem; }
-        #upload-status { margin-top: 20px; font-size: 1.1rem; }
+        #qr-code { padding: 10px; background: white; margin-bottom: 15px; display: inline-block; } #qr-code img { display: block; margin: auto; }
+        
+        #upload-view { display: none; justify-content: center; align-items: center; width: 100%; height: 100%; padding: 20px; }
+        #upload-status { margin-top: 20px; font-size: 1.1rem; min-height: 1.2em; }
+        
+        /* NEW STYLES for Phone URL Input view */
+        #phone-url-container { display: flex; flex-direction: column; width: 90%; max-width: 400px; gap: 15px; text-align: center; }
+        #phone-url-container h2 { color: #f2f2f7; }
+        #phone-url-container p { color: #aeb0b5; font-size: 0.9rem; margin-bottom: 5px; }
+        #phone-url-input { width: 100%; padding: 15px; border-radius: 10px; border: 1px solid #555; background-color: #3a3a3c; color: white; font-size: 1rem; outline: none; }
+        #phone-url-submit { background-color: #0a84ff; color: white; border: none; padding: 15px 20px; border-radius: 10px; cursor: pointer; font-size: 1.1rem; font-weight: 500; }
+        #phone-url-submit:disabled { background-color: #555; cursor: not-allowed; }
     </style>
 </head>
 <body>
@@ -59,19 +65,26 @@
             <button id="close-menu-btn">×</button><h2>Change Wallpaper</h2>
             <p>Paste an image URL below or upload from phone.</p>
             <input type="text" id="wallpaper-url-input" placeholder="https://example.com/image.jpg">
-            <button id="qr-upload-btn">Upload from Phone</button>
+            <button id="qr-upload-btn">Add from Phone</button>
             <h3>Your Wallpapers</h3><div id="wallpaper-choices"></div>
         </div>
     </div>
-    <div id="qr-modal"><div id="qr-modal-content"><h2>Scan with your phone</h2><div id="qr-code"></div><p>Listening for upload...</p></div></div>
-    <div id="upload-view"><form id="upload-form"><label id="upload-label" for="file-input">Tap to Select Image</label><input type="file" id="file-input" accept="image/*" style="display: none;"><h2 id="upload-status"></h2></form></div>
+    <div id="qr-modal"><div id="qr-modal-content"><h2>Scan with your phone</h2><div id="qr-code"></div><p>Scan to send an image URL from your phone.</p></div></div>
+    <div id="upload-view">
+        <div id="phone-url-container">
+            <h2>Enter Image URL</h2>
+            <p>Find an image on your phone, copy its URL, and paste it below.</p>
+            <input type="url" id="phone-url-input" placeholder="https://example.com/image.jpg">
+            <button id="phone-url-submit">Set as Wallpaper</button>
+            <h2 id="upload-status"></h2>
+        </div>
+    </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             // --- CONFIGURATION ---
             const NPOINT_BIN_ID = 'f76d79c771a62c1ce33a'; // Your personal endpoint is set!
-            const FREEIMAGE_API_KEY = '6d207e02198a847aa98d0a2a901485a5';
-
+            
             // --- Elements and State ---
             const lockScreen = document.getElementById('lock-screen');
             const clock = document.getElementById('clock');
@@ -85,7 +98,10 @@
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.has('upload') && urlParams.has('session')) {
                 // We are on the phone in UPLOAD MODE
+                document.body.style.backgroundColor = '#1a1a1a'; // Match theme
                 document.getElementById('lock-screen').style.display = 'none';
+                document.getElementById('wallpaper-menu').style.display = 'none';
+                document.getElementById('qr-modal').style.display = 'none';
                 document.getElementById('upload-view').style.display = 'flex';
                 handlePhoneUpload(urlParams.get('session'));
             } else {
@@ -93,38 +109,40 @@
                 initializeLockscreen();
             }
 
-            // --- PHONE UPLOAD MODE ---
+            // --- PHONE UPLOAD MODE (NEW VERSION) ---
             function handlePhoneUpload(session) {
-                const fileInput = document.getElementById('file-input');
+                const urlInput = document.getElementById('phone-url-input');
+                const submitBtn = document.getElementById('phone-url-submit');
                 const statusElem = document.getElementById('upload-status');
-                fileInput.addEventListener('change', (e) => {
-                    const file = e.target.files[0];
-                    if (!file) return;
 
-                    statusElem.textContent = 'Uploading...';
-                    const formData = new FormData();
-                    formData.append('key', FREEIMAGE_API_KEY);
-                    formData.append('source', file);
-                    formData.append('format', 'json');
+                submitBtn.addEventListener('click', () => {
+                    const imageUrl = urlInput.value.trim();
 
-                    fetch('https://freeimage.host/api/1/upload', { method: 'POST', body: formData })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.status_code === 200) {
-                                statusElem.textContent = 'Success! Updating PC...';
-                                const imageUrl = data.image.url;
-                                return fetch(`https://api.npoint.io/${NPOINT_BIN_ID}`, {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ [session]: imageUrl })
-                                });
-                            } else { throw new Error(data.error.message); }
-                        })
-                        .then(response => {
-                            if (response.ok) statusElem.textContent = 'All done! You can close this window.';
-                            else throw new Error('Failed to update PC.');
-                        })
-                        .catch(error => { statusElem.textContent = `Error: ${error.message}`; });
+                    if (!imageUrl || !imageUrl.startsWith('http')) {
+                        statusElem.textContent = 'Please enter a valid image URL.';
+                        return;
+                    }
+
+                    statusElem.textContent = 'Sending to PC...';
+                    submitBtn.disabled = true; // Prevent multiple clicks
+
+                    fetch(`https://api.npoint.io/${NPOINT_BIN_ID}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ [session]: imageUrl })
+                    })
+                    .then(response => {
+                        if (response.ok) {
+                            statusElem.textContent = 'Success! You can close this window.';
+                            urlInput.disabled = true; // Also disable input
+                        } else {
+                            throw new Error('Failed to update PC.');
+                        }
+                    })
+                    .catch(error => {
+                        statusElem.textContent = `Error: ${error.message}`;
+                        submitBtn.disabled = false; // Allow user to try again
+                    });
                 });
             }
 
@@ -174,37 +192,15 @@
                 
                 // -- QR Code Upload Logic --
                 document.getElementById('qr-upload-btn').addEventListener('click', () => {
-                    if (NPOINT_BIN_ID === 'PASTE_YOUR_NPOINT_BIN_ID_HERE') {
-                        alert('Error: npoint.io Bin ID is not set in the script.');
-                        return;
-                    }
                     const session = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
                     const uploadUrl = `${window.location.href.split('?')[0]}?upload=true&session=${session}`;
-                    
                     const qrCodeContainer = document.getElementById('qr-code');
-                    qrCodeContainer.innerHTML = ''; // Clear previous QR code
-
-                    // *** THE FIX ***
-                    // 1. Make the modal visible FIRST
+                    qrCodeContainer.innerHTML = '';
                     qrModal.style.display = 'flex';
-                    
-                    // 2. NOW, generate the QR code in the visible container
-                    new QRCode(qrCodeContainer, {
-                        text: uploadUrl,
-                        width: 200,
-                        height: 200
-                    });
-                    
+                    new QRCode(qrCodeContainer, { text: uploadUrl, width: 200, height: 200 });
                     startPolling(session);
                 });
-
-                // Close modal and stop polling when the background is clicked
-                qrModal.addEventListener('click', (e) => {
-                    if (e.target === qrModal) {
-                        qrModal.style.display = 'none';
-                        clearInterval(pollingInterval);
-                    }
-                });
+                qrModal.addEventListener('click', (e) => { if (e.target === qrModal) { qrModal.style.display = 'none'; clearInterval(pollingInterval); } });
 
                 function startPolling(session) {
                     pollingInterval = setInterval(() => {
@@ -223,7 +219,7 @@
                                     renderWpChoices();
                                 }
                             });
-                    }, 2500); // Check every 2.5 seconds
+                    }, 2500);
                 }
 
                 // -- Final Menu Setup & Initial Load --
