@@ -5,83 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Fullscreen Dynamic Lockscreen</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@700&family=Roboto:wght@400;500&display=swap');
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        html, body { height: 100%; width: 100%; overflow: hidden; font-family: 'Roboto', sans-serif; }
-        body { background-color: #1a1a1a; color: white; }
-        #lock-screen { position: relative; width: 100vw; height: 100vh; background-image: url('https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?auto=format&fit=crop&w=1950'); background-size: cover; background-position: center center; overflow: hidden; transition: background-image 0.5s ease-in-out; }
-        #lock-screen.panning-active { cursor: grab; } #lock-screen.panning-active:active { cursor: grabbing; }
-        #status-bar { position: absolute; top: 20px; left: 30px; font-size: 1rem; text-shadow: 1px 1px 3px rgba(0,0,0,0.6); z-index: 20; }
-        #weather-info { display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; padding: 10px 15px; border-radius: 12px; transition: background-color 0.2s; background-color: rgba(0, 0, 0, 0.2); }
-        #weather-info:hover { background-color: rgba(255,255,255,0.1); }
-        .draggable-item { position: absolute; user-select: none; cursor: grab; z-index: 10; } .draggable-item:active { cursor: grabbing; z-index: 11; }
-        #clock { top: 30%; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: 'Oswald', sans-serif; font-weight: 700; color: #fff; filter: drop-shadow(0 0 20px rgba(0,0,0,0.5)); }
-        #hours, #minutes { font-size: clamp(6rem, 15vw, 12rem); line-height: 0.8; pointer-events: none; } #minutes { margin-top: -1.5rem; }
-        .app-icon { width: 70px; height: 70px; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.4)); transition: transform 0.2s ease; } .app-icon:active { transform: scale(1.1); }
-        .app-icon svg { width: 100%; height: 100%; }
-        #youtube-music-btn { top: 60%; left: calc(50% - 100px); } #youtube-btn { top: 60%; left: calc(50% + 30px); }
-        #wallpaper-menu { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); display: none; justify-content: center; align-items: center; z-index: 1000; opacity: 0; transition: opacity 0.3s ease; } #wallpaper-menu.visible { display: flex; opacity: 1; }
-        .menu-content { background-color: #2c2c2e; padding: 30px; border-radius: 20px; width: 90%; max-width: 500px; color: #f2f2f7; text-align: center; position: relative; box-shadow: 0 5px 25px rgba(0,0,0,0.5); transform: scale(0.95); transition: transform 0.3s ease; } #wallpaper-menu.visible .menu-content { transform: scale(1); }
-        #close-menu-btn { position: absolute; top: 10px; right: 15px; background: none; border: none; color: #aaa; font-size: 2rem; cursor: pointer; line-height: 1; }
-        #wallpaper-url-input { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 10px; border: 1px solid #555; background-color: #3a3a3c; color: white; font-size: 1rem; outline: none; }
-        #wallpaper-choices { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 10px; max-height: 200px; overflow-y: auto; padding: 10px; background-color: #1c1c1e; border-radius: 10px; }
-        .wallpaper-thumbnail { position: relative; width: 100%; padding-bottom: 100%; background-size: cover; background-position: center; border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: border-color 0.2s, transform 0.2s; }
-        .wallpaper-thumbnail:hover { border-color: #0a84ff; transform: scale(1.05); }
-        .remove-thumb-btn { position: absolute; top: 2px; right: 2px; width: 20px; height: 20px; background-color: rgba(0,0,0,0.6); color: white; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 14px; line-height: 20px; font-family: sans-serif; cursor: pointer; opacity: 0; transition: opacity 0.2s; }
-        .wallpaper-thumbnail:hover .remove-thumb-btn { opacity: 1; }
-        #qr-upload-btn { background-color: #0a84ff; color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-size: 0.9em; margin-top: 15px; }
-        #qr-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); display: none; justify-content: center; align-items: center; z-index: 1001; }
-        #qr-modal-content { background: #fff; padding: 25px; border-radius: 16px; text-align: center; color: #333; }
-        #qr-code { padding: 10px; background: white; margin-bottom: 15px; } #qr-code img { display: block; }
-        #upload-view { display: none; justify-content: center; align-items: center; width: 100%; height: 100%; text-align: center; padding: 20px; }
-        #upload-label { background-color: #0a84ff; color: white; padding: 20px 40px; border-radius: 12px; cursor: pointer; font-size: 1.2rem; }
-        #upload-status { margin-top: 20px; font-size: 1.1rem; }
-        /* Style for the new Reset button */
-        #clear-storage-btn { background-color: #ff3b30; color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-size: 0.9em; margin-top: 5px; width: 100%; }
-    </style>
-</head>
-<body>
-    <div id="lock-screen">
-        <div id="status-bar">
-            <div id="weather-info" title="Double-click to change wallpaper"><span id="date"></span> <i id="weather-icon" class="fa-solid fa-cloud-sun"></i> <span id="temperature">...</span></div>
-        </div>
-        <div id="clock" class="draggable-item" title="Drag to move, double-click for fullscreen"><div id="hours">00</div><div id="minutes">00</div></div>
-        <div id="youtube-music-btn" class="draggable-item app-icon"><a href="https://music.youtube.com/" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="50" fill="#FF0000"/><circle cx="50" cy="50" r="23" fill="none" stroke="white" stroke-width="4"/><polygon points="43,38 62,50 43,62" fill="white"/></svg></a></div>
-        <div id="youtube-btn" class="draggable-item app-icon"><a href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="50" fill="#FF0000"/><path d="M 35,29 A 10,10 0 0 0 25,39 V 61 A 10,10 0 0 0 35,71 H 65 A 10,10 0 0 0 75,61 V 39 A 10,10 0 0 0 65,29 Z" fill="white"/><polygon points="45,42 62,50 45,58" fill="#FF0000"/></svg></a></div>
-    </div>
-    <div id="wallpaper-menu">
-        <div class="menu-content">
-            <button id="close-menu-btn">×</button><h2>Change Wallpaper</h2>
-            <p>Paste an image URL below or upload from phone.</p>
-            <input type="text" id="wallpaper-url-input" placeholder="https://example.com/image.jpg">
-            <div style="display: flex; gap: 10px; margin-top: 15px;">
-                <button id="qr-upload-btn" style="flex-grow: 1;">Upload from Phone</button>
-            </div>
-            <h3>Your Wallpapers</h3><div id="wallpaper-choices"></div>
-            <button id="clear-storage-btn">Reset & Clear All Data</button>
-        </div>
-    </div>
-    <div id="qr-modal"><div id="qr-modal-content"><h2>Scan with your phone</h2><div id="qr-code"></div><p>Listening for upload...</p></div></div>
-    <div id="upload-view"><form id="upload-form"><label id="upload-label" for="file-input">Tap to Select Image</label><input type="file" id="file-input" accept="image/*" style="display: none;"><h2 id="upload-status"></h2></form></div>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const NPOINT_BIN_ID = 'f76d79c771a62c1ce33a'; more readable, which also helps prevent bugs.
-
-This is the most stable and robust version yet. It should resolve the issues you're seeing for good.
-
-### The Final, Corrected Code:
-
-```html
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Fullscreen Dynamic Lockscreen</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- QR Code Generation Library -->
     <script src="https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"></script>
     <style>
@@ -145,129 +68,68 @@ This is the most stable and robust version yet. It should resolve the issues you
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             // --- CONFIGURATION ---
-            const NPOINT_BIN_ID = 'f76d79c771a62c1ce33a';
+            const NPOINT_BIN_ID = 'f76d79c771a62c1ce33a'; // Your personal endpoint is set!
             const FREEIMAGE_API_KEY = '6d207e02198a847aa98d0a2a901485a5';
-            const WALLPAPER_STORAGE_KEY = 'lockscreenWallpapers_v3'; // Versioned key
 
             // --- Elements and State ---
             const lockScreen = document.getElementById('lock-screen');
+            const clock = document.getElementById('clock');
+            const wallpaperMenu = document.getElementById('wallpaper-menu');
+            const qrModal = document.getElementById('qr-modal');
+            const DRAGGABLE_ELEMENT_IDS = ['clock', 'youtube-music-btn', 'youtube-btn'];
             const initialWallpaper = { url: 'https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?auto=format&fit=crop&w=1950', position: 'center center' };
             let isPanningMode = false, currentWallpaperImg = new Image(), pollingInterval;
 
             // --- Core Page Logic (Router) ---
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.has('upload') && urlParams.has('session')) {
+                // We are on the phone in UPLOAD MODE
                 document.getElementById('lock-screen').style.display = 'none';
                 document.getElementById('upload-view').style.display = 'flex';
                 handlePhoneUpload(urlParams.get('session'));
             } else {
+                // We are on the PC in LOCKSCREEN MODE
                 initializeLockscreen();
             }
 
             // --- PHONE UPLOAD MODE ---
-            async function handlePhoneUpload(session) {
-                const fileInput = document.getElementById('file-input');
-                const statusElem = document.getElementById('upload-status');
-                fileInput.addEventListener('change', async (e) => {
-                    const file = e.target.files[0];
-                    if (!file) return;
-
-                    try {
-                        statusElem.textContent = 'Uploading...';
-                        const formData = new FormData();
-                        formData.append('key', FREEIMAGE_API_KEY);
-                        formData.append('source', file);
-                        formData.append('format', 'json');
-
-                        const uploadResponse = await fetch('https://freeimage.host/api/1/upload', { method: 'POST', body: formData });
-                        if (!uploadResponse.ok) throw new Error('Image hosting service failed.');
-                        
-                        const uploadData = await uploadResponse.json();
-                        if (uploadData.status_code !== 200) throw new Error(uploadData.error.message);
-
-                        statusElem.textContent = 'Success! Syncing with PC...';
-                        const imageUrl = uploadData.image.url;
-                        
-                        const syncResponse = await fetch(`https://api.npoint.io/${NPOINT_BIN_ID}`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ [session]: imageUrl })
-                        });
-
-                        if (!syncResponse.ok) throw new Error('Failed to update PC.');
-                        
-                        statusElem.textContent = 'All done! You can close this window.';
-                    } catch (error) {
-                        console.error('Upload process failed:', error);
-                        statusElem.textContent = `Error: ${error.message}`;
-                    }
-                });
-            }
-
-            // --- LOCKSCREEN MODE ---
-            function initializeLockscreen() {
-                initializeTime();
-                initializeDraggables();
-                initializeWeather();
-                initializeWallpaperSystem();
-            }
-
-            function initializeTime() {
-                const hoursElem = document.getElementById('hours');
-                const minutesElem = document.getElementById('minutes');
-                const dateElem = document.getElementById('date');
-                const update = () => {
-                    const now = new Date();
-                    hoursElem.textContent = String(now.getHours()).padStart(2, '0');
-                    minutesElem.textContent = String(now.getMinutes()).padStart(2, '0');
-                    dateElem.textContent = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-                };
-                setInterval(update,
-            const FREEIMAGE_API_KEY = '6d207e02198a847aa98d0a2a901485a5';
-
-            const lockScreen = document.getElementById('lock-screen');
-            const wallpaperMenu = document.getElementById('wallpaper-menu');
-            const qrModal = document.getElementById('qr-modal');
-            const DRAGGABLE_ELEMENT_IDS = ['clock', 'youtube-music-btn', 'youtube-btn');
-            const initialWallpaper = { url: 'https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?auto=format&fit=crop&w=1950', position: 'center center' };
-            let isPanningMode = false, currentWallpaperImg = new Image(), pollingInterval;
-
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.has('upload') && urlParams.has('session')) {
-                document.getElementById('lock-screen').style.display = 'none';
-                document.getElementById('upload-view').style.display = 'flex';
-                handlePhoneUpload(urlParams.get('session'));
-            } else {
-                initializeLockscreen();
-            }
-
             function handlePhoneUpload(session) {
                 const fileInput = document.getElementById('file-input');
                 const statusElem = document.getElementById('upload-status');
                 fileInput.addEventListener('change', (e) => {
                     const file = e.target.files[0];
                     if (!file) return;
+
                     statusElem.textContent = 'Uploading...';
                     const formData = new FormData();
-                    formData.append('key', FREEIMAGE_API_KEY); formData.append('source', file); formData.append('format', 'json');
+                    formData.append('key', FREEIMAGE_API_KEY);
+                    formData.append('source', file);
+                    formData.append('format', 'json');
+
                     fetch('https://freeimage.host/api/1/upload', { method: 'POST', body: formData })
                         .then(response => response.json())
                         .then(data => {
                             if (data.status_code === 200) {
                                 statusElem.textContent = 'Success! Updating PC...';
+                                const imageUrl = data.image.url;
                                 return fetch(`https://api.npoint.io/${NPOINT_BIN_ID}`, {
-                                    method: 'POST', headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ [session]: data.image.url })
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ [session]: imageUrl })
                                 });
                             } else { throw new Error(data.error.message); }
                         })
-                        .then(response => { if (response.ok) statusElem.textContent = 'All done! You can close this window.'; else throw new Error('Failed to update PC.'); })
+                        .then(response => {
+                            if (response.ok) statusElem.textContent = 'All done! You can close this window.';
+                            else throw new Error('Failed to update PC.');
+                        })
                         .catch(error => { statusElem.textContent = `Error: ${error.message}`; });
                 });
             }
 
+            // --- LOCKSCREEN MODE ---
             function initializeLockscreen() {
-                // Simplified setup functions
+                // -- Time, Draggables, Weather, etc. --
                 (function setupBaseFeatures() {
                     const timeElems = { h: document.getElementById('hours'), m: document.getElementById('minutes'), d: document.getElementById('date') };
                     const weatherElems = { t: document.getElementById('temperature'), i: document.getElementById('weather-icon') };
@@ -275,16 +137,17 @@ This is the most stable and robust version yet. It should resolve the issues you
                     setInterval(updateTime, 1000); updateTime();
                     const savePos = () => { const p = {}; DRAGGABLE_ELEMENT_IDS.forEach(id => { const e = document.getElementById(id); if (e) p[id] = { t: e.style.top, l: e.style.left }; }); localStorage.setItem('lockscreenItemPositions', JSON.stringify(p)); };
                     const loadPos = () => { const p = JSON.parse(localStorage.getItem('lockscreenItemPositions')); if (p) Object.keys(p).forEach(id => { const e = document.getElementById(id); const pos = p[id]; if (e && pos.t && pos.l) { e.style.top = pos.t; e.style.left = pos.l; e.style.transform = 'none'; } }); };
-                    const makeDraggable = (el) => { let oX, oY, isD, hM; const mv = (e) => { if (!isD) return; e.preventDefault(); hM = true; const cX = e.touches ? e.touches[0].clientX : e.clientX, cY = e.touches ? e.touches[0].clientY : e.clientY; let nX = cX - oX, nY = cY - oY; const sR = lockScreen.getBoundingClientRect(), eR = el.getBoundingClientRect(); nX = Math.max(0, Math.min(nX, sR.width - eR.width)); nY = Math.max(0, Math.min(nY, sR.height - eR.height)); el.style.left = `${nX}px`; el.style.top = `${nY}px`; el.style.transform = 'none'; }; const sD = (e) => { isD = true; hM = false; const cX = e.touches ? e.touches[0].clientX : e.clientX, cY = e.touches ? e.touches[0].clientY : e.clientY; oX = cX - el.offsetLeft; oY = cY - el.offsetTop; document.addEventListener('mousemove', mv); document.addEventListener('touchmove', mv, { passive: false }); document.addEventListener('mouseup', stD); document.addEventListener('touchend', stD); }; const stD = () => { if (!isD) return; isD = false; savePos(); document.removeEventListener('mousemove', mv); document.removeEventListener('touchmove', mv); document.removeEventListener('mouseup', stD); document.removeEventListener('touchend', stD); }; el.addEventListener('mousedown', sD); el.addEventListener('touchstart', sD); const lnk = el.querySelector('a'); if (lnk) lnk.addEventListener('click', (e) => { if (hM) e.preventDefault(); }); };
+                    const makeDraggable = (el) => { let oX, oY, isD, hasM; const mv = (e) => { if (!isD) return; e.preventDefault(); hasM = true; const cX = e.touches ? e.touches[0].clientX : e.clientX, cY = e.touches ? e.touches[0].clientY : e.clientY; let nX = cX - oX, nY = cY - oY; const sR = lockScreen.getBoundingClientRect(), eR = el.getBoundingClientRect(); nX = Math.max(0, Math.min(nX, sR.width - eR.width)); nY = Math.max(0, Math.min(nY, sR.height - eR.height)); el.style.left = `${nX}px`; el.style.top = `${nY}px`; el.style.transform = 'none'; }; const sD = (e) => { isD = true; hasM = false; const cX = e.touches ? e.touches[0].clientX : e.clientX, cY = e.touches ? e.touches[0].clientY : e.clientY; oX = cX - el.offsetLeft; oY = cY - el.offsetTop; document.addEventListener('mousemove', mv); document.addEventListener('touchmove', mv, { passive: false }); document.addEventListener('mouseup', stD); document.addEventListener('touchend', stD); }; const stD = () => { if (!isD) return; isD = false; savePos(); document.removeEventListener('mousemove', mv); document.removeEventListener('touchmove', mv); document.removeEventListener('mouseup', stD); document.removeEventListener('touchend', stD); }; el.addEventListener('mousedown', sD); el.addEventListener('touchstart', sD); const lnk = el.querySelector('a'); if (lnk) lnk.addEventListener('click', (e) => { if (hasM) e.preventDefault(); }); };
                     DRAGGABLE_ELEMENT_IDS.forEach(id => { const el = document.getElementById(id); if (el) makeDraggable(el); });
-                    document.getElementById('clock').addEventListener('dblclick', () => { if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); });
-                    const fetchWeather = () => { const iM = { 'sunny': 'fa-sun', 'clear': 'fa-sun', 'partly cloudy': 'fa-cloud-sun', 'cloudy': 'fa-cloud', 'overcast': 'fa-cloud', 'mist': 'fa-smog', 'fog': 'fa-smog', 'patchy rain': 'fa-cloud-rain', 'rain': 'fa-cloud-showers-heavy', 'drizzle': 'fa-cloud-rain', 'patchy snow': 'fa-snowflake', 'snow': 'fa-snowflake', 'sleet': 'fa-cloud-meatball', 'ice pellets': 'fa-icicles', 'thunder': 'fa-cloud-bolt', 'blizzard': 'fa-wind' }; fetch('https://wttr.in/Trondheim?format=j1').then(r => r.json()).then(d => { const c = d.current_condition[0]; weatherElems.t.textContent = `${c.temp_C}°C`; const ds = c.weatherDesc[0].value.toLowerCase(); let ic = 'fa-cloud-sun'; for (const k in iM) { if (ds.includes(k)) { ic = iM[k]; break; } } weatherElems.i.className = `fa-solid ${ic}`; }).catch(() => { weatherElems.t.textContent = 'N/A'; }); };
+                    clock.addEventListener('dblclick', () => { if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); });
+                    const fetchWeather = () => { const iM = { 'sunny': 'fa-sun', 'clear': 'fa-sun', 'partly cloudy': 'fa-cloud-sun', 'cloudy': 'fa-cloud', 'overcast': 'fa-cloud', 'mist': 'fa-smog', 'fog': 'fa-smog', 'patchy rain': 'fa-cloud-rain', 'rain': 'fa-cloud-showers-heavy', 'drizzle': 'fa-cloud-rain', 'patchy snow': 'fa-snowflake', 'snow': 'fa-snowflake', 'sleet': 'fa-cloud-meatball', 'ice pellets': 'fa-icicles', 'thunder': 'fa-cloud-bolt', 'blizzard': 'fa-wind' }; fetch('https://wttr.in/Trondheim?format=j1').then(r => r.json()).then(d => { const c = d.current_condition[0]; weatherElems.t.textContent = `${c.temp_C}°C`; const ds = c.weatherDesc[0].value.toLowerCase(); let ic = 'fa-cloud-sun'; for (const k in iM) { if (ds.includes(k)) { ic = iM[k]; break; } } weatherElems.i.className = `fa-solid ${ic}`; }).catch(e => { weatherElems.t.textContent = 'N/A'; }); };
                     loadPos(); fetchWeather(); setInterval(fetchWeather, 30 * 60 * 1000);
                 })();
 
+                // -- Wallpaper System --
                 const getWps = () => JSON.parse(localStorage.getItem('lockscreenWallpapers_v2')) || [initialWallpaper];
                 const saveWps = (wps) => localStorage.setItem('lockscreenWallpapers_v2', JSON.stringify(wps));
-                const setWp = (wpObj) => { if (!wpObj || !wpObj.url) { wpObj = initialWallpaper; } exitPanningMode(); lockScreen.style.backgroundImage = `url('${wpObj.url}')`; lockScreen.style.backgroundPosition = wpObj.position || 'center center'; currentWallpaperImg.src = wpObj.url; };
+                const setWp = (wpObj) => { exitPanningMode(); lockScreen.style.backgroundImage = `url('${wpObj.url}')`; lockScreen.style.backgroundPosition = wpObj.position || 'center center'; currentWallpaperImg.src = wpObj.url; };
                 const renderWpChoices = () => {
                     const cont = document.getElementById('wallpaper-choices'); cont.innerHTML = '';
                     getWps().forEach(wp => {
@@ -300,92 +163,24 @@ This is the most stable and robust version yet. It should resolve the issues you
                     if (e.key === 'Enter') { const url = e.target.value.trim(); if (url.match(/\.(jpeg|jpg|gif|png|webp)$/i)) { const wps = getWps(); if (!wps.some(w => w.url === url)) { const newWp = { url: url, position: 'center center' }; wps.push(newWp); saveWps(wps); setWp(newWp); renderWpChoices(); } e.target.value = ''; } else { alert('Invalid URL.'); } }
                 });
 
+                // -- Wallpaper Panning --
                 function exitPanningMode() { if (!isPanningMode) return; isPanningMode = false; lockScreen.classList.remove('panning-active'); const url = currentWallpaperImg.src; const wps = getWps(); const idx = wps.findIndex(w => w.url === url); if (idx > -1) { wps[idx].position = lockScreen.style.backgroundPosition; saveWps(wps); } }
                 lockScreen.addEventListener('dblclick', (e) => { if (e.target !== lockScreen) return; if (isPanningMode) { exitPanningMode(); } else { const sW = lockScreen.clientWidth, sH = lockScreen.clientHeight, iW = currentWallpaperImg.naturalWidth, iH = currentWallpaperImg.naturalHeight; if (iW > sW || iH > sH) { isPanningMode = true; lockScreen.classList.add('panning-active'); } } });
                 let isDraggingWp = false, sPanX, sPanY, sBgX, sBgY;
                 lockScreen.addEventListener('mousedown', (e) => { if (!isPanningMode || e.target !== lockScreen) return; isDraggingWp = true; const bgPos = window.getComputedStyle(lockScreen).backgroundPosition.split(' '); sBgX = parseFloat(bgPos[0]); sBgY = parseFloat(bgPos[1]); sPanX = e.clientX; sPanY = e.clientY; });
-                document.addEventListener('mousemove', (e) => { if (!isDraggingWp) return; const dX = e.clientX - sPanX, dY = e.clientY - sPanY; let nBgX = sBgX + dX, nBgY = sBgY + dY; const sW = lockScreen.clientWidth, sH = lockScreen.clientHeight, iW = currentWallpaperImg.naturalWidth, iH = currentWallpaperImg.naturalHeight; const sR = sW / sH, iR = iW / iH; let scW, 1000); update();
-            }
-
-            function initializeDraggables() {
-                const DRAGGABLE_ELEMENT_IDS = ['clock', 'youtube-music-btn', 'youtube-btn'];
-                const savePositions = () => {
-                    const positions = {};
-                    DRAGGABLE_ELEMENT_IDS.forEach(id => { const el = document.getElementById(id); if (el) positions[id] = { top: el.style.top, left: el.style.left }; });
-                    localStorage.setItem('lockscreenItemPositions', JSON.stringify(positions));
-                };
-                const loadPositions = () => {
-                    const saved = JSON.parse(localStorage.getItem('lockscreenItemPositions'));
-                    if (saved) Object.keys(saved).forEach(id => { const el = document.getElementById(id); const pos = saved[id]; if (el && pos.top && pos.left) { el.style.top = pos.top; el.style.left = pos.left; el.style.transform = 'none'; } });
-                };
-                const makeDraggable = (el) => { let oX, oY, isD, hM; const mv = (e) => { if (!isD) return; e.preventDefault(); hM = true; const cX = e.touches ? e.touches[0].clientX : e.clientX, cY = e.touches ? e.touches[0].clientY : e.clientY; let nX = cX - oX, nY = cY - oY; const sR = lockScreen.getBoundingClientRect(), eR = el.getBoundingClientRect(); nX = Math.max(0, Math.min(nX, sR.width - eR.width)); nY = Math.max(0, Math.min(nY, sR.height - eR.height)); el.style.left = `${nX}px`; el.style.top = `${nY}px`; el.style.transform = 'none'; }; const sD = (e) => { isD = true; hM = false; const cX = e.touches ? e.touches[0].clientX : e.clientX, cY = e.touches ? e.touches[0].clientY : e.clientY; oX = cX - el.offsetLeft; oY = cY - el.offsetTop; document.addEventListener('mousemove', mv); document.addEventListener('touchmove', mv, { passive: false }); document.addEventListener('mouseup', stD); document.addEventListener('touchend', stD); }; const stD = () => { if (!isD) return; isD = false; savePositions(); document.removeEventListener('mousemove', mv); document.removeEventListener('touchmove', mv); document.removeEventListener('mouseup', stD); document.removeEventListener('touchend', stD); }; el.addEventListener('mousedown', sD); el.addEventListener('touchstart', sD); const lnk = el.querySelector('a'); if (lnk) lnk.addEventListener('click', (e) => { if (hM) e.preventDefault(); }); };
-                DRAGGABLE_ELEMENT_IDS.forEach(id => { const el = document.getElementById(id); if (el) makeDraggable(el); });
-                document.getElementById('clock').addEventListener('dblclick', () => { if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); });
-                loadPositions();
-            }
-
-            function initializeWeather() {
-                const tempElem = document.getElementById('temperature');
-                const iconElem = document.getElementById('weather-icon');
-                const iconMap = { 'sunny': 'fa-sun', 'clear': 'fa-sun', 'partly cloudy': 'fa-cloud-sun', 'cloudy': 'fa-cloud', 'overcast': 'fa-cloud', 'mist': 'fa-smog', 'fog': 'fa-smog', 'patchy rain': 'fa-cloud-rain', 'rain': 'fa-cloud-showers-heavy', 'drizzle': 'fa-cloud-rain', 'patchy snow': 'fa-snowflake', 'snow': 'fa-snowflake', 'sleet': 'fa-cloud-meatball', 'ice pellets': 'fa-icicles', 'thunder': 'fa-cloud-bolt', 'blizzard': 'fa-wind' };
-                const fetchW = () => { fetch('https://wttr.in/Trondheim?format=j1').then(r => r.json()).then(d => { const c = d.current_condition[0]; tempElem.textContent = `${c.temp_C}°C`; const ds = c.weatherDesc[0].value.toLowerCase(); let ic = 'fa-cloud-sun'; for (const k in iconMap) { if (ds.includes(k)) { ic = iconMap[k]; break; } } iconElem.className = `fa-solid ${ic}`; }).catch(e => { tempElem.textContent = 'N/A'; }); };
-                fetchW(); setInterval(fetchW, 30 * 60 * 1000);
-            }
-
-            function initializeWallpaperSystem() {
-                const getWallpapers = () => {
-                    try {
-                        const stored = localStorage.getItem(WALLPAPER_STORAGE_KEY);
-                        if (!stored) return [initialWallpaper];
-                        const data = JSON.parse(stored);
-                        // Check if data is in the correct format (array of objects with .url)
-                        if (Array.isArray(data) && data.length > 0 && typeof data[0] === 'object' && data[0].hasOwnProperty('url')) {
-                            return data;
-                        }
-                        throw new Error("Invalid data format in localStorage");
-                    } catch (e) {
-                        console.warn("localStorage corrupted or invalid, resetting to default.");
-                        localStorage.removeItem(WALLPAPER_STORAGE_KEY); // Clear bad data
-                        return [initialWallpaper];
-                    }
-                };
-                const saveWallpapers = (wps) => localStorage.setItem(WALLPAPER_STORAGE_KEY, JSON.stringify(wps));
-                
-                const setWallpaper = (wpObj) => {
-                    exitPanningMode();
-                    lockScreen.style.backgroundImage = `url('${wpObj.url}')`;
-                    lockScreen.style.backgroundPosition = wpObj.position || 'center center';
-                    currentWallpaperImg.src = wpObj.url;
-                };
-
-                const renderWallpaperChoices = () => {
-                    const choicesContainer = document.getElementById('wallpaper-choices');
-                    choicesContainer.innerHTML = '';
-                    getWallpapers().forEach(wp => {
-                        const thumb = document.createElement('div'); thumb.className = 'wallpaper-thumbnail'; thumb.style.backgroundImage = `url('${wp.url}')`;
-                        const removeBtn = document.createElement('span'); removeBtn.className = 'remove-thumb-btn'; removeBtn.innerHTML = '×';
-                        removeBtn.addEventListener('click', (e) => { e.stopPropagation(); const newWps = getWallpapers().filter(w => w.url !== wp.url); saveWallpapers(newWps); renderWallpaperChoices(); });
-                        thumb.appendChild(removeBtn);
-                        thumb.addEventListener('click', () => { setWallpaper(wp); document.getElementById('wallpaper-menu').classList.remove('visible'); });
-                        choicesContainer.appendChild(thumb);
-                    });
-                };
-                
-                document.getElementById('wallpaper-url-input').addEventListener('keydown', (e) => {
-                    if (e.key === 'Enter') { const url = e.target.value.trim(); if (url.match(/\.(jpeg|jpg|gif|png|webp)$/i)) { const wps = getWallpapers(); if (!wps.some(w => w.url === url)) { const newWp = { url: url, position: 'center center' }; wps.push(newWp); saveWallpapers(wps); setWallpaper(newWp); renderWallpaperChoices(); } e.target.value = ''; } else { alert('Invalid URL.'); } }
-                });
-
-                // Panning Logic
-                const exitPanningMode = () => { if (!isPanningMode) return; isPanningMode = false; lockScreen.classList.remove('panning-active'); const url = currentWallpaperImg.src; const wps = getWallpapers(); const idx = wps.findIndex(w => w.url === url); if (idx > -1) { wps[idx].position = lockScreen.style.backgroundPosition; saveWallpapers(wps); } };
-                lockScreen.addEventListener('dblclick', (e) => { if (e.target !== lockScreen) return; if (isPanningMode) { exitPanningMode(); } else { const sW = lockScreen.clientWidth, sH = lockScreen.clientHeight, iW = currentWallpaperImg.naturalWidth, iH scH; if (iR > sR) { scH = sH; scW = sH * iR; } else { scW = sW; scH = sW / iR; } const minX = sW - scW, minY = sH - scH; nBgX = Math.max(minX, Math.min(0, nBgX)); nBgY = Math.max(minY, Math.min(0, nBgY)); lockScreen.style.backgroundPosition = `${nBgX}px ${nBgY}px`; });
+                document.addEventListener('mousemove', (e) => { if (!isDraggingWp) return; const dX = e.clientX - sPanX, dY = e.clientY - sPanY; let nBgX = sBgX + dX, nBgY = sBgY + dY; const sW = lockScreen.clientWidth, sH = lockScreen.clientHeight, iW = currentWallpaperImg.naturalWidth, iH = currentWallpaperImg.naturalHeight; const sR = sW / sH, iR = iW / iH; let scW, scH; if (iR > sR) { scH = sH; scW = sH * iR; } else { scW = sW; scH = sW / iR; } const minX = sW - scW, minY = sH - scH; nBgX = Math.max(minX, Math.min(0, nBgX)); nBgY = Math.max(minY, Math.min(0, nBgY)); lockScreen.style.backgroundPosition = `${nBgX}px ${nBgY}px`; });
                 document.addEventListener('mouseup', () => { isDraggingWp = false; });
                 
+                // -- QR Code Upload Logic --
                 document.getElementById('qr-upload-btn').addEventListener('click', () => {
-                    const session = `session_${Date.now()}`;
+                    if (NPOINT_BIN_ID === 'PASTE_YOUR_NPOINT_BIN_ID_HERE') { alert('Error: npoint.io Bin ID is not set in the script.'); return; }
+                    const session = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
                     const uploadUrl = `${window.location.href.split('?')[0]}?upload=true&session=${session}`;
+                    
                     const qrCodeContainer = document.getElementById('qr-code');
                     qrCodeContainer.innerHTML = '';
                     new QRCode(qrCodeContainer, { text: uploadUrl, width: 200, height: 200 });
+                    
                     qrModal.style.display = 'flex';
                     startPolling(session);
                 });
@@ -393,33 +188,25 @@ This is the most stable and robust version yet. It should resolve the issues you
 
                 function startPolling(session) {
                     pollingInterval = setInterval(() => {
-                        fetch(`https://api.npoint.io/${NPOINT_BIN_ID}`).then(r => r.json()).then(data => {
-                            if (data[session]) {
-                                clearInterval(pollingInterval); qrModal.style.display = 'none';
-                                const newWp = { url: data[session], position: 'center center' };
-                                const wps = getWps(); if (!wps.some(w => w.url === newWp.url)) { wps.push(newWp); saveWps(wps); }
-                                setWp(newWp); renderWpChoices();
-                            }
-                        });
-                    }, 2500);
+                        fetch(`https://api.npoint.io/${NPOINT_BIN_ID}`)
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data[session]) {
+                                    clearInterval(pollingInterval);
+                                    qrModal.style.display = 'none';
+                                    const newWp = { url: data[session], position: 'center center' };
+                                    const wps = getWps();
+                                    if (!wps.some(w => w.url === newWp.url)) {
+                                        wps.push(newWp); saveWps(wps);
+                                    }
+                                    setWp(newWp);
+                                    renderWpChoices();
+                                }
+                            });
+                    }, 2500); // Check every 2.5 seconds
                 }
 
-                // NEW: Clear Storage Button Logic
-                document.getElementById('clear-storage-btn').addEventListener('click', () => {
-                    if (confirm('Are you sure you want to delete all saved wallpapers and reset icon positions?')) {
-                        localStorage.removeItem('lockscreenWallpapers_v2');
-                        localStorage.removeItem('lockscreenItemPositions');
-                        // Also remove any very old versions to be safe
-                        localStorage.removeItem('lockscreenWallpapers');
-                        
-                        alert('All data has been cleared. The page will now use default settings.');
-                        
-                        // Re-initialize the view
-                        renderWpChoices();
-                        setWp(initialWallpaper);
-                    }
-                });
-
+                // -- Final Menu Setup & Initial Load --
                 document.getElementById('weather-info').addEventListener('dblclick', () => wallpaperMenu.classList.add('visible'));
                 document.getElementById('close-menu-btn').addEventListener('click', () => wallpaperMenu.classList.remove('visible'));
                 wallpaperMenu.addEventListener('click', (e) => { if (e.target === wallpaperMenu) wallpaperMenu.classList.remove('visible'); });
