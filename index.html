@@ -38,7 +38,8 @@
         #qr-upload-btn { background-color: #0a84ff; color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-size: 0.9em; margin-top: 15px; }
         #qr-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); display: none; justify-content: center; align-items: center; z-index: 1001; }
         #qr-modal-content { background: #fff; padding: 25px; border-radius: 16px; text-align: center; color: #333; }
-        #qr-code { padding: 10px; background: white; margin-bottom: 15px; } #qr-code img { display: block; }
+        #qr-code { padding: 10px; background: white; margin-bottom: 15px; display: inline-block; } /* Added display property for better centering */
+        #qr-code img { display: block; margin: auto; } /* Ensure image inside is centered */
         #upload-view { display: none; justify-content: center; align-items: center; width: 100%; height: 100%; text-align: center; padding: 20px; }
         #upload-label { background-color: #0a84ff; color: white; padding: 20px 40px; border-radius: 12px; cursor: pointer; font-size: 1.2rem; }
         #upload-status { margin-top: 20px; font-size: 1.1rem; }
@@ -173,18 +174,37 @@
                 
                 // -- QR Code Upload Logic --
                 document.getElementById('qr-upload-btn').addEventListener('click', () => {
-                    if (NPOINT_BIN_ID === 'PASTE_YOUR_NPOINT_BIN_ID_HERE') { alert('Error: npoint.io Bin ID is not set in the script.'); return; }
+                    if (NPOINT_BIN_ID === 'PASTE_YOUR_NPOINT_BIN_ID_HERE') {
+                        alert('Error: npoint.io Bin ID is not set in the script.');
+                        return;
+                    }
                     const session = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
                     const uploadUrl = `${window.location.href.split('?')[0]}?upload=true&session=${session}`;
                     
                     const qrCodeContainer = document.getElementById('qr-code');
-                    qrCodeContainer.innerHTML = '';
-                    new QRCode(qrCodeContainer, { text: uploadUrl, width: 200, height: 200 });
-                    
+                    qrCodeContainer.innerHTML = ''; // Clear previous QR code
+
+                    // *** THE FIX ***
+                    // 1. Make the modal visible FIRST
                     qrModal.style.display = 'flex';
+                    
+                    // 2. NOW, generate the QR code in the visible container
+                    new QRCode(qrCodeContainer, {
+                        text: uploadUrl,
+                        width: 200,
+                        height: 200
+                    });
+                    
                     startPolling(session);
                 });
-                qrModal.addEventListener('click', () => { qrModal.style.display = 'none'; clearInterval(pollingInterval); });
+
+                // Close modal and stop polling when the background is clicked
+                qrModal.addEventListener('click', (e) => {
+                    if (e.target === qrModal) {
+                        qrModal.style.display = 'none';
+                        clearInterval(pollingInterval);
+                    }
+                });
 
                 function startPolling(session) {
                     pollingInterval = setInterval(() => {
