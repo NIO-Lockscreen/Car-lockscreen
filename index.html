@@ -42,7 +42,6 @@
         #upload-view { display: none; justify-content: center; align-items: center; width: 100%; height: 100%; padding: 20px; }
         #upload-status { margin-top: 20px; font-size: 1.1rem; min-height: 1.2em; }
         
-        /* NEW STYLES for Phone URL Input view */
         #phone-url-container { display: flex; flex-direction: column; width: 90%; max-width: 400px; gap: 15px; text-align: center; }
         #phone-url-container h2 { color: #f2f2f7; }
         #phone-url-container p { color: #aeb0b5; font-size: 0.9rem; margin-bottom: 5px; }
@@ -63,7 +62,7 @@
     <div id="wallpaper-menu">
         <div class="menu-content">
             <button id="close-menu-btn">×</button><h2>Change Wallpaper</h2>
-            <p>Paste an image URL below or upload from phone.</p>
+            <p>Paste an image URL below or add from phone.</p>
             <input type="text" id="wallpaper-url-input" placeholder="https://example.com/image.jpg">
             <button id="qr-upload-btn">Add from Phone</button>
             <h3>Your Wallpapers</h3><div id="wallpaper-choices"></div>
@@ -97,15 +96,13 @@
             // --- Core Page Logic (Router) ---
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.has('upload') && urlParams.has('session')) {
-                // We are on the phone in UPLOAD MODE
-                document.body.style.backgroundColor = '#1a1a1a'; // Match theme
+                document.body.style.backgroundColor = '#1a1a1a';
                 document.getElementById('lock-screen').style.display = 'none';
                 document.getElementById('wallpaper-menu').style.display = 'none';
                 document.getElementById('qr-modal').style.display = 'none';
                 document.getElementById('upload-view').style.display = 'flex';
                 handlePhoneUpload(urlParams.get('session'));
             } else {
-                // We are on the PC in LOCKSCREEN MODE
                 initializeLockscreen();
             }
 
@@ -117,7 +114,6 @@
 
                 submitBtn.addEventListener('click', () => {
                     const imageUrl = urlInput.value.trim();
-
                     if (!imageUrl || !imageUrl.startsWith('http')) {
                         statusElem.textContent = 'Please enter a valid image URL.';
                         return;
@@ -127,7 +123,9 @@
                     submitBtn.disabled = true;
 
                     fetch(`https://api.npoint.io/${NPOINT_BIN_ID}`, {
-                        method: 'POST',
+                        // *** THE FIX IS HERE ***
+                        // Use PUT to replace the data in the bin, ensuring it's always clean.
+                        method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ [session]: imageUrl })
                     })
@@ -135,9 +133,7 @@
                         if (response.ok) {
                             statusElem.textContent = 'Success! You can close this window.';
                             urlInput.disabled = true;
-                        } else {
-                            throw new Error('Failed to update PC.');
-                        }
+                        } else { throw new Error('Failed to update PC.'); }
                     })
                     .catch(error => {
                         statusElem.textContent = `Error: ${error.message}`;
@@ -192,6 +188,7 @@
                 
                 // -- QR Code Upload Logic --
                 document.getElementById('qr-upload-btn').addEventListener('click', () => {
+                    if (pollingInterval) clearInterval(pollingInterval);
                     const session = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
                     const uploadUrl = `${window.location.href.split('?')[0]}?upload=true&session=${session}`;
                     const qrCodeContainer = document.getElementById('qr-code');
@@ -204,8 +201,6 @@
 
                 function startPolling(session) {
                     pollingInterval = setInterval(() => {
-                        // *** THE FIX IS HERE ***
-                        // Added { cache: 'no-cache' } to prevent the browser from using old, stale data
                         fetch(`https://api.npoint.io/${NPOINT_BIN_ID}`, { cache: 'no-cache' })
                             .then(response => response.json())
                             .then(data => {
@@ -221,10 +216,7 @@
                                     renderWpChoices();
                                 }
                             })
-                            .catch(err => {
-                                // Added a catch block to prevent silent failures if npoint is empty/invalid json
-                                console.log("Polling... waiting for data.");
-                            });
+                            .catch(err => { console.log("Polling... waiting for data."); });
                     }, 2500);
                 }
 
