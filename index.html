@@ -109,7 +109,7 @@
                 initializeLockscreen();
             }
 
-            // --- PHONE UPLOAD MODE (NEW VERSION) ---
+            // --- PHONE UPLOAD MODE ---
             function handlePhoneUpload(session) {
                 const urlInput = document.getElementById('phone-url-input');
                 const submitBtn = document.getElementById('phone-url-submit');
@@ -124,7 +124,7 @@
                     }
 
                     statusElem.textContent = 'Sending to PC...';
-                    submitBtn.disabled = true; // Prevent multiple clicks
+                    submitBtn.disabled = true;
 
                     fetch(`https://api.npoint.io/${NPOINT_BIN_ID}`, {
                         method: 'POST',
@@ -134,14 +134,14 @@
                     .then(response => {
                         if (response.ok) {
                             statusElem.textContent = 'Success! You can close this window.';
-                            urlInput.disabled = true; // Also disable input
+                            urlInput.disabled = true;
                         } else {
                             throw new Error('Failed to update PC.');
                         }
                     })
                     .catch(error => {
                         statusElem.textContent = `Error: ${error.message}`;
-                        submitBtn.disabled = false; // Allow user to try again
+                        submitBtn.disabled = false;
                     });
                 });
             }
@@ -204,10 +204,12 @@
 
                 function startPolling(session) {
                     pollingInterval = setInterval(() => {
-                        fetch(`https://api.npoint.io/${NPOINT_BIN_ID}`)
+                        // *** THE FIX IS HERE ***
+                        // Added { cache: 'no-cache' } to prevent the browser from using old, stale data
+                        fetch(`https://api.npoint.io/${NPOINT_BIN_ID}`, { cache: 'no-cache' })
                             .then(response => response.json())
                             .then(data => {
-                                if (data[session]) {
+                                if (data && data[session]) {
                                     clearInterval(pollingInterval);
                                     qrModal.style.display = 'none';
                                     const newWp = { url: data[session], position: 'center center' };
@@ -218,6 +220,10 @@
                                     setWp(newWp);
                                     renderWpChoices();
                                 }
+                            })
+                            .catch(err => {
+                                // Added a catch block to prevent silent failures if npoint is empty/invalid json
+                                console.log("Polling... waiting for data.");
                             });
                     }, 2500);
                 }
