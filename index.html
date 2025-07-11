@@ -141,7 +141,7 @@
                 const funModeCheckbox = document.getElementById('fun-mode-checkbox');
                 let lastKnownFirstStockPrice = null;
 
-                const getStockSymbols = () => JSON.parse(localStorage.getItem('lockscreenStockSymbols')) || ['TSLA', 'GOOGL', 'AKBA'];
+                const getStockSymbols = () => JSON.parse(localStorage.getItem('lockscreenStockSymbols')) || ['NIO'];
                 const saveStockSymbols = (symbols) => localStorage.setItem('lockscreenStockSymbols', JSON.stringify(symbols));
                 const getFunModeState = () => localStorage.getItem('lockscreenFunModeEnabled') === 'true';
                 const saveFunModeState = (isEnabled) => localStorage.setItem('lockscreenFunModeEnabled', isEnabled);
@@ -220,7 +220,7 @@
                     loadPos();
                     fetchWeather(); setInterval(fetchWeather, 30 * 60 * 1000);
                     updateStockWidget(); setInterval(updateStockWidget, 60000);
-                    checkFunModeTrigger(); setInterval(checkFunModeTrigger, 60 * 1000); // Set to 1 minute
+                    checkFunModeTrigger(); setInterval(checkFunModeTrigger, 60 * 1000);
                 })();
                 
                 const getWps = () => JSON.parse(localStorage.getItem('lockscreenWallpapers_v2')) || [initialWallpaper];
