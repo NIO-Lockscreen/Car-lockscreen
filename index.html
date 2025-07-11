@@ -11,10 +11,7 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html, body { height: 100%; width: 100%; overflow: hidden; font-family: 'Roboto', sans-serif; }
         body { background-color: #1a1a1a; color: white; text-align: center; }
-
-        /* CHANGE #1 IS HERE */
         #lock-screen { position: relative; width: 100vw; height: 100vh; background-image: url('https://images.pexels.com/photos/807598/pexels-photo-807598.jpeg'); background-size: cover; background-position: center center; overflow: hidden; transition: background-image 0.5s ease-in-out; text-align: left; }
-        
         #lock-screen.panning-active { cursor: grab; } #lock-screen.panning-active:active { cursor: grabbing; }
         #status-bar { position: absolute; top: 20px; right: 30px; font-size: 1rem; text-shadow: 1px 1px 3px rgba(0,0,0,0.6); z-index: 20; }
         #weather-info { display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; padding: 10px 15px; border-radius: 12px; transition: background-color 0.2s; background-color: rgba(0, 0, 0, 0.2); }
@@ -77,10 +74,7 @@
             const clock = document.getElementById('clock');
             const wallpaperMenu = document.getElementById('wallpaper-menu');
             const qrModal = document.getElementById('qr-modal');
-            
-            // CHANGE #2 IS HERE
             const initialWallpaper = { url: 'https://images.pexels.com/photos/807598/pexels-photo-807598.jpeg', position: 'center center' };
-
             let isPanningMode = false, currentWallpaperImg = new Image(), pollingInterval;
 
             const urlParams = new URLSearchParams(window.location.search);
@@ -104,7 +98,12 @@
                     if (!imageUrl || !imageUrl.startsWith('http')) { statusElem.textContent = 'Please enter a valid image URL.'; return; }
                     statusElem.textContent = 'Sending to PC...';
                     submitBtn.disabled = true;
-                    fetch(`https://api.npoint.io/${NPOINT_BIN_ID}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ [session]: imageUrl }) })
+                    // THE FIX IS HERE
+                    fetch(`https://api.npoint.io/${NPOINT_BIN_ID}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'text/plain' }, // Changed to text/plain to avoid CORS preflight issues
+                        body: JSON.stringify({ [session]: imageUrl })
+                    })
                     .then(r => { if (r.ok) { statusElem.textContent = 'Success!'; urlInput.disabled = true; } else { throw new Error('Failed to update PC.'); } })
                     .catch(e => { statusElem.textContent = `Error: ${e.message}`; submitBtn.disabled = false; });
                 });
