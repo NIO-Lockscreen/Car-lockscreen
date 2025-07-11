@@ -98,10 +98,10 @@
                     if (!imageUrl || !imageUrl.startsWith('http')) { statusElem.textContent = 'Please enter a valid image URL.'; return; }
                     statusElem.textContent = 'Sending to PC...';
                     submitBtn.disabled = true;
-                    // THE FIX IS HERE
+                    // THE FIX IS HERE: Reverted to POST, which is a "simple" method and avoids preflight failures.
                     fetch(`https://api.npoint.io/${NPOINT_BIN_ID}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'text/plain' }, // Changed to text/plain to avoid CORS preflight issues
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ [session]: imageUrl })
                     })
                     .then(r => { if (r.ok) { statusElem.textContent = 'Success!'; urlInput.disabled = true; } else { throw new Error('Failed to update PC.'); } })
@@ -114,11 +114,7 @@
                 const STOCK_SYMBOLS = ['TSLA', 'GOOGL', 'AKBA'];
 
                 function updateStockWidget() {
-                    if (!FINNHUB_API_KEY || FINNHUB_API_KEY.includes('PASTE')) {
-                        console.error("Finnhub API key is not set.");
-                        document.querySelectorAll('.stock-price').forEach(el => el.textContent = 'No Key');
-                        return;
-                    }
+                    if (!FINNHUB_API_KEY || FINNHUB_API_KEY.includes('PASTE')) { console.error("Finnhub API key is not set."); document.querySelectorAll('.stock-price').forEach(el => el.textContent = 'No Key'); return; }
                     STOCK_SYMBOLS.forEach(symbol => {
                         fetch(`https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${FINNHUB_API_KEY}`)
                             .then(response => response.json())
