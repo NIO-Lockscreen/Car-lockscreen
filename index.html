@@ -133,7 +133,6 @@
 
                 const FINNHUB_API_KEY = 'd1obuihr01qtrav0d5sgd1obuihr01qtrav0d5t0';
                 
-                // Stock and Fun Mode Section
                 const stockWidget = document.getElementById('stock-widget');
                 const stockEditorMenu = document.getElementById('stock-editor-menu');
                 const closeStockEditorBtn = document.getElementById('close-stock-editor-btn');
@@ -157,19 +156,13 @@
                     if (!getFunModeState()) return;
                     const firstStock = getStockSymbols()[0];
                     if (!firstStock) return;
-
                     fetch(`https://finnhub.io/api/v1/quote?symbol=${firstStock}&token=${FINNHUB_API_KEY}`)
                         .then(r => r.json()).then(data => {
                             if (!data || typeof data.c === 'undefined') return;
                             const currentPrice = data.c;
                             if (lastKnownFirstStockPrice !== null && lastKnownFirstStockPrice !== currentPrice) {
-                                if (currentPrice > lastKnownFirstStockPrice) {
-                                    triggerScreenFlash(true);
-                                    triggerIconShower(true);
-                                } else {
-                                    triggerScreenFlash(false);
-                                    triggerIconShower(false);
-                                }
+                                if (currentPrice > lastKnownFirstStockPrice) { triggerScreenFlash(true); triggerIconShower(true); } 
+                                else { triggerScreenFlash(false); triggerIconShower(false); }
                             }
                             lastKnownFirstStockPrice = currentPrice;
                         });
@@ -226,8 +219,8 @@
                     
                     loadPos();
                     fetchWeather(); setInterval(fetchWeather, 30 * 60 * 1000);
-                    updateStockWidget(); setInterval(updateStockWidget, 60000); // 1-minute update for display
-                    checkFunModeTrigger(); setInterval(checkFunModeTrigger, 5 * 60 * 1000); // 5-minute update for fun
+                    updateStockWidget(); setInterval(updateStockWidget, 60000);
+                    checkFunModeTrigger(); setInterval(checkFunModeTrigger, 60 * 1000); // Set to 1 minute
                 })();
                 
                 const getWps = () => JSON.parse(localStorage.getItem('lockscreenWallpapers_v2')) || [initialWallpaper];
@@ -247,6 +240,22 @@
                 
                 renderWpChoices();
                 const lastWp = getWps().slice(-1)[0] || initialWallpaper; setWp(lastWp);
+
+                // --- Keyboard listener for testing Fun Mode ---
+                document.addEventListener('keydown', (e) => {
+                    if (!getFunModeState()) return;
+                    if (e.key === 'ArrowUp') {
+                        e.preventDefault(); 
+                        console.log("Simulating stock GAIN with ArrowUp.");
+                        triggerScreenFlash(true);
+                        triggerIconShower(true);
+                    } else if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        console.log("Simulating stock LOSS with ArrowDown.");
+                        triggerScreenFlash(false);
+                        triggerIconShower(false);
+                    }
+                });
             }
         });
     </script>
