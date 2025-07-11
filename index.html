@@ -12,7 +12,9 @@
         html, body { height: 100%; width: 100%; overflow: hidden; font-family: 'Roboto', sans-serif; }
         body { background-color: #1a1a1a; color: white; text-align: center; }
 
-        #lock-screen { position: relative; width: 100vw; height: 100vh; background-image: url('https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?auto=format&fit=crop&w=1950'); background-size: cover; background-position: center center; overflow: hidden; transition: background-image 0.5s ease-in-out; text-align: left; }
+        /* CHANGE #1 IS HERE */
+        #lock-screen { position: relative; width: 100vw; height: 100vh; background-image: url('https://images.pexels.com/photos/807598/pexels-photo-807598.jpeg'); background-size: cover; background-position: center center; overflow: hidden; transition: background-image 0.5s ease-in-out; text-align: left; }
+        
         #lock-screen.panning-active { cursor: grab; } #lock-screen.panning-active:active { cursor: grabbing; }
         #status-bar { position: absolute; top: 20px; right: 30px; font-size: 1rem; text-shadow: 1px 1px 3px rgba(0,0,0,0.6); z-index: 20; }
         #weather-info { display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; padding: 10px 15px; border-radius: 12px; transition: background-color 0.2s; background-color: rgba(0, 0, 0, 0.2); }
@@ -23,34 +25,12 @@
         .app-icon { width: 70px; height: 70px; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.4)); transition: transform 0.2s ease; } .app-icon:active { transform: scale(1.1); }
         .app-icon svg { width: 100%; height: 100%; }
         #youtube-music-btn { top: 60%; left: calc(50% - 100px); } #youtube-btn { top: 60%; left: calc(50% + 30px); }
-
-        /* Styles for the new Stock Widget */
-        #stock-widget {
-            position: absolute;
-            top: 75%;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: rgba(0, 0, 0, 0.2);
-            padding: 10px 15px;
-            border-radius: 12px;
-            color: white;
-            font-family: 'Roboto', sans-serif;
-            font-size: 1rem;
-            text-shadow: 1px 1px 3px rgba(0,0,0,0.6);
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            min-width: 190px;
-            backdrop-filter: blur(5px);
-            -webkit-backdrop-filter: blur(5px);
-        }
+        #stock-widget { position: absolute; top: 75%; left: 50%; transform: translateX(-50%); background-color: rgba(0, 0, 0, 0.2); padding: 10px 15px; border-radius: 12px; color: white; font-family: 'Roboto', sans-serif; font-size: 1rem; text-shadow: 1px 1px 3px rgba(0,0,0,0.6); display: flex; flex-direction: column; gap: 8px; min-width: 190px; backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); }
         .stock-row { display: flex; justify-content: space-between; align-items: center; }
         .stock-info { display: flex; align-items: center; gap: 10px; font-weight: 500; letter-spacing: 0.5px;}
         .stock-price { font-family: 'Roboto Mono', monospace; font-weight: 500; font-size: 1.1rem; }
         .stock-info .fa-caret-up { color: #4CAF50; }
         .stock-info .fa-caret-down { color: #F44336; }
-
-        /* Remaining unchanged styles */
         #wallpaper-menu { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); display: none; justify-content: center; align-items: center; z-index: 1000; opacity: 0; transition: opacity 0.3s ease; } #wallpaper-menu.visible { display: flex; opacity: 1; }
         .menu-content { background-color: #2c2c2e; padding: 30px; border-radius: 20px; width: 90%; max-width: 500px; color: #f2f2f7; text-align: center; position: relative; box-shadow: 0 5px 25px rgba(0,0,0,0.5); transform: scale(0.95); transition: transform 0.3s ease; } #wallpaper-menu.visible .menu-content { transform: scale(1); }
         #close-menu-btn { position: absolute; top: 10px; right: 15px; background: none; border: none; color: #aaa; font-size: 2rem; cursor: pointer; line-height: 1; }
@@ -80,8 +60,6 @@
         <div id="clock" class="draggable-item" title="Drag to move, double-click for fullscreen"><div id="hours">00</div><div id="minutes">00</div></div>
         <div id="youtube-music-btn" class="draggable-item app-icon"><a href="https://music.youtube.com/" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="50" fill="#FF0000"/><circle cx="50" cy="50" r="23" fill="none" stroke="white" stroke-width="4"/><polygon points="43,38 62,50 43,62" fill="white"/></svg></a></div>
         <div id="youtube-btn" class="draggable-item app-icon"><a href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="50" fill="#FF0000"/><path d="M 35,29 A 10,10 0 0 0 25,39 V 61 A 10,10 0 0 0 35,71 H 65 A 10,10 0 0 0 75,61 V 39 A 10,10 0 0 0 65,29 Z" fill="white"/><polygon points="45,42 62,50 45,58" fill="#FF0000"/></svg></a></div>
-        
-        <!-- New Stock Widget HTML -->
         <div id="stock-widget" class="draggable-item">
             <div class="stock-row" data-symbol="TSLA"><div class="stock-info"><i class="fa-solid"></i> TSLA</div><span class="stock-price">...</span></div>
             <div class="stock-row" data-symbol="GOOGL"><div class="stock-info"><i class="fa-solid"></i> GOOGL</div><span class="stock-price">...</span></div>
@@ -99,7 +77,10 @@
             const clock = document.getElementById('clock');
             const wallpaperMenu = document.getElementById('wallpaper-menu');
             const qrModal = document.getElementById('qr-modal');
-            const initialWallpaper = { url: 'https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?auto=format&fit=crop&w=1950', position: 'center center' };
+            
+            // CHANGE #2 IS HERE
+            const initialWallpaper = { url: 'https://images.pexels.com/photos/807598/pexels-photo-807598.jpeg', position: 'center center' };
+
             let isPanningMode = false, currentWallpaperImg = new Image(), pollingInterval;
 
             const urlParams = new URLSearchParams(window.location.search);
@@ -130,11 +111,9 @@
             }
 
             function initializeLockscreen() {
-                // New Stock Widget configuration
-                const FINNHUB_API_KEY = 'd1obuihr01qtrav0d5sgd1obuihr01qtrav0d5t0'; // API KEY IS ADDED
+                const FINNHUB_API_KEY = 'd1obuihr01qtrav0d5sgd1obuihr01qtrav0d5t0';
                 const STOCK_SYMBOLS = ['TSLA', 'GOOGL', 'AKBA'];
 
-                // New function to update the stock widget
                 function updateStockWidget() {
                     if (!FINNHUB_API_KEY || FINNHUB_API_KEY.includes('PASTE')) {
                         console.error("Finnhub API key is not set.");
@@ -150,7 +129,7 @@
                                 const priceEl = row.querySelector('.stock-price');
                                 const iconEl = row.querySelector('i');
                                 priceEl.textContent = (symbol === 'AKBA') ? data.c.toFixed(3) : data.c.toFixed(2);
-                                iconEl.className = 'fa-solid'; // Reset class
+                                iconEl.className = 'fa-solid';
                                 if (data.d > 0) iconEl.classList.add('fa-caret-up');
                                 else if (data.d < 0) iconEl.classList.add('fa-caret-down');
                             }).catch(error => console.error(`Error fetching ${symbol}:`, error));
@@ -158,12 +137,10 @@
                 }
 
                 (function setupBaseFeatures() {
-                    // Added 'stock-widget' to the list of draggable items
                     const DRAGGABLE_ELEMENT_IDS = ['clock', 'youtube-music-btn', 'youtube-btn', 'stock-widget'];
                     const timeElems = { h: document.getElementById('hours'), m: document.getElementById('minutes'), d: document.getElementById('date') };
                     const weatherElems = { t: document.getElementById('temperature'), i: document.getElementById('weather-icon') };
                     let clockScale = 1;
-
                     const updateTime = () => { const n = new Date(); timeElems.h.textContent = String(n.getHours()).padStart(2, '0'); timeElems.m.textContent = String(n.getMinutes()).padStart(2, '0'); timeElems.d.textContent = n.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }); };
                     const applyClockScale = (scale) => { const baseSizeVW = 15; const newSize = baseSizeVW * scale; timeElems.h.style.fontSize = `clamp(${newSize * 0.4}rem, ${newSize}vw, ${newSize * 0.8}rem)`; timeElems.m.style.fontSize = `clamp(${newSize * 0.4}rem, ${newSize}vw, ${newSize * 0.8}rem)`; clockScale = scale; };
                     const savePos = () => { const p = {}; DRAGGABLE_ELEMENT_IDS.forEach(id => { const e = document.getElementById(id); if (e) { p[id] = { t: e.style.top, l: e.style.left }; if (id === 'clock') { p[id].s = clockScale; } } }); localStorage.setItem('lockscreenItemPositions', JSON.stringify(p)); };
@@ -177,13 +154,9 @@
                     
                     loadPos();
                     fetchWeather(); setInterval(fetchWeather, 30 * 60 * 1000);
-                    
-                    // Start the stock widget updates
-                    updateStockWidget();
-                    setInterval(updateStockWidget, 60000); // Update stocks every 60 seconds
+                    updateStockWidget(); setInterval(updateStockWidget, 60000);
                 })();
                 
-                // All other functions are unchanged
                 const getWps = () => JSON.parse(localStorage.getItem('lockscreenWallpapers_v2')) || [initialWallpaper];
                 const saveWps = (wps) => localStorage.setItem('lockscreenWallpapers_v2', JSON.stringify(wps));
                 const setWp = (wpObj) => { exitPanningMode(); lockScreen.style.backgroundImage = `url('${wpObj.url}')`; lockScreen.style.backgroundPosition = wpObj.position || 'center center'; currentWallpaperImg.src = wpObj.url; };
