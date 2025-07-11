@@ -47,12 +47,14 @@
         #qr-code { padding: 10px; background: white; margin-bottom: 15px; display: inline-block; } #qr-code img { display: block; margin: auto; }
         #upload-view { display: none; justify-content: center; align-items: center; width: 100%; height: 100%; padding: 20px; }
         #upload-status { margin-top: 20px; font-size: 1.1rem; min-height: 1.2em; }
-        #phone-url-container { display: flex; flex-direction: column; width: 90%; max-width: 400px; gap: 15px; text-align: center; }
-        #phone-url-container h2 { color: #f2f2f7; }
-        #phone-url-container p { color: #aeb0b5; font-size: 0.9rem; margin-bottom: 5px; }
+        #phone-upload-container { display: flex; flex-direction: column; width: 90%; max-width: 400px; gap: 10px; text-align: center; }
+        #phone-upload-container h2 { color: #f2f2f7; }
+        #phone-upload-container p { color: #aeb0b5; font-size: 0.9rem; margin: 0; }
         #phone-url-input { width: 100%; padding: 15px; border-radius: 10px; border: 1px solid #555; background-color: #3a3a3c; color: white; font-size: 1rem; outline: none; }
         #phone-url-submit { background-color: #0a84ff; color: white; border: none; padding: 15px 20px; border-radius: 10px; cursor: pointer; font-size: 1.1rem; font-weight: 500; }
         #phone-url-submit:disabled { background-color: #555; cursor: not-allowed; }
+        #upload-label { display: inline-block; background-color: #34c759; color: white; padding: 15px 20px; border-radius: 10px; cursor: pointer; font-size: 1.1rem; font-weight: 500; }
+        .separator-text { margin: 5px 0; font-style: italic; color: #888; }
     </style>
 </head>
 <body>
@@ -64,19 +66,9 @@
         <div id="stock-widget" class="draggable-item" title="Double-click to edit stocks"></div>
     </div>
     <div id="wallpaper-menu"><div class="menu-content"><button id="close-menu-btn">×</button><h2>Change Wallpaper</h2><p>Paste an image URL below or add from phone.</p><input type="text" id="wallpaper-url-input" placeholder="https://example.com/image.jpg"><button id="qr-upload-btn">Add from Phone</button><h3>Your Wallpapers</h3><div id="wallpaper-choices"></div></div></div>
-    
-    <div id="stock-editor-menu">
-        <div class="menu-content">
-            <button id="close-stock-editor-btn">×</button>
-            <h2>Edit Stock Symbols</h2>
-            <p>Enter up to 7 stock symbols, separated by commas.</p>
-            <input type="text" id="stock-symbols-input" placeholder="TSLA, GOOGL, AKBA...">
-            <button id="save-stocks-btn">Save and Update</button>
-        </div>
-    </div>
-    
+    <div id="stock-editor-menu"><div class="menu-content"><button id="close-stock-editor-btn">×</button><h2>Edit Stock Symbols</h2><p>Enter up to 7 stock symbols, separated by commas.</p><input type="text" id="stock-symbols-input" placeholder="TSLA, GOOGL, AKBA..."><button id="save-stocks-btn">Save and Update</button></div></div>
     <div id="qr-modal"><div id="qr-modal-content"><h2>Scan with your phone</h2><div id="qr-code"></div><p>Scan to send an image URL from your phone.</p></div></div>
-    <div id="upload-view"><div id="phone-url-container"><h2>Enter Image URL</h2><p>Find an image on your phone, copy its URL, and paste it below.</p><input type="url" id="phone-url-input" placeholder="https://example.com/image.jpg"><button id="phone-url-submit">Set as Wallpaper</button><h2 id="upload-status"></h2></div></div>
+    <div id="upload-view"><div id="phone-upload-container"><h2>Add Wallpaper from Phone</h2><label for="file-input" id="upload-label">Tap to Upload Image</label><input type="file" id="file-input" accept="image/*" style="display: none;"><p class="separator-text">... or ...</p><p>Paste an image URL below</p><input type="url" id="phone-url-input" placeholder="https://example.com/image.jpg"><button id="phone-url-submit">Use this URL</button><h2 id="upload-status"></h2></div></div>
     
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -91,10 +83,10 @@
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.has('upload') && urlParams.has('session')) {
                 document.body.style.backgroundColor = '#1a1a1a';
-                document.getElementById('lock-screen').style.display = 'none';
-                document.getElementById('wallpaper-menu').style.display = 'none';
-                document.getElementById('stock-editor-menu').style.display = 'none';
-                document.getElementById('qr-modal').style.display = 'none';
+                ['lock-screen', 'wallpaper-menu', 'stock-editor-menu', 'qr-modal'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.style.display = 'none';
+                });
                 document.getElementById('upload-view').style.display = 'flex';
                 handlePhoneUpload(urlParams.get('session'));
             } else {
@@ -102,26 +94,61 @@
             }
 
             function handlePhoneUpload(session) {
+                const IMGBB_API_KEY = '4418969a1a33c4e2ea690d835d915e52';
+                const fileInput = document.getElementById('file-input');
                 const urlInput = document.getElementById('phone-url-input');
-                const submitBtn = document.getElementById('phone-url-submit');
+                const urlSubmitBtn = document.getElementById('phone-url-submit');
                 const statusElem = document.getElementById('upload-status');
-                submitBtn.addEventListener('click', () => {
-                    const imageUrl = urlInput.value.trim();
-                    if (!imageUrl || !imageUrl.startsWith('http')) { statusElem.textContent = 'Please enter a valid image URL.'; return; }
+                const uploadLabel = document.getElementById('upload-label');
+
+                const sendUrlToLockscreen = (imageUrl) => {
                     statusElem.textContent = 'Sending to PC...';
-                    submitBtn.disabled = true;
+                    fileInput.disabled = true;
+                    urlInput.disabled = true;
+                    urlSubmitBtn.disabled = true;
+                    uploadLabel.style.backgroundColor = '#555';
+
                     fetch(`https://api.npoint.io/${NPOINT_BIN_ID}`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ [session]: imageUrl })
                     })
-                    .then(r => { if (r.ok) { statusElem.textContent = 'Success!'; urlInput.disabled = true; } else { throw new Error('Failed to update PC.'); } })
-                    .catch(e => { statusElem.textContent = `Error: ${e.message}`; submitBtn.disabled = false; });
+                    .then(r => { if (r.ok) { statusElem.textContent = 'Success! You can close this window.'; } else { throw new Error('Failed to update PC.'); } })
+                    .catch(e => {
+                        statusElem.textContent = `Error: ${e.message}`;
+                        fileInput.disabled = false;
+                        urlInput.disabled = false;
+                        urlSubmitBtn.disabled = false;
+                        uploadLabel.style.backgroundColor = '#34c759';
+                    });
+                };
+
+                fileInput.addEventListener('change', (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+
+                    statusElem.textContent = 'Uploading to ImgBB...';
+                    const formData = new FormData();
+                    formData.append('key', IMGBB_API_KEY);
+                    formData.append('image', file);
+
+                    fetch('https://api.imgbb.com/1/upload', { method: 'POST', body: formData })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) { sendUrlToLockscreen(data.data.url); }
+                            else { throw new Error(data.error.message || 'ImgBB upload failed.'); }
+                        })
+                        .catch(error => { statusElem.textContent = `Error: ${error.message}`; });
+                });
+
+                urlSubmitBtn.addEventListener('click', () => {
+                    const imageUrl = urlInput.value.trim();
+                    if (!imageUrl || !imageUrl.startsWith('http')) { statusElem.textContent = 'Please enter a valid image URL.'; return; }
+                    sendUrlToLockscreen(imageUrl);
                 });
             }
 
             function initializeLockscreen() {
-                // --- Stock Widget Configuration ---
                 const FINNHUB_API_KEY = 'd1obuihr01qtrav0d5sgd1obuihr01qtrav0d5t0';
                 const stockWidget = document.getElementById('stock-widget');
                 const stockEditorMenu = document.getElementById('stock-editor-menu');
@@ -134,54 +161,32 @@
 
                 function updateStockWidget() {
                     const symbols = getStockSymbols();
-                    stockWidget.innerHTML = ''; // Clear existing rows
-
-                    if (!FINNHUB_API_KEY || FINNHUB_API_KEY.includes('PASTE')) {
-                        stockWidget.innerHTML = '<div class="stock-row"><span>NO API KEY</span></div>';
-                        return;
-                    }
-
+                    stockWidget.innerHTML = '';
+                    if (!FINNHUB_API_KEY || FINNHUB_API_KEY.includes('PASTE')) { stockWidget.innerHTML = '<div class="stock-row"><span>NO API KEY</span></div>'; return; }
                     symbols.forEach(symbol => {
                         const row = document.createElement('div');
                         row.className = 'stock-row';
                         row.innerHTML = `<div class="stock-info"><i class="fa-solid"></i> ${symbol}</div><span class="stock-price">...</span>`;
                         stockWidget.appendChild(row);
-
                         fetch(`https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${FINNHUB_API_KEY}`)
                             .then(response => response.json())
                             .then(data => {
-                                if (!data || typeof data.c === 'undefined') {
-                                    row.querySelector('.stock-price').textContent = 'N/A';
-                                    return;
-                                }
+                                if (!data || typeof data.c === 'undefined') { row.querySelector('.stock-price').textContent = 'N/A'; return; }
                                 const priceEl = row.querySelector('.stock-price');
                                 const iconEl = row.querySelector('i');
                                 priceEl.textContent = (data.c < 10) ? data.c.toFixed(3) : data.c.toFixed(2);
                                 iconEl.className = 'fa-solid';
                                 if (data.d > 0) iconEl.classList.add('fa-caret-up');
                                 else if (data.d < 0) iconEl.classList.add('fa-caret-down');
-                            }).catch(error => {
-                                console.error(`Error fetching ${symbol}:`, error);
-                                row.querySelector('.stock-price').textContent = 'Error';
-                            });
+                            }).catch(error => { console.error(`Error fetching ${symbol}:`, error); row.querySelector('.stock-price').textContent = 'Error'; });
                     });
                 }
 
-                stockWidget.addEventListener('dblclick', () => {
-                    stockSymbolsInput.value = getStockSymbols().join(', ');
-                    stockEditorMenu.classList.add('visible');
-                });
-
+                stockWidget.addEventListener('dblclick', () => { stockSymbolsInput.value = getStockSymbols().join(', '); stockEditorMenu.classList.add('visible'); });
                 const closeStockEditor = () => stockEditorMenu.classList.remove('visible');
                 closeStockEditorBtn.addEventListener('click', closeStockEditor);
                 stockEditorMenu.addEventListener('click', (e) => { if (e.target === stockEditorMenu) closeStockEditor(); });
-
-                saveStocksBtn.addEventListener('click', () => {
-                    const newSymbols = stockSymbolsInput.value.split(',').map(s => s.trim().toUpperCase()).filter(s => s.length > 0).slice(0, 7);
-                    saveStockSymbols(newSymbols);
-                    updateStockWidget();
-                    closeStockEditor();
-                });
+                saveStocksBtn.addEventListener('click', () => { const newSymbols = stockSymbolsInput.value.split(',').map(s => s.trim().toUpperCase()).filter(s => s.length > 0).slice(0, 7); saveStockSymbols(newSymbols); updateStockWidget(); closeStockEditor(); });
 
                 (function setupBaseFeatures() {
                     const DRAGGABLE_ELEMENT_IDS = ['clock', 'youtube-music-btn', 'youtube-btn', 'stock-widget'];
