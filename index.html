@@ -28,10 +28,14 @@
         .stock-price { font-family: 'Roboto Mono', monospace; font-weight: 500; font-size: 1.1rem; }
         .stock-info .fa-caret-up { color: #4CAF50; }
         .stock-info .fa-caret-down { color: #F44336; }
-        #wallpaper-menu { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); display: none; justify-content: center; align-items: center; z-index: 1000; opacity: 0; transition: opacity 0.3s ease; } #wallpaper-menu.visible { display: flex; opacity: 1; }
-        .menu-content { background-color: #2c2c2e; padding: 30px; border-radius: 20px; width: 90%; max-width: 500px; color: #f2f2f7; text-align: center; position: relative; box-shadow: 0 5px 25px rgba(0,0,0,0.5); transform: scale(0.95); transition: transform 0.3s ease; } #wallpaper-menu.visible .menu-content { transform: scale(1); }
-        #close-menu-btn { position: absolute; top: 10px; right: 15px; background: none; border: none; color: #aaa; font-size: 2rem; cursor: pointer; line-height: 1; }
-        #wallpaper-url-input { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 10px; border: 1px solid #555; background-color: #3a3a3c; color: white; font-size: 1rem; outline: none; }
+        #wallpaper-menu, #stock-editor-menu { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); display: none; justify-content: center; align-items: center; z-index: 1000; opacity: 0; transition: opacity 0.3s ease; }
+        #wallpaper-menu.visible, #stock-editor-menu.visible { display: flex; opacity: 1; }
+        .menu-content { background-color: #2c2c2e; padding: 30px; border-radius: 20px; width: 90%; max-width: 500px; color: #f2f2f7; text-align: center; position: relative; box-shadow: 0 5px 25px rgba(0,0,0,0.5); transform: scale(0.95); transition: transform 0.3s ease; }
+        #wallpaper-menu.visible .menu-content, #stock-editor-menu.visible .menu-content { transform: scale(1); }
+        #close-menu-btn, #close-stock-editor-btn { position: absolute; top: 10px; right: 15px; background: none; border: none; color: #aaa; font-size: 2rem; cursor: pointer; line-height: 1; }
+        #wallpaper-url-input, #stock-symbols-input { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 10px; border: 1px solid #555; background-color: #3a3a3c; color: white; font-size: 1rem; outline: none; }
+        #stock-symbols-input { margin: 10px 0; text-transform: uppercase; }
+        #save-stocks-btn { background-color: #0a84ff; color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-size: 0.9em; margin-top: 10px; }
         #wallpaper-choices { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 10px; max-height: 200px; overflow-y: auto; padding: 10px; background-color: #1c1c1e; border-radius: 10px; }
         .wallpaper-thumbnail { position: relative; width: 100%; padding-bottom: 100%; background-size: cover; background-position: center; border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: border-color 0.2s, transform 0.2s; }
         .wallpaper-thumbnail:hover { border-color: #0a84ff; transform: scale(1.05); }
@@ -57,13 +61,20 @@
         <div id="clock" class="draggable-item" title="Drag to move, double-click for fullscreen"><div id="hours">00</div><div id="minutes">00</div></div>
         <div id="youtube-music-btn" class="draggable-item app-icon"><a href="https://music.youtube.com/" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="50" fill="#FF0000"/><circle cx="50" cy="50" r="23" fill="none" stroke="white" stroke-width="4"/><polygon points="43,38 62,50 43,62" fill="white"/></svg></a></div>
         <div id="youtube-btn" class="draggable-item app-icon"><a href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="50" fill="#FF0000"/><path d="M 35,29 A 10,10 0 0 0 25,39 V 61 A 10,10 0 0 0 35,71 H 65 A 10,10 0 0 0 75,61 V 39 A 10,10 0 0 0 65,29 Z" fill="white"/><polygon points="45,42 62,50 45,58" fill="#FF0000"/></svg></a></div>
-        <div id="stock-widget" class="draggable-item">
-            <div class="stock-row" data-symbol="TSLA"><div class="stock-info"><i class="fa-solid"></i> TSLA</div><span class="stock-price">...</span></div>
-            <div class="stock-row" data-symbol="GOOGL"><div class="stock-info"><i class="fa-solid"></i> GOOGL</div><span class="stock-price">...</span></div>
-            <div class="stock-row" data-symbol="AKBA"><div class="stock-info"><i class="fa-solid"></i> AKBA</div><span class="stock-price">...</span></div>
-        </div>
+        <div id="stock-widget" class="draggable-item" title="Double-click to edit stocks"></div>
     </div>
     <div id="wallpaper-menu"><div class="menu-content"><button id="close-menu-btn">×</button><h2>Change Wallpaper</h2><p>Paste an image URL below or add from phone.</p><input type="text" id="wallpaper-url-input" placeholder="https://example.com/image.jpg"><button id="qr-upload-btn">Add from Phone</button><h3>Your Wallpapers</h3><div id="wallpaper-choices"></div></div></div>
+    
+    <div id="stock-editor-menu">
+        <div class="menu-content">
+            <button id="close-stock-editor-btn">×</button>
+            <h2>Edit Stock Symbols</h2>
+            <p>Enter up to 7 stock symbols, separated by commas.</p>
+            <input type="text" id="stock-symbols-input" placeholder="TSLA, GOOGL, AKBA...">
+            <button id="save-stocks-btn">Save and Update</button>
+        </div>
+    </div>
+    
     <div id="qr-modal"><div id="qr-modal-content"><h2>Scan with your phone</h2><div id="qr-code"></div><p>Scan to send an image URL from your phone.</p></div></div>
     <div id="upload-view"><div id="phone-url-container"><h2>Enter Image URL</h2><p>Find an image on your phone, copy its URL, and paste it below.</p><input type="url" id="phone-url-input" placeholder="https://example.com/image.jpg"><button id="phone-url-submit">Set as Wallpaper</button><h2 id="upload-status"></h2></div></div>
     
@@ -82,6 +93,7 @@
                 document.body.style.backgroundColor = '#1a1a1a';
                 document.getElementById('lock-screen').style.display = 'none';
                 document.getElementById('wallpaper-menu').style.display = 'none';
+                document.getElementById('stock-editor-menu').style.display = 'none';
                 document.getElementById('qr-modal').style.display = 'none';
                 document.getElementById('upload-view').style.display = 'flex';
                 handlePhoneUpload(urlParams.get('session'));
@@ -98,7 +110,6 @@
                     if (!imageUrl || !imageUrl.startsWith('http')) { statusElem.textContent = 'Please enter a valid image URL.'; return; }
                     statusElem.textContent = 'Sending to PC...';
                     submitBtn.disabled = true;
-                    // THE FIX IS HERE: Reverted to POST, which is a "simple" method and avoids preflight failures.
                     fetch(`https://api.npoint.io/${NPOINT_BIN_ID}`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -110,26 +121,67 @@
             }
 
             function initializeLockscreen() {
+                // --- Stock Widget Configuration ---
                 const FINNHUB_API_KEY = 'd1obuihr01qtrav0d5sgd1obuihr01qtrav0d5t0';
-                const STOCK_SYMBOLS = ['TSLA', 'GOOGL', 'AKBA'];
+                const stockWidget = document.getElementById('stock-widget');
+                const stockEditorMenu = document.getElementById('stock-editor-menu');
+                const closeStockEditorBtn = document.getElementById('close-stock-editor-btn');
+                const saveStocksBtn = document.getElementById('save-stocks-btn');
+                const stockSymbolsInput = document.getElementById('stock-symbols-input');
+
+                const getStockSymbols = () => JSON.parse(localStorage.getItem('lockscreenStockSymbols')) || ['TSLA', 'GOOGL', 'AKBA'];
+                const saveStockSymbols = (symbols) => localStorage.setItem('lockscreenStockSymbols', JSON.stringify(symbols));
 
                 function updateStockWidget() {
-                    if (!FINNHUB_API_KEY || FINNHUB_API_KEY.includes('PASTE')) { console.error("Finnhub API key is not set."); document.querySelectorAll('.stock-price').forEach(el => el.textContent = 'No Key'); return; }
-                    STOCK_SYMBOLS.forEach(symbol => {
+                    const symbols = getStockSymbols();
+                    stockWidget.innerHTML = ''; // Clear existing rows
+
+                    if (!FINNHUB_API_KEY || FINNHUB_API_KEY.includes('PASTE')) {
+                        stockWidget.innerHTML = '<div class="stock-row"><span>NO API KEY</span></div>';
+                        return;
+                    }
+
+                    symbols.forEach(symbol => {
+                        const row = document.createElement('div');
+                        row.className = 'stock-row';
+                        row.innerHTML = `<div class="stock-info"><i class="fa-solid"></i> ${symbol}</div><span class="stock-price">...</span>`;
+                        stockWidget.appendChild(row);
+
                         fetch(`https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${FINNHUB_API_KEY}`)
                             .then(response => response.json())
                             .then(data => {
-                                const row = document.querySelector(`.stock-row[data-symbol="${symbol}"]`);
-                                if (!row || !data || typeof data.c === 'undefined') return;
+                                if (!data || typeof data.c === 'undefined') {
+                                    row.querySelector('.stock-price').textContent = 'N/A';
+                                    return;
+                                }
                                 const priceEl = row.querySelector('.stock-price');
                                 const iconEl = row.querySelector('i');
-                                priceEl.textContent = (symbol === 'AKBA') ? data.c.toFixed(3) : data.c.toFixed(2);
+                                priceEl.textContent = (data.c < 10) ? data.c.toFixed(3) : data.c.toFixed(2);
                                 iconEl.className = 'fa-solid';
                                 if (data.d > 0) iconEl.classList.add('fa-caret-up');
                                 else if (data.d < 0) iconEl.classList.add('fa-caret-down');
-                            }).catch(error => console.error(`Error fetching ${symbol}:`, error));
+                            }).catch(error => {
+                                console.error(`Error fetching ${symbol}:`, error);
+                                row.querySelector('.stock-price').textContent = 'Error';
+                            });
                     });
                 }
+
+                stockWidget.addEventListener('dblclick', () => {
+                    stockSymbolsInput.value = getStockSymbols().join(', ');
+                    stockEditorMenu.classList.add('visible');
+                });
+
+                const closeStockEditor = () => stockEditorMenu.classList.remove('visible');
+                closeStockEditorBtn.addEventListener('click', closeStockEditor);
+                stockEditorMenu.addEventListener('click', (e) => { if (e.target === stockEditorMenu) closeStockEditor(); });
+
+                saveStocksBtn.addEventListener('click', () => {
+                    const newSymbols = stockSymbolsInput.value.split(',').map(s => s.trim().toUpperCase()).filter(s => s.length > 0).slice(0, 7);
+                    saveStockSymbols(newSymbols);
+                    updateStockWidget();
+                    closeStockEditor();
+                });
 
                 (function setupBaseFeatures() {
                     const DRAGGABLE_ELEMENT_IDS = ['clock', 'youtube-music-btn', 'youtube-btn', 'stock-widget'];
@@ -140,7 +192,7 @@
                     const applyClockScale = (scale) => { const baseSizeVW = 15; const newSize = baseSizeVW * scale; timeElems.h.style.fontSize = `clamp(${newSize * 0.4}rem, ${newSize}vw, ${newSize * 0.8}rem)`; timeElems.m.style.fontSize = `clamp(${newSize * 0.4}rem, ${newSize}vw, ${newSize * 0.8}rem)`; clockScale = scale; };
                     const savePos = () => { const p = {}; DRAGGABLE_ELEMENT_IDS.forEach(id => { const e = document.getElementById(id); if (e) { p[id] = { t: e.style.top, l: e.style.left }; if (id === 'clock') { p[id].s = clockScale; } } }); localStorage.setItem('lockscreenItemPositions', JSON.stringify(p)); };
                     const loadPos = () => { const p = JSON.parse(localStorage.getItem('lockscreenItemPositions')); if (p) { Object.keys(p).forEach(id => { const e = document.getElementById(id); const pos = p[id]; if (e && pos.t && pos.l) { e.style.top = pos.t; e.style.left = pos.l; e.style.transform = 'none'; if (id === 'clock' && pos.s) { applyClockScale(pos.s); } } }); } };
-                    const makeDraggable = (el) => { let oX, oY, isD, hasM; let isPinching = false, initialPinchDist = 0, initialScale = 1; const getDist = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY); const mv = (e) => { if (isPinching && e.touches && e.touches.length === 2) { e.preventDefault(); const newDist = getDist(e.touches); const scaleRatio = newDist / initialPinchDist; applyClockScale(Math.max(0.5, Math.min(initialScale * scaleRatio, 3))); return; } if (!isD) return; e.preventDefault(); hasM = true; const cX = e.touches ? e.touches[0].clientX : e.clientX, cY = e.touches ? e.touches[0].clientY : e.clientY; let nX = cX - oX, nY = cY - oY; const sR = lockScreen.getBoundingClientRect(), eR = el.getBoundingClientRect(); nX = Math.max(0, Math.min(nX, sR.width - eR.width)); nY = Math.max(0, Math.min(nY, sR.height - eR.height)); el.style.left = `${nX}px`; el.style.top = `${nY}px`; el.style.transform = 'none'; }; const sD = (e) => { if (e.touches && e.touches.length === 2 && el.id === 'clock') { isPinching = true; isD = false; initialPinchDist = getDist(e.touches); initialScale = clockScale; return; } isD = true; hasM = false; const cX = e.touches ? e.touches[0].clientX : e.clientX, cY = e.touches ? e.touches[0].clientY : e.clientY; oX = cX - el.offsetLeft; oY = cY - el.offsetTop; document.addEventListener('mousemove', mv); document.addEventListener('touchmove', mv, { passive: false }); document.addEventListener('mouseup', stD); document.addEventListener('touchend', stD); }; const stD = () => { if (!isD && !isPinching) return; isD = false; isPinching = false; savePos(); document.removeEventListener('mousemove', mv); document.removeEventListener('touchmove', mv); document.removeEventListener('mouseup', stD); document.removeEventListener('touchend', stD); }; el.addEventListener('mousedown', sD); el.addEventListener('touchstart', sD, { passive: false }); const lnk = el.querySelector('a'); if (lnk) lnk.addEventListener('click', (e) => { if (hasM) e.preventDefault(); }); };
+                    const makeDraggable = (el) => { let oX, oY, isD, hasM; let isPinching = false, initialPinchDist = 0, initialScale = 1; const getDist = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY); const mv = (e) => { if (el.id === 'clock' && isPinching && e.touches && e.touches.length === 2) { e.preventDefault(); const newDist = getDist(e.touches); const scaleRatio = newDist / initialPinchDist; applyClockScale(Math.max(0.5, Math.min(initialScale * scaleRatio, 3))); return; } if (!isD) return; e.preventDefault(); hasM = true; const cX = e.touches ? e.touches[0].clientX : e.clientX, cY = e.touches ? e.touches[0].clientY : e.clientY; let nX = cX - oX, nY = cY - oY; const sR = lockScreen.getBoundingClientRect(), eR = el.getBoundingClientRect(); nX = Math.max(0, Math.min(nX, sR.width - eR.width)); nY = Math.max(0, Math.min(nY, sR.height - eR.height)); el.style.left = `${nX}px`; el.style.top = `${nY}px`; el.style.transform = 'none'; }; const sD = (e) => { if (e.touches && e.touches.length === 2 && el.id === 'clock') { isPinching = true; isD = false; initialPinchDist = getDist(e.touches); initialScale = clockScale; return; } isD = true; hasM = false; const cX = e.touches ? e.touches[0].clientX : e.clientX, cY = e.touches ? e.touches[0].clientY : e.clientY; oX = cX - el.offsetLeft; oY = cY - el.offsetTop; document.addEventListener('mousemove', mv); document.addEventListener('touchmove', mv, { passive: false }); document.addEventListener('mouseup', stD); document.addEventListener('touchend', stD); }; const stD = () => { if (!isD && !isPinching) return; isD = false; isPinching = false; savePos(); document.removeEventListener('mousemove', mv); document.removeEventListener('touchmove', mv); document.removeEventListener('mouseup', stD); document.removeEventListener('touchend', stD); }; el.addEventListener('mousedown', sD); el.addEventListener('touchstart', sD, { passive: false }); const lnk = el.querySelector('a'); if (lnk) lnk.addEventListener('click', (e) => { if (hasM) e.preventDefault(); }); };
                     
                     setInterval(updateTime, 1000); updateTime();
                     DRAGGABLE_ELEMENT_IDS.forEach(id => { const el = document.getElementById(id); if (el) makeDraggable(el); });
