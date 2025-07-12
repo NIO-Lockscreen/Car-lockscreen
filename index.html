@@ -80,7 +80,7 @@
         <div id="youtube-music-btn" class="draggable-item app-icon"><a href="https://music.youtube.com/" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="50" fill="#FF0000"/><circle cx="50" cy="50" r="23" fill="none" stroke="white" stroke-width="4"/><polygon points="43,38 62,50 43,62" fill="white"/></svg></a></div>
         <div id="youtube-btn" class="draggable-item app-icon"><a href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="50" fill="#FF0000"/><path d="M 35,29 A 10,10 0 0 0 25,39 V 61 A 10,10 0 0 0 35,71 H 65 A 10,10 0 0 0 75,61 V 39 A 10,10 0 0 0 65,29 Z" fill="white"/><polygon points="45,42 62,50 45,58" fill="#FF0000"/></svg></a></div>
         <div id="stock-widget" class="draggable-item" title="Double-click to edit stocks"></div>
-        <div id="settings-btn" class="draggable-item app-icon" title="Double-click for settings"><svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="7.5" fill="rgba(80, 80, 80, 0.6)"/><circle cx="8" cy="8" r="4" fill="none" stroke="white" stroke-width="1.5"/></svg></div>
+        <div id="settings-btn" class="draggable-item app-icon" title="Open settings"><svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="7.5" fill="rgba(80, 80, 80, 0.6)"/><circle cx="8" cy="8" r="4" fill="none" stroke="white" stroke-width="1.5"/></svg></div>
         <div id="unlock-prompt">Press to unlock</div>
     </div>
     <div id="settings-menu"><div class="menu-content"><button id="close-settings-btn">×</button><h2>Settings</h2><div class="settings-section"><h3>Weather Location</h3><p>Enter a city name or leave blank for auto-detection.</p><input type="text" id="weather-location-input" placeholder="e.g., London"></div><div class="settings-section"><h3>Wallpaper</h3><p>Paste an image URL below or add from phone.</p><input type="text" id="wallpaper-url-input" placeholder="https://example.com/image.jpg"><button id="qr-upload-btn">Add from Phone</button><h4>Your Wallpapers</h4><div id="wallpaper-choices"></div></div></div></div>
@@ -132,11 +132,9 @@
             function initializeLockscreen() {
                 const settingsMenu = document.getElementById('settings-menu');
                 const closeSettingsBtn = document.getElementById('close-settings-btn');
-                const openSettingsBtn = document.getElementById('settings-btn');
                 const fullscreenHint = document.getElementById('fullscreen-hint');
                 const unlockPrompt = document.getElementById('unlock-prompt');
 
-                openSettingsBtn.addEventListener('dblclick', () => settingsMenu.classList.add('visible'));
                 closeSettingsBtn.addEventListener('click', () => settingsMenu.classList.remove('visible'));
                 settingsMenu.addEventListener('click', (e) => { if (e.target === settingsMenu) settingsMenu.classList.remove('visible'); });
 
@@ -263,7 +261,7 @@
                     };
                     window.addEventListener('resize', repositionOffscreenElements);
 
-                    const makeDraggable = (el) => { let oX, oY, isD, hasM; let isPinching = false, initialPinchDist = 0, initialScale = 1; const getDist = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY); const mv = (e) => { if (el.id === 'clock' && isPinching && e.touches && e.touches.length === 2) { e.preventDefault(); const oldWidth = el.offsetWidth, oldHeight = el.offsetHeight, oldLeft = el.offsetLeft, oldTop = el.offsetTop; const newDist = getDist(e.touches); const scaleRatio = newDist / initialPinchDist; const newScale = Math.max(0.5, Math.min(initialScale * scaleRatio, 3)); applyClockScale(newScale); const newWidth = el.offsetWidth, newHeight = el.offsetHeight; const deltaWidth = newWidth - oldWidth, deltaHeight = newHeight - oldHeight; el.style.left = `${oldLeft - (deltaWidth / 2)}px`; el.style.top = `${oldTop - (deltaHeight / 2)}px`; return; } if (!isD) return; e.preventDefault(); hasM = true; const cX = e.touches ? e.touches[0].clientX : e.clientX, cY = e.touches ? e.touches[0].clientY : e.clientY; let nX = cX - oX, nY = cY - oY; const sR = lockScreen.getBoundingClientRect(), eR = el.getBoundingClientRect(); nX = Math.max(0, Math.min(nX, sR.width - eR.width)); nY = Math.max(0, Math.min(nY, sR.height - eR.height)); el.style.left = `${nX}px`; el.style.top = `${nY}px`; el.style.transform = 'none'; }; const sD = (e) => { if (e.touches && e.touches.length === 2 && el.id === 'clock') { isPinching = true; isD = false; initialPinchDist = getDist(e.touches); initialScale = clockScale; return; } isD = true; hasM = false; const cX = e.touches ? e.touches[0].clientX : e.clientX, cY = e.touches ? e.touches[0].clientY : e.clientY; oX = cX - el.offsetLeft; oY = cY - el.offsetTop; document.addEventListener('mousemove', mv, { passive: false }); document.addEventListener('touchmove', mv, { passive: false }); document.addEventListener('mouseup', stD); document.addEventListener('touchend', stD); }; const stD = () => { if (!isD && !isPinching) return; isD = false; isPinching = false; savePos(); document.removeEventListener('mousemove', mv); document.removeEventListener('touchmove', mv); document.removeEventListener('mouseup', stD); document.removeEventListener('touchend', stD); }; el.addEventListener('mousedown', sD); el.addEventListener('touchstart', sD, { passive: false }); const lnk = el.querySelector('a'); if (lnk) lnk.addEventListener('click', (e) => { if (hasM) e.preventDefault(); }); };
+                    const makeDraggable = (el) => { let oX, oY, isD, hasM; let isPinching = false, initialPinchDist = 0, initialScale = 1; const getDist = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY); const mv = (e) => { if (el.id === 'clock' && isPinching && e.touches && e.touches.length === 2) { e.preventDefault(); const oldWidth = el.offsetWidth, oldHeight = el.offsetHeight, oldLeft = el.offsetLeft, oldTop = el.offsetTop; const newDist = getDist(e.touches); const scaleRatio = newDist / initialPinchDist; const newScale = Math.max(0.5, Math.min(initialScale * scaleRatio, 3)); applyClockScale(newScale); const newWidth = el.offsetWidth, newHeight = el.offsetHeight; const deltaWidth = newWidth - oldWidth, deltaHeight = newHeight - oldHeight; el.style.left = `${oldLeft - (deltaWidth / 2)}px`; el.style.top = `${oldTop - (deltaHeight / 2)}px`; return; } if (!isD) return; e.preventDefault(); hasM = true; const cX = e.touches ? e.touches[0].clientX : e.clientX, cY = e.touches ? e.touches[0].clientY : e.clientY; let nX = cX - oX, nY = cY - oY; const sR = lockScreen.getBoundingClientRect(), eR = el.getBoundingClientRect(); nX = Math.max(0, Math.min(nX, sR.width - eR.width)); nY = Math.max(0, Math.min(nY, sR.height - eR.height)); el.style.left = `${nX}px`; el.style.top = `${nY}px`; el.style.transform = 'none'; }; const sD = (e) => { if (e.touches && e.touches.length === 2 && el.id === 'clock') { isPinching = true; isD = false; initialPinchDist = getDist(e.touches); initialScale = clockScale; return; } isD = true; hasM = false; const cX = e.touches ? e.touches[0].clientX : e.clientX, cY = e.touches ? e.touches[0].clientY : e.clientY; oX = cX - el.offsetLeft; oY = cY - el.offsetTop; document.addEventListener('mousemove', mv, { passive: false }); document.addEventListener('touchmove', mv, { passive: false }); document.addEventListener('mouseup', stD); document.addEventListener('touchend', stD); }; const stD = () => { if (!isD && !isPinching) return; isD = false; isPinching = false; savePos(); document.removeEventListener('mousemove', mv); document.removeEventListener('touchmove', mv); document.removeEventListener('mouseup', stD); document.removeEventListener('touchend', stD); }; el.addEventListener('mousedown', sD); el.addEventListener('touchstart', sD, { passive: false }); const lnk = el.querySelector('a'); if (lnk) lnk.addEventListener('click', (e) => { if (hasM) e.preventDefault(); }); if(el.id === 'settings-btn') { el.addEventListener('click', (e) => { if (!hasM) { settingsMenu.classList.add('visible'); } }); } };
                     
                     setInterval(updateTime, 1000); updateTime();
                     DRAGGABLE_ELEMENT_IDS.forEach(id => { const el = document.getElementById(id); if (el) makeDraggable(el); });
@@ -327,7 +325,6 @@
                     nBgY = Math.max(minY, Math.min(0, nBgY));
                     lockScreen.style.backgroundPosition = `${nBgX}px ${nBgY}px`;
                 };
-
                 const interactionEnd = () => {
                     clearTimeout(pressHoldTimer);
                     if (isPanningMode) {
@@ -339,9 +336,7 @@
                     document.removeEventListener('touchend', interactionEnd);
                     document.removeEventListener('mousemove', clearHoldTimer);
                 };
-                const clearHoldTimer = () => {
-                    clearTimeout(pressHoldTimer);
-                };
+                const clearHoldTimer = () => { clearTimeout(pressHoldTimer); };
                 const interactionStart = (e) => {
                     if (e.target.closest('.draggable-item')) return;
                     
@@ -354,15 +349,14 @@
 
                     clearTimeout(pressHoldTimer);
                     pressHoldTimer = setTimeout(() => {
-                       isPanningMode = true;
-                       isDraggingWp = true;
+                       isPanningMode = true; isDraggingWp = true;
                        lockScreen.classList.add('panning-active');
                        const bgPos = window.getComputedStyle(lockScreen).backgroundPosition.split(' ');
                        sBgX = parseFloat(bgPos[0]); sBgY = parseFloat(bgPos[1]);
                        sPanX = e.touches ? e.touches[0].clientX : e.clientX; sPanY = e.touches ? e.touches[0].clientY : e.clientY;
                        document.addEventListener('mousemove', panMove);
                        document.addEventListener('touchmove', panMove);
-                    }, 500); // 500ms for hold
+                    }, 500);
 
                     document.addEventListener('mousemove', clearHoldTimer, { once: true });
                 };
