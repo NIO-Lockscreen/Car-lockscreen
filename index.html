@@ -42,6 +42,10 @@
         .wallpaper-thumbnail:hover { border-color: #0a84ff; transform: scale(1.05); }
         .remove-thumb-btn { position: absolute; top: 2px; right: 2px; width: 20px; height: 20px; background-color: rgba(0,0,0,0.6); color: white; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 14px; line-height: 20px; font-family: sans-serif; cursor: pointer; opacity: 0; transition: opacity 0.2s; }
         .wallpaper-thumbnail:hover .remove-thumb-btn { opacity: 1; }
+        #fullscreen-hint { position: absolute; top: 70px; left: 50%; transform: translateX(-50%); background-color: rgba(0,0,0,0.4); padding: 8px 15px; border-radius: 12px; color: #f0f0f0; text-shadow: 1px 1px 3px rgba(0,0,0,0.5); opacity: 1; transition: opacity 1s ease-out; z-index: 25; pointer-events: none; }
+        #fullscreen-hint.hidden { opacity: 0; }
+        #unlock-prompt { position: absolute; bottom: 20%; left: 50%; transform: translateX(-50%); color: white; font-size: 1.3rem; font-weight: 500; text-shadow: 1px 1px 8px rgba(0,0,0,0.8); user-select: none; cursor: pointer; opacity: 0; pointer-events: none; transition: opacity 0.7s ease; z-index: 25; }
+        #unlock-prompt.visible { opacity: 1; pointer-events: auto; }
         #qr-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); display: none; justify-content: center; align-items: center; z-index: 1001; }
         #qr-modal-content { background: #fff; padding: 25px; border-radius: 16px; text-align: center; color: #333; }
         #qr-code { padding: 10px; background: white; margin-bottom: 15px; display: inline-block; } #qr-code img { display: block; margin: auto; }
@@ -71,11 +75,13 @@
 <body>
     <div id="lock-screen">
         <div id="status-bar"><div id="weather-info"><span id="date"></span> <i id="weather-icon" class="fa-solid fa-cloud-sun"></i> <span id="temperature">...</span></div></div>
-        <div id="clock" class="draggable-item" title="Double-click for fullscreen"><div id="hours">00</div><div id="minutes">00</div></div>
+        <div id="fullscreen-hint">Double press wallpaper for fullscreen</div>
+        <div id="clock" class="draggable-item"><div id="hours">00</div><div id="minutes">00</div></div>
         <div id="youtube-music-btn" class="draggable-item app-icon"><a href="https://music.youtube.com/" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="50" fill="#FF0000"/><circle cx="50" cy="50" r="23" fill="none" stroke="white" stroke-width="4"/><polygon points="43,38 62,50 43,62" fill="white"/></svg></a></div>
         <div id="youtube-btn" class="draggable-item app-icon"><a href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="50" fill="#FF0000"/><path d="M 35,29 A 10,10 0 0 0 25,39 V 61 A 10,10 0 0 0 35,71 H 65 A 10,10 0 0 0 75,61 V 39 A 10,10 0 0 0 65,29 Z" fill="white"/><polygon points="45,42 62,50 45,58" fill="#FF0000"/></svg></a></div>
         <div id="stock-widget" class="draggable-item" title="Double-click to edit stocks"></div>
         <div id="settings-btn" class="draggable-item app-icon" title="Double-click for settings"><svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="7.5" fill="rgba(80, 80, 80, 0.6)"/><circle cx="8" cy="8" r="4" fill="none" stroke="white" stroke-width="1.5"/></svg></div>
+        <div id="unlock-prompt">Press to unlock</div>
     </div>
     <div id="settings-menu"><div class="menu-content"><button id="close-settings-btn">×</button><h2>Settings</h2><div class="settings-section"><h3>Weather Location</h3><p>Enter a city name or leave blank for auto-detection.</p><input type="text" id="weather-location-input" placeholder="e.g., London"></div><div class="settings-section"><h3>Wallpaper</h3><p>Paste an image URL below or add from phone.</p><input type="text" id="wallpaper-url-input" placeholder="https://example.com/image.jpg"><button id="qr-upload-btn">Add from Phone</button><h4>Your Wallpapers</h4><div id="wallpaper-choices"></div></div></div></div>
     <div id="stock-editor-menu"><div class="menu-content"><button id="close-stock-editor-btn">×</button><h2>Edit Stock Symbols</h2><p>Enter up to 7 stock symbols, separated by commas.</p><input type="text" id="stock-symbols-input" placeholder="TSLA, GOOGL, AKBA..."><div class="fun-mode-toggle"><label for="fun-mode-checkbox">Fun Mode 🎉</label><input type="checkbox" id="fun-mode-checkbox"></div><button id="save-stocks-btn">Save and Update</button></div></div>
@@ -91,7 +97,7 @@
             const clock = document.getElementById('clock');
             const qrModal = document.getElementById('qr-modal');
             const initialWallpaper = { url: 'https://images.pexels.com/photos/807598/pexels-photo-807598.jpeg', position: 'center center' };
-            let isPanningMode = false, currentWallpaperImg = new Image(), pollingInterval, clickTimer;
+            let isPanningMode = false, currentWallpaperImg = new Image(), pollingInterval, clickTimer, inactivityTimer, pressHoldTimer;
             let hasMovedWp = false;
 
             const urlParams = new URLSearchParams(window.location.search);
@@ -127,6 +133,9 @@
                 const settingsMenu = document.getElementById('settings-menu');
                 const closeSettingsBtn = document.getElementById('close-settings-btn');
                 const openSettingsBtn = document.getElementById('settings-btn');
+                const fullscreenHint = document.getElementById('fullscreen-hint');
+                const unlockPrompt = document.getElementById('unlock-prompt');
+
                 openSettingsBtn.addEventListener('dblclick', () => settingsMenu.classList.add('visible'));
                 closeSettingsBtn.addEventListener('click', () => settingsMenu.classList.remove('visible'));
                 settingsMenu.addEventListener('click', (e) => { if (e.target === settingsMenu) settingsMenu.classList.remove('visible'); });
@@ -238,7 +247,6 @@
                         }
                     };
                     
-                    // --- NEW: Failsafe to reposition elements if they go off-screen on resize ---
                     const repositionOffscreenElements = () => {
                         const screenRect = lockScreen.getBoundingClientRect();
                         let positionWasAdjusted = false;
@@ -246,27 +254,12 @@
                             const el = document.getElementById(id);
                             if (!el) return;
                             const elRect = el.getBoundingClientRect();
-                            if (elRect.right > screenRect.right) {
-                                el.style.left = `${screenRect.width - elRect.width}px`;
-                                positionWasAdjusted = true;
-                            }
-                            if (elRect.bottom > screenRect.bottom) {
-                                el.style.top = `${screenRect.height - elRect.height}px`;
-                                positionWasAdjusted = true;
-                            }
-                            if (elRect.left < screenRect.left) {
-                                el.style.left = '0px';
-                                positionWasAdjusted = true;
-                            }
-                            if (elRect.top < screenRect.top) {
-                                el.style.top = '0px';
-                                positionWasAdjusted = true;
-                            }
+                            if (elRect.right > screenRect.right) { el.style.left = `${screenRect.width - elRect.width}px`; positionWasAdjusted = true; }
+                            if (elRect.bottom > screenRect.bottom) { el.style.top = `${screenRect.height - elRect.height}px`; positionWasAdjusted = true; }
+                            if (elRect.left < screenRect.left) { el.style.left = '0px'; positionWasAdjusted = true; }
+                            if (elRect.top < screenRect.top) { el.style.top = '0px'; positionWasAdjusted = true; }
                         });
-                        // If we had to move anything, save the new safe positions
-                        if (positionWasAdjusted) {
-                            savePos();
-                        }
+                        if (positionWasAdjusted) { savePos(); }
                     };
                     window.addEventListener('resize', repositionOffscreenElements);
 
@@ -274,7 +267,6 @@
                     
                     setInterval(updateTime, 1000); updateTime();
                     DRAGGABLE_ELEMENT_IDS.forEach(id => { const el = document.getElementById(id); if (el) makeDraggable(el); });
-                    clock.addEventListener('dblclick', () => { if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); });
                     
                     loadPos();
                     fetchWeather(); setInterval(fetchWeather, 30 * 60 * 1000);
@@ -289,26 +281,89 @@
                 document.getElementById('wallpaper-url-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') { const url = e.target.value.trim(); if (url.match(/\.(jpeg|jpg|gif|png|webp)$/i)) { const wps = getWps(); if (!wps.some(w => w.url === url)) { const newWp = { url: url, position: 'center center' }; wps.push(newWp); saveWps(wps); setWp(newWp); renderWpChoices(); } e.target.value = ''; settingsMenu.classList.remove('visible'); } else { alert('Invalid URL.'); } } });
                 function exitPanningMode() { if (!isPanningMode) return; isPanningMode = false; lockScreen.classList.remove('panning-active'); const url = currentWallpaperImg.src; const wps = getWps(); const idx = wps.findIndex(w => w.url === url); if (idx > -1) { wps[idx].position = lockScreen.style.backgroundPosition; saveWps(wps); } }
 
+                const resetInactivityPrompts = () => {
+                    clearTimeout(inactivityTimer);
+                    unlockPrompt.classList.remove('visible');
+                    fullscreenHint.classList.add('hidden');
+                    inactivityTimer = setTimeout(() => {
+                        unlockPrompt.classList.add('visible');
+                        if (!document.fullscreenElement) {
+                            fullscreenHint.classList.remove('hidden');
+                        }
+                    }, 60000);
+                };
+                ['mousemove', 'mousedown', 'keydown'].forEach(evt => document.addEventListener(evt, resetInactivityPrompts));
+                resetInactivityPrompts();
+                unlockPrompt.addEventListener('click', () => { if (document.fullscreenElement) document.exitFullscreen(); });
+                
                 lockScreen.addEventListener('click', (e) => {
-                    if (e.target.closest('.draggable-item') || hasMovedWp) return;
-                    if (document.fullscreenElement) {
-                        clearTimeout(clickTimer);
-                        clickTimer = setTimeout(() => { document.exitFullscreen(); }, 250);
-                    }
+                    if (e.target.closest('.draggable-item') || e.target === unlockPrompt || hasMovedWp) return;
+                    if (isPanningMode) { exitPanningMode(); return; }
+                    if (document.fullscreenElement) { clearTimeout(clickTimer); clickTimer = setTimeout(() => { document.exitFullscreen(); }, 250); }
                 });
                 lockScreen.addEventListener('dblclick', (e) => {
-                    clearTimeout(clickTimer);
+                    clearTimeout(clickTimer); clearTimeout(pressHoldTimer);
                     if (e.target.closest('.draggable-item')) return;
-                    if (isPanningMode) { exitPanningMode(); } 
-                    else { const sW = lockScreen.clientWidth, sH = lockScreen.clientHeight, iW = currentWallpaperImg.naturalWidth, iH = currentWallpaperImg.naturalHeight; if (iW > sW || iH > sH) { isPanningMode = true; lockScreen.classList.add('panning-active'); } }
+                    if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen();
                 });
                 
+                // --- REWORKED PANNING LOGIC ---
                 let isDraggingWp = false, sPanX, sPanY, sBgX, sBgY;
-                const panMove = (e) => { if (!isDraggingWp) return; hasMovedWp = true; e.preventDefault(); const cX = e.touches ? e.touches[0].clientX : e.clientX; const cY = e.touches ? e.touches[0].clientY : e.clientY; const dX = cX - sPanX, dY = cY - sPanY; let nBgX = sBgX + dX, nBgY = sBgY + dY; const sW = lockScreen.clientWidth, sH = lockScreen.clientHeight; const iW = currentWallpaperImg.naturalWidth, iH = currentWallpaperImg.naturalHeight; const sR = sW / sH, iR = iW / iH; let scW, scH; if (iR > sR) { scH = sH; scW = sH * iR; } else { scW = sW; scH = sW / iR; } const minX = sW - scW, minY = sH - scH; nBgX = Math.max(minX, Math.min(0, nBgX)); nBgY = Math.max(minY, Math.min(0, nBgY)); lockScreen.style.backgroundPosition = `${nBgX}px ${nBgY}px`; };
-                const stopPan = () => { isDraggingWp = false; document.removeEventListener('mousemove', panMove); document.removeEventListener('mouseup', stopPan); document.removeEventListener('touchmove', panMove); document.removeEventListener('touchend', stopPan); };
-                const startPan = (e) => { if (!isPanningMode || e.target !== lockScreen) return; hasMovedWp = false; isDraggingWp = true; e.preventDefault(); const bgPos = window.getComputedStyle(lockScreen).backgroundPosition.split(' '); sBgX = parseFloat(bgPos[0]); sBgY = parseFloat(bgPos[1]); sPanX = e.touches ? e.touches[0].clientX : e.clientX; sPanY = e.touches ? e.touches[0].clientY : e.clientY; document.addEventListener('mousemove', panMove); document.addEventListener('mouseup', stopPan); document.addEventListener('touchmove', panMove); document.addEventListener('touchend', stopPan); };
-                lockScreen.addEventListener('mousedown', startPan);
-                lockScreen.addEventListener('touchstart', startPan, { passive: false });
+                const panMove = (e) => {
+                    if (!isPanningMode) return;
+                    clearTimeout(pressHoldTimer);
+                    hasMovedWp = true;
+                    e.preventDefault();
+                    const cX = e.touches ? e.touches[0].clientX : e.clientX;
+                    const cY = e.touches ? e.touches[0].clientY : e.clientY;
+                    const dX = cX - sPanX, dY = cY - sPanY;
+                    let nBgX = sBgX + dX, nBgY = sBgY + dY;
+                    const sW = lockScreen.clientWidth, sH = lockScreen.clientHeight;
+                    const iW = currentWallpaperImg.naturalWidth, iH = currentWallpaperImg.naturalHeight;
+                    const sR = sW / sH, iR = iW / iH;
+                    let scW, scH;
+                    if (iR > sR) { scH = sH; scW = sH * iR; } else { scW = sW; scH = sW / iR; }
+                    const minX = sW - scW, minY = sH - scH;
+                    nBgX = Math.max(minX, Math.min(0, nBgX));
+                    nBgY = Math.max(minY, Math.min(0, nBgY));
+                    lockScreen.style.backgroundPosition = `${nBgX}px ${nBgY}px`;
+                };
+                const interactionEnd = () => {
+                    clearTimeout(pressHoldTimer);
+                    document.removeEventListener('mousemove', panMove);
+                    document.removeEventListener('mouseup', interactionEnd);
+                    document.removeEventListener('touchmove', panMove);
+                    document.removeEventListener('touchend', interactionEnd);
+                };
+                const interactionStart = (e) => {
+                    if (e.target.closest('.draggable-item')) return;
+                    
+                    const sW = lockScreen.clientWidth, sH = lockScreen.clientHeight, iW = currentWallpaperImg.naturalWidth, iH = currentWallpaperImg.naturalHeight;
+                    if (iW <= sW && iH <= sH && !isPanningMode) return;
+
+                    hasMovedWp = false;
+                    
+                    const bgPos = window.getComputedStyle(lockScreen).backgroundPosition.split(' ');
+                    sBgX = parseFloat(bgPos[0]);
+                    sBgY = parseFloat(bgPos[1]);
+                    sPanX = e.touches ? e.touches[0].clientX : e.clientX;
+                    sPanY = e.touches ? e.touches[0].clientY : e.clientY;
+                    
+                    document.addEventListener('mousemove', panMove);
+                    document.addEventListener('mouseup', interactionEnd);
+                    document.addEventListener('touchmove', panMove);
+                    document.addEventListener('touchend', interactionEnd);
+
+                    clearTimeout(pressHoldTimer);
+                    if (!isPanningMode) {
+                        pressHoldTimer = setTimeout(() => {
+                           isPanningMode = true;
+                           lockScreen.classList.add('panning-active');
+                        }, 500); // 500ms for hold
+                    }
+                };
+                lockScreen.addEventListener('mousedown', interactionStart);
+                lockScreen.addEventListener('touchstart', interactionStart, { passive: false });
 
                 document.getElementById('qr-upload-btn').addEventListener('click', () => { if (pollingInterval) clearInterval(pollingInterval); const session = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`; const uploadUrl = `${window.location.href.split('?')[0]}?upload=true&session=${session}`; const qrCodeContainer = document.getElementById('qr-code'); qrCodeContainer.innerHTML = ''; qrModal.style.display = 'flex'; new QRCode(qrCodeContainer, { text: uploadUrl, width: 200, height: 200 }); startPolling(session); });
                 qrModal.addEventListener('click', (e) => { if (e.target === qrModal) { qrModal.style.display = 'none'; clearInterval(pollingInterval); } });
