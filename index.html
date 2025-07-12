@@ -327,8 +327,8 @@
                 const getWps = () => JSON.parse(localStorage.getItem('lockscreenWallpapers_v2')) || [initialWallpaper];
                 const saveWps = (wps) => localStorage.setItem('lockscreenWallpapers_v2', JSON.stringify(wps));
                 const setWp = (wpObj) => { exitPanningMode(); lockScreen.style.backgroundImage = `url('${wpObj.url}')`; lockScreen.style.backgroundPosition = wpObj.position || 'center center'; currentWallpaperImg.src = wpObj.url; };
-                const renderWpChoices = () => { const cont = document.getElementById('wallpaper-choices'); cont.innerHTML = ''; getWps().forEach(wp => { const thumb = document.createElement('div'); thumb.className = 'wallpaper-thumbnail'; thumb.style.backgroundImage = `url('${wp.url}')`; const rmvBtn = document.createElement('span'); rmvBtn.className = 'remove-thumb-btn'; rmvBtn.innerHTML = '×'; rmvBtn.title = 'Remove wallpaper'; rmvBtn.addEventListener('click', (e) => { e.stopPropagation(); const newWps = getWps().filter(w => w.url !== wp.url); saveWps(newWps); renderWpChoices(); }); thumb.appendChild(rmvBtn); thumb.addEventListener('click', () => { setWp(wp); settingsMenu.classList.remove('visible'); }); cont.appendChild(thumb); }); };
-                document.getElementById('wallpaper-url-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') { const url = e.target.value.trim(); if (url.match(/\.(jpeg|jpg|gif|png|webp)$/i)) { const wps = getWps(); if (!wps.some(w => w.url === url)) { const newWp = { url: url, position: 'center center' }; wps.push(newWp); saveWps(wps); setWp(newWp); renderWpChoices(); } e.target.value = ''; settingsMenu.classList.remove('visible'); } else { alert('Invalid URL.'); } } });
+                const renderWpChoices = () => { const cont = document.getElementById('wallpaper-choices'); cont.innerHTML = ''; getWps().forEach(wp => { const thumb = document.createElement('div'); thumb.className = 'wallpaper-thumbnail'; thumb.style.backgroundImage = `url('${wp.url}')`; const rmvBtn = document.createElement('span'); rmvBtn.className = 'remove-thumb-btn'; rmvBtn.innerHTML = '×'; rmvBtn.title = 'Remove wallpaper'; rmvBtn.addEventListener('click', (e) => { e.stopPropagation(); const newWps = getWps().filter(w => w.url !== wp.url); saveWps(newWps); renderWpChoices(); }); thumb.appendChild(rmvBtn); thumb.addEventListener('click', () => { setWp(wp); localStorage.setItem('lockscreenLastSelectedWp', wp.url); settingsMenu.classList.remove('visible'); }); cont.appendChild(thumb); }); };
+                document.getElementById('wallpaper-url-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') { const url = e.target.value.trim(); if (url.match(/\.(jpeg|jpg|gif|png|webp)$/i)) { const wps = getWps(); if (!wps.some(w => w.url === url)) { const newWp = { url: url, position: 'center center' }; wps.push(newWp); saveWps(wps); setWp(newWp); localStorage.setItem('lockscreenLastSelectedWp', newWp.url); renderWpChoices(); } e.target.value = ''; settingsMenu.classList.remove('visible'); } else { alert('Invalid URL.'); } } });
                 function exitPanningMode() { if (!isPanningMode) return; isPanningMode = false; lockScreen.classList.remove('panning-active'); const url = currentWallpaperImg.src; const wps = getWps(); const idx = wps.findIndex(w => w.url === url); if (idx > -1) { wps[idx].position = lockScreen.style.backgroundPosition; saveWps(wps); } }
 
                 const resetInactivityPrompts = () => {
@@ -359,35 +359,8 @@
                 });
                 
                 let isDraggingWp = false, sPanX, sPanY, sBgX, sBgY;
-                const panMove = (e) => {
-                    if (!isDraggingWp) return;
-                    hasMovedWp = true;
-                    e.preventDefault();
-                    const cX = e.touches ? e.touches[0].clientX : e.clientX;
-                    const cY = e.touches ? e.touches[0].clientY : e.clientY;
-                    const dX = cX - sPanX, dY = cY - sPanY;
-                    let nBgX = sBgX + dX, nBgY = sBgY + dY;
-                    const sW = lockScreen.clientWidth, sH = lockScreen.clientHeight;
-                    const iW = currentWallpaperImg.naturalWidth, iH = currentWallpaperImg.naturalHeight;
-                    const sR = sW / sH, iR = iW / iH;
-                    let scW, scH;
-                    if (iR > sR) { scH = sH; scW = sH * iR; } else { scW = sW; scH = sW / iR; }
-                    const minX = sW - scW, minY = sH - scH;
-                    nBgX = Math.max(minX, Math.min(0, nBgX));
-                    nBgY = Math.max(minY, Math.min(0, nBgY));
-                    lockScreen.style.backgroundPosition = `${nBgX}px ${nBgY}px`;
-                };
-                const interactionEnd = () => {
-                    clearTimeout(pressHoldTimer);
-                    if (isPanningMode) {
-                        isDraggingWp = false;
-                        document.removeEventListener('mousemove', panMove);
-                        document.removeEventListener('touchmove', panMove);
-                    }
-                    document.removeEventListener('mouseup', interactionEnd);
-                    document.removeEventListener('touchend', interactionEnd);
-                    document.removeEventListener('mousemove', clearHoldTimer);
-                };
+                const panMove = (e) => { if (!isDraggingWp) return; hasMovedWp = true; e.preventDefault(); const cX = e.touches ? e.touches[0].clientX : e.clientX; const cY = e.touches ? e.touches[0].clientY : e.clientY; const dX = cX - sPanX, dY = cY - sPanY; let nBgX = sBgX + dX, nBgY = sBgY + dY; const sW = lockScreen.clientWidth, sH = lockScreen.clientHeight; const iW = currentWallpaperImg.naturalWidth, iH = currentWallpaperImg.naturalHeight; const sR = sW / sH, iR = iW / iH; let scW, scH; if (iR > sR) { scH = sH; scW = sH * iR; } else { scW = sW; scH = sW / iR; } const minX = sW - scW, minY = sH - scH; nBgX = Math.max(minX, Math.min(0, nBgX)); nBgY = Math.max(minY, Math.min(0, nBgY)); lockScreen.style.backgroundPosition = `${nBgX}px ${nBgY}px`; };
+                const interactionEnd = () => { clearTimeout(pressHoldTimer); if (isPanningMode) { isDraggingWp = false; document.removeEventListener('mousemove', panMove); document.removeEventListener('touchmove', panMove); } document.removeEventListener('mouseup', interactionEnd); document.removeEventListener('touchend', interactionEnd); document.removeEventListener('mousemove', clearHoldTimer); };
                 const clearHoldTimer = () => { clearTimeout(pressHoldTimer); };
                 const interactionStart = (e) => {
                     if (e.target.closest('.draggable-item')) return;
@@ -415,7 +388,6 @@
                 lockScreen.addEventListener('mousedown', interactionStart);
                 lockScreen.addEventListener('touchstart', interactionStart, { passive: false });
                 
-                // --- NEW CUSTOMIZATION LOGIC ---
                 const themeToggle = document.getElementById('theme-toggle');
                 const clockColorInput = document.getElementById('clock-color-input');
                 const fontSelect = document.getElementById('font-select');
@@ -425,7 +397,6 @@
                 const applyClockColor = (color) => clock.style.color = color;
                 const applyFont = (font) => clock.style.fontFamily = font;
 
-                // Load settings
                 const savedTheme = localStorage.getItem('lockscreenTheme') || 'dark';
                 themeToggle.checked = savedTheme === 'light';
                 applyTheme(savedTheme);
@@ -438,41 +409,33 @@
                 fontSelect.value = savedFont;
                 applyFont(savedFont);
 
-                // Save settings on change
-                themeToggle.addEventListener('change', () => {
-                    const newTheme = themeToggle.checked ? 'light' : 'dark';
-                    localStorage.setItem('lockscreenTheme', newTheme);
-                    applyTheme(newTheme);
-                });
-                clockColorInput.addEventListener('input', () => {
-                    const newColor = clockColorInput.value;
-                    localStorage.setItem('lockscreenClockColor', newColor);
-                    applyClockColor(newColor);
-                });
-                fontSelect.addEventListener('change', () => {
-                    const newFont = fontSelect.value;
-                    localStorage.setItem('lockscreenClockFont', newFont);
-                    applyFont(newFont);
-                });
+                themeToggle.addEventListener('change', () => { const newTheme = themeToggle.checked ? 'light' : 'dark'; localStorage.setItem('lockscreenTheme', newTheme); applyTheme(newTheme); });
+                clockColorInput.addEventListener('input', () => { const newColor = clockColorInput.value; localStorage.setItem('lockscreenClockColor', newColor); applyClockColor(newColor); });
+                fontSelect.addEventListener('change', () => { const newFont = fontSelect.value; localStorage.setItem('lockscreenClockFont', newFont); applyFont(newFont); });
 
                 resetPositionsBtn.addEventListener('click', () => {
-                    document.getElementById('clock').style.cssText = 'top: 30%; left: 50%; transform: translateX(-50%);';
-                    document.getElementById('youtube-music-btn').style.cssText = 'top: 60%; left: calc(50% - 100px);';
-                    document.getElementById('youtube-btn').style.cssText = 'top: 60%; left: calc(50% + 30px);';
-                    document.getElementById('stock-widget').style.cssText = 'top: 75%; left: 50%; transform: translateX(-50%);';
-                    document.getElementById('settings-btn').style.cssText = 'top: 80%; left: 50px;';
+                    localStorage.removeItem('lockscreenItemPositions_v2');
+                    ['clock', 'youtube-music-btn', 'youtube-btn', 'stock-widget', 'settings-btn'].forEach(id => {
+                        document.getElementById(id).style.cssText = '';
+                    });
+                    const applyClockScale = (scale) => { clockScale = scale; const baseSizeVW = 15; const newSize = baseSizeVW * scale; document.getElementById('hours').style.fontSize = `clamp(${newSize * 0.4}rem, ${newSize}vw, ${newSize * 0.8}rem)`; document.getElementById('minutes').style.fontSize = `clamp(${newSize * 0.4}rem, ${newSize}vw, ${newSize * 0.8}rem)`; };
                     applyClockScale(1);
-                    localStorage.removeItem('lockscreenItemPositions_v2'); // Remove old positions
                     settingsMenu.classList.remove('visible');
                 });
 
                 document.getElementById('qr-upload-btn').addEventListener('click', () => { if (pollingInterval) clearInterval(pollingInterval); const session = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`; const uploadUrl = `${window.location.href.split('?')[0]}?upload=true&session=${session}`; const qrCodeContainer = document.getElementById('qr-code'); qrCodeContainer.innerHTML = ''; qrModal.style.display = 'flex'; new QRCode(qrCodeContainer, { text: uploadUrl, width: 200, height: 200 }); startPolling(session); });
                 qrModal.addEventListener('click', (e) => { if (e.target === qrModal) { qrModal.style.display = 'none'; clearInterval(pollingInterval); } });
-                function startPolling(session) { setInterval(() => { fetch(`https://api.npoint.io/${NPOINT_BIN_ID}`, { cache: 'no-cache' }).then(r => r.json()).then(data => { if (data && data[session]) { clearInterval(pollingInterval); qrModal.style.display = 'none'; const newWp = { url: data[session], position: 'center center' }; const wps = getWps(); if (!wps.some(w => w.url === newWp.url)) { wps.push(newWp); saveWps(wps); } setWp(newWp); renderWpChoices(); } }).catch(err => { console.log("Polling... waiting for data."); }); }, 2500); }
+                function startPolling(session) { pollingInterval = setInterval(() => { fetch(`https://api.npoint.io/${NPOINT_BIN_ID}`, { cache: 'no-cache' }).then(r => r.json()).then(data => { if (data && data[session]) { clearInterval(pollingInterval); qrModal.style.display = 'none'; const newWp = { url: data[session], position: 'center center' }; const wps = getWps(); if (!wps.some(w => w.url === newWp.url)) { wps.push(newWp); saveWps(wps); } setWp(newWp); localStorage.setItem('lockscreenLastSelectedWp', newWp.url); renderWpChoices(); } }).catch(err => { console.log("Polling... waiting for data."); }); }, 2500); }
                 
                 renderWpChoices();
-                const lastWp = getWps().slice(-1)[0] || initialWallpaper;
-                setWp(lastWp);
+                const allWps = getWps();
+                const lastSelectedUrl = localStorage.getItem('lockscreenLastSelectedWp');
+                let wpToLoad = allWps.find(w => w.url === lastSelectedUrl);
+                if (!wpToLoad) {
+                    wpToLoad = allWps[0] || initialWallpaper;
+                }
+                setWp(wpToLoad);
+
 
                 document.addEventListener('keydown', (e) => {
                     if (!getFunModeState()) return;
