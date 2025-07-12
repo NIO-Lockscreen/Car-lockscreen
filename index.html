@@ -42,8 +42,8 @@
         .wallpaper-thumbnail:hover { border-color: #0a84ff; transform: scale(1.05); }
         .remove-thumb-btn { position: absolute; top: 2px; right: 2px; width: 20px; height: 20px; background-color: rgba(0,0,0,0.6); color: white; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 14px; line-height: 20px; font-family: sans-serif; cursor: pointer; opacity: 0; transition: opacity 0.2s; }
         .wallpaper-thumbnail:hover .remove-thumb-btn { opacity: 1; }
-        #fullscreen-hint { position: absolute; top: 70px; left: 50%; transform: translateX(-50%); background-color: rgba(0,0,0,0.4); padding: 8px 15px; border-radius: 12px; color: #f0f0f0; text-shadow: 1px 1px 3px rgba(0,0,0,0.5); opacity: 1; transition: opacity 1s ease-out; z-index: 25; pointer-events: none; }
-        #fullscreen-hint.hidden { opacity: 0; }
+        #fullscreen-hint { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background-color: rgba(0,0,0,0.4); padding: 8px 15px; border-radius: 12px; color: #f0f0f0; text-shadow: 1px 1px 3px rgba(0,0,0,0.5); opacity: 0; transition: opacity 1s ease-out; z-index: 25; pointer-events: none; }
+        #fullscreen-hint.visible { opacity: 1; }
         #unlock-prompt { position: absolute; bottom: 20%; left: 50%; transform: translateX(-50%); color: white; font-size: 1.3rem; font-weight: 500; text-shadow: 1px 1px 8px rgba(0,0,0,0.8); user-select: none; cursor: pointer; opacity: 0; pointer-events: none; transition: opacity 0.7s ease; z-index: 25; }
         #unlock-prompt.visible { opacity: 1; pointer-events: auto; }
         #qr-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); display: none; justify-content: center; align-items: center; z-index: 1001; }
@@ -284,11 +284,12 @@
                 const resetInactivityPrompts = () => {
                     clearTimeout(inactivityTimer);
                     unlockPrompt.classList.remove('visible');
-                    fullscreenHint.classList.add('hidden');
+                    fullscreenHint.classList.remove('visible');
                     inactivityTimer = setTimeout(() => {
-                        unlockPrompt.classList.add('visible');
-                        if (!document.fullscreenElement) {
-                            fullscreenHint.classList.remove('hidden');
+                        if (document.fullscreenElement) {
+                            unlockPrompt.classList.add('visible');
+                        } else {
+                            fullscreenHint.classList.add('visible');
                         }
                     }, 60000);
                 };
@@ -307,11 +308,9 @@
                     if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen();
                 });
                 
-                // --- REWORKED PANNING LOGIC ---
                 let isDraggingWp = false, sPanX, sPanY, sBgX, sBgY;
                 const panMove = (e) => {
-                    if (!isPanningMode) return;
-                    clearTimeout(pressHoldTimer);
+                    if (!isDraggingWp) return;
                     hasMovedWp = true;
                     e.preventDefault();
                     const cX = e.touches ? e.touches[0].clientX : e.clientX;
@@ -328,12 +327,20 @@
                     nBgY = Math.max(minY, Math.min(0, nBgY));
                     lockScreen.style.backgroundPosition = `${nBgX}px ${nBgY}px`;
                 };
+
                 const interactionEnd = () => {
                     clearTimeout(pressHoldTimer);
-                    document.removeEventListener('mousemove', panMove);
+                    if (isPanningMode) {
+                        isDraggingWp = false;
+                        document.removeEventListener('mousemove', panMove);
+                        document.removeEventListener('touchmove', panMove);
+                    }
                     document.removeEventListener('mouseup', interactionEnd);
-                    document.removeEventListener('touchmove', panMove);
                     document.removeEventListener('touchend', interactionEnd);
+                    document.removeEventListener('mousemove', clearHoldTimer);
+                };
+                const clearHoldTimer = () => {
+                    clearTimeout(pressHoldTimer);
                 };
                 const interactionStart = (e) => {
                     if (e.target.closest('.draggable-item')) return;
@@ -342,25 +349,22 @@
                     if (iW <= sW && iH <= sH && !isPanningMode) return;
 
                     hasMovedWp = false;
-                    
-                    const bgPos = window.getComputedStyle(lockScreen).backgroundPosition.split(' ');
-                    sBgX = parseFloat(bgPos[0]);
-                    sBgY = parseFloat(bgPos[1]);
-                    sPanX = e.touches ? e.touches[0].clientX : e.clientX;
-                    sPanY = e.touches ? e.touches[0].clientY : e.clientY;
-                    
-                    document.addEventListener('mousemove', panMove);
                     document.addEventListener('mouseup', interactionEnd);
-                    document.addEventListener('touchmove', panMove);
                     document.addEventListener('touchend', interactionEnd);
 
                     clearTimeout(pressHoldTimer);
-                    if (!isPanningMode) {
-                        pressHoldTimer = setTimeout(() => {
-                           isPanningMode = true;
-                           lockScreen.classList.add('panning-active');
-                        }, 500); // 500ms for hold
-                    }
+                    pressHoldTimer = setTimeout(() => {
+                       isPanningMode = true;
+                       isDraggingWp = true;
+                       lockScreen.classList.add('panning-active');
+                       const bgPos = window.getComputedStyle(lockScreen).backgroundPosition.split(' ');
+                       sBgX = parseFloat(bgPos[0]); sBgY = parseFloat(bgPos[1]);
+                       sPanX = e.touches ? e.touches[0].clientX : e.clientX; sPanY = e.touches ? e.touches[0].clientY : e.clientY;
+                       document.addEventListener('mousemove', panMove);
+                       document.addEventListener('touchmove', panMove);
+                    }, 500); // 500ms for hold
+
+                    document.addEventListener('mousemove', clearHoldTimer, { once: true });
                 };
                 lockScreen.addEventListener('mousedown', interactionStart);
                 lockScreen.addEventListener('touchstart', interactionStart, { passive: false });
