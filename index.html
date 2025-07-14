@@ -7,41 +7,64 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@700&family=Roboto+Mono:wght@500&family=Roboto:wght@400;500&family=Playfair+Display:wght@700&family=Source+Code+Pro:wght@700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@700&family=Roboto+Mono:wght@500&family=Roboto:wght@400;500&family=Playfair+Display:wght@700&family=Source+Code+Pro:wght@700&family=Inter:wght@400;500&family=Lora:wght@400;500&display=swap');
+        :root {
+            --widget-bg: rgba(0, 0, 0, 0.2);
+            --widget-bg-light: rgba(255, 255, 255, 0.2);
+            --text-color: white;
+            --text-color-light: #333;
+            --text-shadow: 1px 1px 3px rgba(0,0,0,0.6);
+            --text-shadow-light: 1px 1px 3px rgba(255,255,255,0.4);
+        }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html, body { height: 100%; width: 100%; overflow: hidden; font-family: 'Roboto', sans-serif; }
         body { background-color: #1a1a1a; color: white; text-align: center; }
         #lock-screen { position: relative; width: 100vw; height: 100vh; background-image: url('https://images.pexels.com/photos/807598/pexels-photo-807598.jpeg'); background-size: cover; background-position: center center; overflow: hidden; transition: background-image 0.5s ease-in-out; text-align: left; --icon-stroke-color: white; }
         #lock-screen.panning-active { cursor: grab; } #lock-screen.panning-active:active { cursor: grabbing; }
-        #status-bar { position: absolute; top: 20px; right: 30px; font-size: 1rem; text-shadow: 1px 1px 3px rgba(0,0,0,0.6); z-index: 20; }
-        #weather-info { display: flex; align-items: center; gap: 10px; user-select: none; padding: 10px 15px; border-radius: 12px; transition: background-color 0.2s; background-color: rgba(0, 0, 0, 0.2); }
+        #status-bar { position: absolute; top: 20px; right: 30px; font-size: 1rem; text-shadow: var(--text-shadow); z-index: 20; color: var(--text-color); }
+        #weather-info { display: flex; align-items: center; gap: 10px; user-select: none; padding: 10px 15px; border-radius: 12px; transition: background-color 0.2s; background-color: var(--widget-bg); }
         .draggable-item { position: absolute; user-select: none; cursor: grab; z-index: 10; } .draggable-item:active { cursor: grabbing; z-index: 11; }
         #clock { top: 30%; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: 'Oswald', sans-serif; font-weight: 700; color: #fff; filter: drop-shadow(0 0 20px rgba(0,0,0,0.5)); }
         #hours, #minutes { font-size: clamp(6rem, 15vw, 12rem); line-height: 0.8; pointer-events: none; } #minutes { margin-top: -1.5rem; }
         .app-icon { width: 70px; height: 70px; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.4)); transition: transform 0.2s ease; } .app-icon:active { transform: scale(1.1); }
         .app-icon svg { width: 100%; height: 100%; }
         #youtube-music-btn { top: 60%; left: calc(50% - 100px); } #youtube-btn { top: 60%; left: calc(50% + 30px); }
-        #stock-widget { position: absolute; top: 75%; left: 50%; transform: translateX(-50%); background-color: rgba(0, 0, 0, 0.2); padding: 10px 15px; border-radius: 12px; color: white; font-family: 'Roboto', sans-serif; font-size: 1rem; text-shadow: 1px 1px 3px rgba(0,0,0,0.6); display: flex; flex-direction: column; gap: 8px; min-width: 190px; backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); }
+        .widget { background-color: var(--widget-bg); padding: 10px 15px; border-radius: 12px; color: var(--text-color); font-family: 'Roboto', sans-serif; text-shadow: var(--text-shadow); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); }
+        #stock-widget { top: 75%; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; gap: 8px; min-width: 190px; }
         .stock-row { display: flex; justify-content: space-between; align-items: center; }
         .stock-info { display: flex; align-items: center; gap: 10px; font-weight: 500; letter-spacing: 0.5px;}
         .stock-price { font-family: 'Roboto Mono', monospace; font-weight: 500; font-size: 1.1rem; }
         .stock-info .fa-caret-up { color: #2ecc71; } .stock-info .fa-caret-down { color: #e74c3c; }
+        #note-widget { top: 60%; left: 75%; width: 250px; height: 180px; padding: 10px; resize: both; overflow: hidden; }
+        #note-textarea { width: 100%; height: 100%; background: transparent; border: none; color: var(--text-color); font-family: 'Roboto', sans-serif; font-size: 1rem; padding: 5px; resize: none; outline: none; text-align: center; }
+        #music-widget { top: 45%; left: 10%; width: 300px; display: flex; flex-direction: column; gap: 12px; }
+        #music-info-container { display: flex; gap: 12px; align-items: center; }
+        #music-album-art { width: 60px; height: 60px; background-size: cover; border-radius: 8px; flex-shrink: 0; }
+        #music-details { text-align: left; overflow: hidden; }
+        #music-title { font-weight: 500; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+        #music-artist { font-size: 0.9em; color: #ccc; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+        #music-progress-container { width: 100%; height: 4px; background-color: rgba(255,255,255,0.2); border-radius: 2px; cursor: pointer; }
+        #music-progress-bar { width: 20%; height: 100%; background-color: white; border-radius: 2px; transition: width 0.2s linear; }
+        #music-controls { display: flex; justify-content: space-around; align-items: center; }
+        #music-controls i { font-size: 1.5rem; cursor: pointer; transition: transform 0.2s; }
+        #music-controls i:hover { transform: scale(1.1); }
+        #lock-screen.light-theme #music-artist { color: #555; }
         #settings-btn { top: 80%; left: 50px; }
         #settings-btn svg circle:nth-child(2) { stroke: var(--icon-stroke-color); }
-        #settings-menu, #stock-editor-menu { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); display: none; justify-content: center; align-items: center; z-index: 1000; opacity: 0; transition: opacity 0.3s ease; }
-        #settings-menu.visible, #stock-editor-menu.visible { display: flex; opacity: 1; }
+        #settings-menu, #stock-editor-menu, #note-editor-menu { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); display: none; justify-content: center; align-items: center; z-index: 1000; opacity: 0; transition: opacity 0.3s ease; }
+        #settings-menu.visible, #stock-editor-menu.visible, #note-editor-menu.visible { display: flex; opacity: 1; }
         .menu-content { background-color: #2c2c2e; padding: 30px; border-radius: 20px; width: 90%; max-width: 500px; color: #f2f2f7; text-align: left; position: relative; box-shadow: 0 5px 25px rgba(0,0,0,0.5); transform: scale(0.95); transition: transform 0.3s ease; }
-        #settings-menu.visible .menu-content, #stock-editor-menu.visible .menu-content { transform: scale(1); }
+        #settings-menu.visible .menu-content, #stock-editor-menu.visible .menu-content, #note-editor-menu.visible .menu-content { transform: scale(1); }
         .menu-content h2 {text-align: center;}
-        #close-settings-btn, #close-stock-editor-btn { position: absolute; top: 10px; right: 15px; background: none; border: none; color: #aaa; font-size: 2rem; cursor: pointer; line-height: 1; }
-        #wallpaper-url-input, #stock-symbols-input, #weather-location-input, #font-select, #clock-color-input { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 10px; border: 1px solid #555; background-color: #3a3a3c; color: white; font-size: 1rem; outline: none; }
+        #close-settings-btn, #close-stock-editor-btn, #close-note-editor-btn { position: absolute; top: 10px; right: 15px; background: none; border: none; color: #aaa; font-size: 2rem; cursor: pointer; line-height: 1; }
+        #wallpaper-url-input, #stock-symbols-input, #weather-location-input, #font-select, #clock-color-input, #note-font-select, #note-font-size-input { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 10px; border: 1px solid #555; background-color: #3a3a3c; color: white; font-size: 1rem; outline: none; }
         #clock-color-input { padding: 5px; height: 50px; }
         #stock-symbols-input { margin: 10px 0; text-transform: uppercase; text-align: center; }
         #save-stocks-btn, #qr-upload-btn, #reset-positions-btn { background-color: #0a84ff; color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-size: 0.9em; margin-top: 10px; }
         #reset-positions-btn { background-color: #e74c3c; width: 100%; }
         .settings-section { margin-top: 25px; border-top: 1px solid #444; padding-top: 20px; }
         .settings-section:first-child { margin-top: 0; border-top: none; padding-top: 0; }
-        .settings-section h3 { margin-bottom: 5px; text-align: center; } .settings-section h4 { margin-top: 15px; margin-bottom: 5px; color: #ccc; font-weight: 500; }
+        .settings-section h3, .settings-section > label { margin-bottom: 5px; text-align: center; display: block; } .settings-section h4 { margin-top: 15px; margin-bottom: 5px; color: #ccc; font-weight: 500; }
         .setting-toggle { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; }
         .settings-footer button { background: none; border: none; color: #aeb0b5; width: 100%; text-align: center; padding: 12px 0; font-size: 1em; font-weight: 500; display: flex; justify-content: center; align-items: center; gap: 10px; border-radius: 8px; transition: background-color 0.2s, color 0.2s; cursor: pointer; }
         .settings-footer button:hover { background-color: rgba(255, 255, 255, 0.1); color: #fff; }
@@ -67,8 +90,8 @@
         #phone-url-submit:disabled { background-color: #555; cursor: not-allowed; }
         #upload-label { display: inline-block; background-color: #34c759; color: white; padding: 15px 20px; border-radius: 10px; cursor: pointer; font-size: 1.1rem; font-weight: 500; }
         .separator-text { margin: 5px 0; font-style: italic; color: #888; }
-        .fun-mode-toggle { display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 20px; font-family: 'Roboto', sans-serif; }
-        #fun-mode-checkbox { width: 20px; height: 20px; }
+        .stock-flash-toggle { display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 20px; font-family: 'Roboto', sans-serif; }
+        #stock-flash-checkbox { width: 20px; height: 20px; }
         .flash-overlay { position: fixed; left: 0; width: 100%; height: 40%; z-index: 9999; pointer-events: none; opacity: 0; }
         #flash-top { top: 0; background: radial-gradient(ellipse at top, rgba(46, 204, 113, 0.5) 0%, rgba(46, 204, 113, 0) 80%); }
         #flash-bottom { bottom: 0; background: radial-gradient(ellipse at bottom, rgba(231, 76, 60, 0.5) 0%, rgba(231, 76, 60, 0) 80%); }
@@ -81,19 +104,22 @@
         .raining-icon.down { color: #e74c3c; animation-name: fall-anim; }
         @keyframes fall-anim { from { transform: translateY(-10vh) rotate(0deg); opacity: 1; } to { transform: translateY(110vh) rotate(720deg); opacity: 0; } }
         @keyframes rise-anim { from { transform: translateY(110vh) rotate(0deg); opacity: 1; } to { transform: translateY(-10vh) rotate(720deg); opacity: 0; } }
-        #fun-stock-name-display { position: absolute; bottom: 20vh; right: 5vw; font-size: 2.5rem; font-family: 'Oswald', sans-serif; color: white; text-shadow: 2px 2px 8px rgba(0,0,0,0.7); opacity: 0; transition: opacity 1.5s ease-in-out; pointer-events: none; }
+        #fun-stock-name-display { position: absolute; bottom: 20vh; right: 5vw; font-size: 2.5rem; font-family: 'Oswald', sans-serif; color: var(--text-color); text-shadow: var(--text-shadow); opacity: 0; transition: opacity 1.5s ease-in-out; pointer-events: none; }
         #fun-stock-name-display.visible { opacity: 1; pointer-events: auto; }
 
         /* Light Theme Rules */
         #lock-screen.light-theme { --icon-stroke-color: #333; }
         #lock-screen.light-theme #clock { color: #333; filter: drop-shadow(0 0 10px rgba(255,255,255,0.3));}
-        #lock-screen.light-theme #status-bar, #lock-screen.light-theme #stock-widget, #lock-screen.light-theme #unlock-prompt, #lock-screen.light-theme #fullscreen-hint, #lock-screen.light-theme #fun-stock-name-display {
-            color: #333;
-            text-shadow: 1px 1px 3px rgba(255,255,255,0.4);
+        #lock-screen.light-theme #status-bar, #lock-screen.light-theme #unlock-prompt, #lock-screen.light-theme #fullscreen-hint, #lock-screen.light-theme #fun-stock-name-display {
+            color: var(--text-color-light);
+            text-shadow: var(--text-shadow-light);
         }
-        #lock-screen.light-theme #weather-info, #lock-screen.light-theme #stock-widget {
-             background-color: rgba(255, 255, 255, 0.2);
+        #lock-screen.light-theme .widget, #lock-screen.light-theme #weather-info {
+             background-color: var(--widget-bg-light);
+             color: var(--text-color-light);
+             text-shadow: var(--text-shadow-light);
         }
+        #lock-screen.light-theme #note-textarea { color: var(--text-color-light); }
     </style>
 </head>
 <body>
@@ -103,8 +129,27 @@
         <div id="clock" class="draggable-item"><div id="hours">00</div><div id="minutes">00</div></div>
         <div id="youtube-music-btn" class="draggable-item app-icon"><a href="https://music.youtube.com/" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="50" fill="#FF0000"/><circle cx="50" cy="50" r="23" fill="none" stroke="white" stroke-width="4"/><polygon points="43,38 62,50 43,62" fill="white"/></svg></a></div>
         <div id="youtube-btn" class="draggable-item app-icon"><a href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="50" fill="#FF0000"/><path d="M 35,29 A 10,10 0 0 0 25,39 V 61 A 10,10 0 0 0 35,71 H 65 A 10,10 0 0 0 75,61 V 39 A 10,10 0 0 0 65,29 Z" fill="white"/><polygon points="45,42 62,50 45,58" fill="#FF0000"/></svg></a></div>
-        <div id="stock-widget" class="draggable-item" title="Single-click to trigger effect | Double-click to edit"></div>
-        <div id="settings-btn" class="draggable-item app-icon" title="Open wallpaper menu"><svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="7.5" fill="rgba(80, 80, 80, 0.6)"/><circle cx="8" cy="8" r="4" fill="none" stroke="var(--icon-stroke-color)" stroke-width="1.5"/></svg></div>
+        
+        <!-- Widgets -->
+        <div id="stock-widget" class="draggable-item widget" title="Single-click to trigger effect | Double-click to edit"></div>
+        <div id="note-widget" class="draggable-item widget" title="Double-click edge to edit style"><textarea id="note-textarea" placeholder="Type a note..."></textarea></div>
+        <div id="music-widget" class="draggable-item widget">
+            <div id="music-info-container">
+                <div id="music-album-art"></div>
+                <div id="music-details">
+                    <div id="music-title">Song Title</div>
+                    <div id="music-artist">Artist Name</div>
+                </div>
+            </div>
+            <div id="music-progress-container"><div id="music-progress-bar"></div></div>
+            <div id="music-controls">
+                <i id="music-prev" class="fa-solid fa-backward-step"></i>
+                <i id="music-play-pause" class="fa-solid fa-play"></i>
+                <i id="music-next" class="fa-solid fa-forward-step"></i>
+            </div>
+        </div>
+
+        <div id="settings-btn" class="draggable-item app-icon" title="Open settings menu"><svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="7.5" fill="rgba(80, 80, 80, 0.6)"/><circle cx="8" cy="8" r="4" fill="none" stroke="var(--icon-stroke-color)" stroke-width="1.5"/></svg></div>
         <div id="fun-stock-name-display" class="draggable-item"></div>
         <div id="unlock-prompt">Press to unlock</div>
     </div>
@@ -113,6 +158,12 @@
             <button id="close-settings-btn">×</button>
             <h2 id="settings-title">Wallpapers</h2>
             <div id="advanced-settings-view" class="hidden">
+                 <div class="settings-section">
+                    <h3>Widget Visibility</h3>
+                    <div class="setting-toggle"><label for="toggle-stock-widget">Stock Widget</label><input type="checkbox" id="toggle-stock-widget"></div>
+                    <div class="setting-toggle"><label for="toggle-note-widget">Note Widget</label><input type="checkbox" id="toggle-note-widget"></div>
+                    <div class="setting-toggle"><label for="toggle-music-widget">Music Widget</label><input type="checkbox" id="toggle-music-widget"></div>
+                </div>
                 <div class="settings-section">
                     <h3>Theme & Style</h3>
                     <div class="setting-toggle">
@@ -134,13 +185,15 @@
                     <input type="text" id="weather-location-input" placeholder="e.g., London">
                 </div>
             </div>
-            <div class="settings-section">
-                <h3>Wallpaper</h3>
-                <p>Paste an image URL below or add from phone.</p>
-                <input type="text" id="wallpaper-url-input" placeholder="https://example.com/image.jpg">
-                <button id="qr-upload-btn">Add from Phone</button>
-                <h4>Your Wallpapers</h4>
-                <div id="wallpaper-choices"></div>
+            <div id="wallpaper-section">
+                <div class="settings-section">
+                    <h3>Wallpaper</h3>
+                    <p>Paste an image URL below or add from phone.</p>
+                    <input type="text" id="wallpaper-url-input" placeholder="https://example.com/image.jpg">
+                    <button id="qr-upload-btn">Add from Phone</button>
+                    <h4>Your Wallpapers</h4>
+                    <div id="wallpaper-choices"></div>
+                </div>
             </div>
             <div id="advanced-settings-footer" class="hidden">
                 <div class="settings-section">
@@ -153,7 +206,8 @@
             </div>
         </div>
     </div>
-    <div id="stock-editor-menu"><div class="menu-content"><button id="close-stock-editor-btn">×</button><h2>Edit Stock Symbols</h2><p>Enter up to 7 stock symbols, separated by commas.</p><input type="text" id="stock-symbols-input" placeholder="TSLA, GOOGL, AKBA..."><div class="fun-mode-toggle"><label for="fun-mode-checkbox">Fun Mode 🎉</label><input type="checkbox" id="fun-mode-checkbox"></div><button id="save-stocks-btn">Save and Update</button></div></div>
+    <div id="stock-editor-menu"><div class="menu-content"><button id="close-stock-editor-btn">×</button><h2>Edit Stock Symbols</h2><p>Enter up to 7 stock symbols, separated by commas.</p><input type="text" id="stock-symbols-input" placeholder="TSLA, GOOGL, AKBA..."><div class="stock-flash-toggle"><label for="stock-flash-checkbox">Stock Flash 🎉</label><input type="checkbox" id="stock-flash-checkbox"></div><button id="save-stocks-btn">Save and Update</button></div></div>
+    <div id="note-editor-menu"><div class="menu-content"><button id="close-note-editor-btn">×</button><h2>Edit Note Style</h2><div class="settings-section"><label for="note-font-select">Font Family</label><select id="note-font-select"><option value="'Roboto', sans-serif">Roboto (Default)</option><option value="'Lora', serif">Lora</option><option value="'Inter', sans-serif">Inter</option><option value="'Source Code Pro', monospace">Source Code Pro</option></select></div><div class="settings-section"><label for="note-font-size-input">Font Size (px)</label><input type="number" id="note-font-size-input" min="8" max="48" value="16"></div></div></div>
     <div id="qr-modal"><div id="qr-modal-content"><h2>Scan with your phone</h2><div id="qr-code"></div><p>Scan to send an image URL from your phone.</p></div></div>
     <div id="upload-view"><div id="phone-upload-container"><h2>Add Wallpaper from Phone</h2><label for="file-input" id="upload-label">Tap to Upload Image</label><input type="file" id="file-input" accept="image/*" style="display: none;"><p class="separator-text">... or ...</p><p>Paste an image URL below</p><input type="url" id="phone-url-input" placeholder="https://example.com/image.jpg"><button id="phone-url-submit">Use this URL</button><h2 id="upload-status"></h2></div></div>
     <div id="flash-top" class="flash-overlay"></div>
@@ -168,7 +222,7 @@
             const initialWallpaper = { url: 'https://images.pexels.com/photos/807598/pexels-photo-807598.jpeg', position: 'center center' };
             let isPanningMode = false, currentWallpaperImg = new Image(), pollingInterval, clickTimer, inactivityTimer, pressHoldTimer;
             let hasMovedWp = false;
-            let funModeStockIndex = 0;
+            let stockFlashIndex = 0;
             let stockNameFadeOutTimer = null;
             let stockWidgetClickTimer = null;
 
@@ -212,9 +266,24 @@
                 const showAdvancedBtn = document.getElementById('show-advanced-settings-btn');
                 const hideAdvancedBtn = document.getElementById('hide-advanced-settings-btn');
                 const settingsTitle = document.getElementById('settings-title');
+                const wallpaperSection = document.getElementById('wallpaper-section');
 
-                const showFullSettings = () => { advancedSettingsView.classList.remove('hidden'); advancedSettingsFooter.classList.remove('hidden'); showAdvancedBtn.classList.add('hidden'); hideAdvancedBtn.classList.remove('hidden'); settingsTitle.textContent = 'Full Settings'; };
-                const showWallpaperSettings = () => { advancedSettingsView.classList.add('hidden'); advancedSettingsFooter.classList.add('hidden'); showAdvancedBtn.classList.remove('hidden'); hideAdvancedBtn.classList.add('hidden'); settingsTitle.textContent = 'Wallpapers'; };
+                const showFullSettings = () => {
+                    advancedSettingsView.classList.remove('hidden');
+                    advancedSettingsFooter.classList.remove('hidden');
+                    showAdvancedBtn.classList.add('hidden');
+                    hideAdvancedBtn.classList.remove('hidden');
+                    wallpaperSection.classList.add('hidden');
+                    settingsTitle.textContent = 'Full Settings';
+                };
+                const showWallpaperSettings = () => {
+                    advancedSettingsView.classList.add('hidden');
+                    advancedSettingsFooter.classList.add('hidden');
+                    showAdvancedBtn.classList.remove('hidden');
+                    hideAdvancedBtn.classList.add('hidden');
+                    wallpaperSection.classList.remove('hidden');
+                    settingsTitle.textContent = 'Wallpapers';
+                };
 
                 showAdvancedBtn.addEventListener('click', showFullSettings);
                 hideAdvancedBtn.addEventListener('click', showWallpaperSettings);
@@ -229,15 +298,15 @@
                 const closeStockEditorBtn = document.getElementById('close-stock-editor-btn');
                 const saveStocksBtn = document.getElementById('save-stocks-btn');
                 const stockSymbolsInput = document.getElementById('stock-symbols-input');
-                const funModeCheckbox = document.getElementById('fun-mode-checkbox');
+                const stockFlashCheckbox = document.getElementById('stock-flash-checkbox');
 
                 const getStockSymbols = () => JSON.parse(localStorage.getItem('lockscreenStockSymbols')) || ['NIO'];
                 const saveStockSymbols = (symbols) => localStorage.setItem('lockscreenStockSymbols', JSON.stringify(symbols));
-                const getFunModeState = () => localStorage.getItem('lockscreenFunModeEnabled') === 'true';
-                const saveFunModeState = (isEnabled) => localStorage.setItem('lockscreenFunModeEnabled', isEnabled);
+                const getStockFlashState = () => localStorage.getItem('lockscreenStockFlashEnabled') === 'true';
+                const saveStockFlashState = (isEnabled) => localStorage.setItem('lockscreenStockFlashEnabled', isEnabled);
                 
-                funModeCheckbox.checked = getFunModeState();
-                funModeCheckbox.addEventListener('change', () => saveFunModeState(funModeCheckbox.checked));
+                stockFlashCheckbox.checked = getStockFlashState();
+                stockFlashCheckbox.addEventListener('change', () => saveStockFlashState(stockFlashCheckbox.checked));
 
                 function triggerScreenFlash(isUp, isSuper = false) {
                     const flashEl = isUp ? document.getElementById('flash-top') : document.getElementById('flash-bottom');
@@ -263,12 +332,11 @@
                     }
                 }
 
-                function triggerFunModeEffect(isUp, isSuper, symbol) {
+                function triggerStockFlashEffect(isUp, isSuper, symbol) {
                     const nameDisplay = document.getElementById('fun-stock-name-display');
                     nameDisplay.textContent = symbol;
                     nameDisplay.classList.add('visible');
 
-                    // Clear any previous fade-out timer
                     if (stockNameFadeOutTimer) clearTimeout(stockNameFadeOutTimer);
 
                     setTimeout(() => {
@@ -276,7 +344,6 @@
                         triggerIconShower(isUp, isSuper);
                     }, 1500);
 
-                    // Set a new timer to hide the name
                     stockNameFadeOutTimer = setTimeout(() => {
                         nameDisplay.classList.remove('visible');
                     }, 4500);
@@ -292,25 +359,21 @@
                     return currentTime >= 1530 && currentTime < 2100;
                 }
 
-                function checkFunModeTrigger() {
-                    if (!getFunModeState() || !isMarketOpen()) return;
-
+                function checkStockFlashTrigger() {
+                    if (!getStockFlashState() || !isMarketOpen()) return;
                     const symbols = getStockSymbols();
                     if (symbols.length === 0) return;
-
-                    const symbol = symbols[funModeStockIndex];
-                    funModeStockIndex = (funModeStockIndex + 1) % symbols.length;
+                    const symbol = symbols[stockFlashIndex];
+                    stockFlashIndex = (stockFlashIndex + 1) % symbols.length;
 
                     fetch(`https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${FINNHUB_API_KEY}`)
                         .then(r => r.json()).then(data => {
-                            if (!data || typeof data.c === 'undefined' || typeof data.o === 'undefined' || data.o === 0 || data.c === data.o) {
-                                return;
-                            }
+                            if (!data || typeof data.c === 'undefined' || typeof data.o === 'undefined' || data.o === 0 || data.c === data.o) return;
                             const isUp = data.c > data.o;
                             const percentChange = ((data.c - data.o) / data.o) * 100;
                             const isSuper = Math.abs(percentChange) > 5;
-                            triggerFunModeEffect(isUp, isSuper, symbol);
-                        }).catch(err => console.error(`Fun Mode fetch error for ${symbol}:`, err));
+                            triggerStockFlashEffect(isUp, isSuper, symbol);
+                        }).catch(err => console.error(`Stock Flash fetch error for ${symbol}:`, err));
                 }
 
                 function updateStockWidget() {
@@ -331,9 +394,142 @@
                             });
                     });
                 }
+                
+                (function setupWidgets() {
+                    const noteWidget = document.getElementById('note-widget');
+                    const noteTextarea = document.getElementById('note-textarea');
+                    const noteEditorMenu = document.getElementById('note-editor-menu');
+                    const closeNoteEditorBtn = document.getElementById('close-note-editor-btn');
+                    const noteFontSelect = document.getElementById('note-font-select');
+                    const noteFontSizeInput = document.getElementById('note-font-size-input');
+
+                    const applyNoteStyle = () => {
+                        const fontFamily = localStorage.getItem('lockscreenNoteFontFamily') || "'Roboto', sans-serif";
+                        const fontSize = localStorage.getItem('lockscreenNoteFontSize') || '16';
+                        noteTextarea.style.fontFamily = fontFamily;
+                        noteTextarea.style.fontSize = `${fontSize}px`;
+                        noteFontSelect.value = fontFamily;
+                        noteFontSizeInput.value = fontSize;
+                    };
+                    
+                    noteTextarea.value = localStorage.getItem('lockscreenNoteContent') || '';
+                    noteTextarea.addEventListener('input', () => {
+                        localStorage.setItem('lockscreenNoteContent', noteTextarea.value);
+                    });
+                    
+                    noteWidget.addEventListener('dblclick', (e) => {
+                        if (e.target === noteTextarea) return; // Don't open menu if dbl-clicking text area
+                        noteEditorMenu.classList.add('visible');
+                    });
+                    closeNoteEditorBtn.addEventListener('click', () => noteEditorMenu.classList.remove('visible'));
+                    noteEditorMenu.addEventListener('click', (e) => { if (e.target === noteEditorMenu) noteEditorMenu.classList.remove('visible'); });
+                    
+                    noteFontSelect.addEventListener('input', () => {
+                        localStorage.setItem('lockscreenNoteFontFamily', noteFontSelect.value);
+                        applyNoteStyle();
+                    });
+                    noteFontSizeInput.addEventListener('input', () => {
+                        localStorage.setItem('lockscreenNoteFontSize', noteFontSizeInput.value);
+                        applyNoteStyle();
+                    });
+                    applyNoteStyle();
+
+
+                    const musicPlayer = {
+                        playlist: [
+                            { title: 'Chasing The Sun', artist: 'The Wanted', art: 'https://i.scdn.co/image/ab67616d0000b273e98de673905085c7423973c7' },
+                            { title: 'Starlight', artist: 'Muse', art: 'https://i.scdn.co/image/ab67616d0000b273b5a458b3855be618175d9b62' },
+                            { title: 'Levels', artist: 'Avicii', art: 'https://i.scdn.co/image/ab67616d0000b2734b41b18d8a8f15f0212f43c3' }
+                        ],
+                        currentIndex: 0,
+                        isPlaying: false,
+                        progressInterval: null,
+                        elements: {
+                            art: document.getElementById('music-album-art'),
+                            title: document.getElementById('music-title'),
+                            artist: document.getElementById('music-artist'),
+                            playPause: document.getElementById('music-play-pause'),
+                            next: document.getElementById('music-next'),
+                            prev: document.getElementById('music-prev'),
+                            progress: document.getElementById('music-progress-bar')
+                        },
+                        render() {
+                            const song = this.playlist[this.currentIndex];
+                            this.elements.art.style.backgroundImage = `url(${song.art})`;
+                            this.elements.title.textContent = song.title;
+                            this.elements.artist.textContent = song.artist;
+                        },
+                        togglePlay() {
+                            this.isPlaying = !this.isPlaying;
+                            this.elements.playPause.className = `fa-solid ${this.isPlaying ? 'fa-pause' : 'fa-play'}`;
+                            clearInterval(this.progressInterval);
+                            if (this.isPlaying) {
+                                let progress = parseFloat(this.elements.progress.style.width) || 0;
+                                this.progressInterval = setInterval(() => {
+                                    progress += 0.5;
+                                    if (progress >= 100) {
+                                        this.playNext(true); // Auto-play next
+                                    } else {
+                                     this.elements.progress.style.width = `${progress}%`;
+                                    }
+                                }, 500);
+                            }
+                        },
+                        playNext(keepPlaying = false) {
+                            this.currentIndex = (this.currentIndex + 1) % this.playlist.length;
+                            this.elements.progress.style.width = '0%';
+                            this.render();
+                            if (keepPlaying) {
+                                this.isPlaying = false;
+                                this.togglePlay();
+                            }
+                        },
+                        playPrev() {
+                            const keepPlaying = this.isPlaying;
+                            this.currentIndex = (this.currentIndex - 1 + this.playlist.length) % this.playlist.length;
+                            this.elements.progress.style.width = '0%';
+                            this.render();
+                            if (keepPlaying) {
+                               this.isPlaying = false;
+                               this.togglePlay();
+                            }
+                        },
+                        init() {
+                            this.render();
+                            this.elements.playPause.addEventListener('click', () => this.togglePlay());
+                            this.elements.next.addEventListener('click', () => this.playNext(this.isPlaying));
+                            this.elements.prev.addEventListener('click', () => this.playPrev());
+                        }
+                    };
+                    musicPlayer.init();
+                })();
 
                 (function setupBaseFeatures() {
-                    const DRAGGABLE_ELEMENT_IDS = ['clock', 'youtube-music-btn', 'youtube-btn', 'stock-widget', 'settings-btn', 'fun-stock-name-display'];
+                    const DRAGGABLE_ELEMENT_IDS = ['clock', 'youtube-music-btn', 'youtube-btn', 'stock-widget', 'settings-btn', 'fun-stock-name-display', 'note-widget', 'music-widget'];
+                    const WIDGETS = {
+                        stock: { el: document.getElementById('stock-widget'), toggle: document.getElementById('toggle-stock-widget'), default: true },
+                        note: { el: document.getElementById('note-widget'), toggle: document.getElementById('toggle-note-widget'), default: false },
+                        music: { el: document.getElementById('music-widget'), toggle: document.getElementById('toggle-music-widget'), default: false },
+                    };
+                    
+                    function initializeWidgetToggles() {
+                        for(const key in WIDGETS) {
+                            const widget = WIDGETS[key];
+                            const savedState = localStorage.getItem(`widget_${key}_visible`);
+                            const isVisible = savedState === null ? widget.default : savedState === 'true';
+                            
+                            widget.el.classList.toggle('hidden', !isVisible);
+                            widget.toggle.checked = isVisible;
+
+                            widget.toggle.addEventListener('change', () => {
+                                const isChecked = widget.toggle.checked;
+                                widget.el.classList.toggle('hidden', !isChecked);
+                                localStorage.setItem(`widget_${key}_visible`, isChecked);
+                            });
+                        }
+                    }
+                    initializeWidgetToggles();
+
                     const timeElems = { h: document.getElementById('hours'), m: document.getElementById('minutes'), d: document.getElementById('date') };
                     const weatherElems = { t: document.getElementById('temperature'), i: document.getElementById('weather-icon') };
                     const weatherLocationInput = document.getElementById('weather-location-input');
@@ -355,72 +551,58 @@
                         DRAGGABLE_ELEMENT_IDS.forEach(id => {
                             const e = document.getElementById(id);
                             if (e) {
-                                const topPercent = (e.offsetTop / lockScreen.clientHeight) * 100;
-                                const leftPercent = (e.offsetLeft / lockScreen.clientWidth) * 100;
-                                p[id] = { t: `${topPercent}%`, l: `${leftPercent}%` };
+                                p[id] = { t: `${(e.offsetTop / lockScreen.clientHeight) * 100}%`, l: `${(e.offsetLeft / lockScreen.clientWidth) * 100}%` };
                                 if (id === 'clock') p[id].s = clockScale;
+                                if (id === 'note-widget') { p[id].w = e.style.width; p[id].h = e.style.height; }
                             }
                         });
-                        localStorage.setItem('lockscreenItemPositions_v2', JSON.stringify(p));
+                        localStorage.setItem('lockscreenItemPositions_v3', JSON.stringify(p));
                     };
                     const loadPos = () => {
-                        const p = JSON.parse(localStorage.getItem('lockscreenItemPositions_v2'));
+                        const p = JSON.parse(localStorage.getItem('lockscreenItemPositions_v3'));
                         if (p) {
                             Object.keys(p).forEach(id => {
                                 const e = document.getElementById(id);
                                 const pos = p[id];
                                 if (e && pos.t && pos.l) {
                                     e.style.top = pos.t; e.style.left = pos.l;
-                                    e.style.transform = (id === 'clock') ? 'none' : e.style.transform;
+                                    e.style.transform = (id === 'clock' || id === 'stock-widget') ? 'none' : e.style.transform;
                                     if (id === 'clock' && pos.s) applyClockScale(pos.s);
+                                    if (id === 'note-widget') { e.style.width = pos.w || '250px'; e.style.height = pos.h || '180px'; }
                                 }
                             });
                         }
                     };
                     
-                    const repositionOffscreenElements = () => {
-                        const screenRect = lockScreen.getBoundingClientRect();
-                        let positionWasAdjusted = false;
-                        DRAGGABLE_ELEMENT_IDS.forEach(id => {
-                            const el = document.getElementById(id);
-                            if (!el) return;
-                            const elRect = el.getBoundingClientRect();
-                            if (elRect.right > screenRect.right) { el.style.left = `${screenRect.width - elRect.width}px`; positionWasAdjusted = true; }
-                            if (elRect.bottom > screenRect.bottom) { el.style.top = `${screenRect.height - elRect.height}px`; positionWasAdjusted = true; }
-                            if (elRect.left < screenRect.left) { el.style.left = '0px'; positionWasAdjusted = true; }
-                            if (elRect.top < screenRect.top) { el.style.top = '0px'; positionWasAdjusted = true; }
-                        });
-                        if (positionWasAdjusted) { savePos(); }
-                    };
-                    window.addEventListener('resize', repositionOffscreenElements);
-
-                    const makeDraggable = (el) => { let oX, oY, isD, hasMoved; let isPinching = false, initialPinchDist = 0, initialScale = 1; const getDist = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY); const mv = (e) => { if (el.id === 'clock' && isPinching && e.touches && e.touches.length === 2) { e.preventDefault(); const oldWidth = el.offsetWidth, oldHeight = el.offsetHeight, oldLeft = el.offsetLeft, oldTop = el.offsetTop; const newDist = getDist(e.touches); const scaleRatio = newDist / initialPinchDist; const newScale = Math.max(0.5, Math.min(initialScale * scaleRatio, 3)); applyClockScale(newScale); const newWidth = el.offsetWidth, newHeight = el.offsetHeight; const deltaWidth = newWidth - oldWidth, deltaHeight = newHeight - oldHeight; el.style.left = `${oldLeft - (deltaWidth / 2)}px`; el.style.top = `${oldTop - (deltaHeight / 2)}px`; return; } if (!isD) return; e.preventDefault(); hasMoved = true; const cX = e.touches ? e.touches[0].clientX : e.clientX, cY = e.touches ? e.touches[0].clientY : e.clientY; let nX = cX - oX, nY = cY - oY; const sR = lockScreen.getBoundingClientRect(), eR = el.getBoundingClientRect(); nX = Math.max(0, Math.min(nX, sR.width - eR.width)); nY = Math.max(0, Math.min(nY, sR.height - eR.height)); el.style.left = `${nX}px`; el.style.top = `${nY}px`; el.style.transform = 'none'; }; const sD = (e) => { if (e.touches && e.touches.length === 2 && el.id === 'clock') { isPinching = true; isD = false; initialPinchDist = getDist(e.touches); initialScale = clockScale; return; } isD = true; hasMoved = false; const cX = e.touches ? e.touches[0].clientX : e.clientX, cY = e.touches ? e.touches[0].clientY : e.clientY; oX = cX - el.offsetLeft; oY = cY - el.offsetTop; if (el.id === 'fun-stock-name-display' && stockNameFadeOutTimer) { clearTimeout(stockNameFadeOutTimer); stockNameFadeOutTimer = null; } document.addEventListener('mousemove', mv, { passive: false }); document.addEventListener('touchmove', mv, { passive: false }); document.addEventListener('mouseup', stD); document.addEventListener('touchend', stD); }; const stD = (e) => { if (!isD && !isPinching) return; if (el.id === 'stock-widget') { e.target.hasMoved = hasMoved; } if (el.id === 'fun-stock-name-display' && el.classList.contains('visible')) { stockNameFadeOutTimer = setTimeout(() => { el.classList.remove('visible'); }, 3000); } isD = false; isPinching = false; savePos(); document.removeEventListener('mousemove', mv); document.removeEventListener('touchmove', mv); document.removeEventListener('mouseup', stD); document.removeEventListener('touchend', stD); }; el.addEventListener('mousedown', sD); el.addEventListener('touchstart', sD, { passive: false }); const lnk = el.querySelector('a'); if (lnk) { lnk.addEventListener('click', (e) => { if (hasMoved) e.preventDefault(); }); } if(el.id === 'settings-btn') { el.addEventListener('click', (e) => { if (!hasMoved) { showWallpaperSettings(); settingsMenu.classList.add('visible'); } }); } };
+                    const makeDraggable = (el) => { let oX, oY, isD, hasMoved; let isPinching = false, initialPinchDist = 0, initialScale = 1; const getDist = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY); const mv = (e) => { if (el.id === 'clock' && isPinching && e.touches && e.touches.length === 2) { e.preventDefault(); const oldWidth = el.offsetWidth, oldHeight = el.offsetHeight, oldLeft = el.offsetLeft, oldTop = el.offsetTop; const newDist = getDist(e.touches); const scaleRatio = newDist / initialPinchDist; const newScale = Math.max(0.5, Math.min(initialScale * scaleRatio, 3)); applyClockScale(newScale); const newWidth = el.offsetWidth, newHeight = el.offsetHeight; const deltaWidth = newWidth - oldWidth, deltaHeight = newHeight - oldHeight; el.style.left = `${oldLeft - (deltaWidth / 2)}px`; el.style.top = `${oldTop - (deltaHeight / 2)}px`; return; } if (!isD) return; e.preventDefault(); hasMoved = true; const cX = e.touches ? e.touches[0].clientX : e.clientX, cY = e.touches ? e.touches[0].clientY : e.clientY; let nX = cX - oX, nY = cY - oY; const sR = lockScreen.getBoundingClientRect(), eR = el.getBoundingClientRect(); nX = Math.max(0, Math.min(nX, sR.width - eR.width)); nY = Math.max(0, Math.min(nY, sR.height - eR.height)); el.style.left = `${nX}px`; el.style.top = `${nY}px`; if(el.id !== 'note-widget') el.style.transform = 'none'; }; const sD = (e) => { if (e.target.tagName === 'TEXTAREA' || e.target.closest('#music-controls, #music-progress-container')) return; if (e.touches && e.touches.length === 2 && el.id === 'clock') { isPinching = true; isD = false; initialPinchDist = getDist(e.touches); initialScale = clockScale; return; } isD = true; hasMoved = false; const cX = e.touches ? e.touches[0].clientX : e.clientX, cY = e.touches ? e.touches[0].clientY : e.clientY; oX = cX - el.offsetLeft; oY = cY - el.offsetTop; if (el.id === 'fun-stock-name-display' && stockNameFadeOutTimer) { clearTimeout(stockNameFadeOutTimer); stockNameFadeOutTimer = null; } document.addEventListener('mousemove', mv, { passive: false }); document.addEventListener('touchmove', mv, { passive: false }); document.addEventListener('mouseup', stD); document.addEventListener('touchend', stD); }; const stD = (e) => { if (!isD && !isPinching) return; if (el.id === 'stock-widget') { e.target.hasMoved = hasMoved; } if (el.id === 'fun-stock-name-display' && el.classList.contains('visible')) { stockNameFadeOutTimer = setTimeout(() => { el.classList.remove('visible'); }, 3000); } isD = false; isPinching = false; savePos(); document.removeEventListener('mousemove', mv); document.removeEventListener('touchmove', mv); document.removeEventListener('mouseup', stD); document.removeEventListener('touchend', stD); }; el.addEventListener('mousedown', sD); el.addEventListener('touchstart', sD, { passive: false }); const lnk = el.querySelector('a'); if (lnk) { lnk.addEventListener('click', (e) => { if (hasMoved) e.preventDefault(); }); } if(el.id === 'settings-btn') { el.addEventListener('click', (e) => { if (!hasMoved) { showWallpaperSettings(); settingsMenu.classList.add('visible'); } }); } };
                     
+                    stockWidget.addEventListener('mousedown', () => { stockWidgetClickTimer = setTimeout(() => { stockWidgetClickTimer = null; }, 250); });
                     stockWidget.addEventListener('click', (e) => {
-                        if (e.target.hasMoved) return; // Prevent click after drag
+                        if (e.target.hasMoved || !stockWidgetClickTimer) return;
                         clearTimeout(stockWidgetClickTimer);
-                        stockWidgetClickTimer = setTimeout(() => {
-                            if (!getFunModeState()) return;
-                            const symbols = getStockSymbols();
-                            if (symbols.length === 0) return;
-                            
-                            const symbol = symbols[funModeStockIndex];
-                            funModeStockIndex = (funModeStockIndex + 1) % symbols.length;
+                        stockWidgetClickTimer = null;
 
-                            fetch(`https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${FINNHUB_API_KEY}`)
-                                .then(r => r.json()).then(data => {
-                                    if (!data || typeof data.c === 'undefined' || typeof data.o === 'undefined') return;
-                                    const isUp = data.c >= data.o; // Treat 'same' as up for manual trigger
-                                    const percentChange = data.o === 0 ? 0 : ((data.c - data.o) / data.o) * 100;
-                                    const isSuper = Math.abs(percentChange) > 5;
-                                    triggerFunModeEffect(isUp, isSuper, symbol);
-                                }).catch(err => console.error(`Fun Mode click trigger error for ${symbol}:`, err));
-                        }, 250);
+                        if (!getStockFlashState()) return;
+                        const symbols = getStockSymbols();
+                        if (symbols.length === 0) return;
+                        
+                        const symbol = symbols[stockFlashIndex];
+                        stockFlashIndex = (stockFlashIndex + 1) % symbols.length;
+
+                        fetch(`https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${FINNHUB_API_KEY}`)
+                            .then(r => r.json()).then(data => {
+                                if (!data || typeof data.c === 'undefined' || typeof data.o === 'undefined') return;
+                                const isUp = data.c >= data.o;
+                                const percentChange = data.o === 0 ? 0 : ((data.c - data.o) / data.o) * 100;
+                                const isSuper = Math.abs(percentChange) > 5;
+                                triggerStockFlashEffect(isUp, isSuper, symbol);
+                            }).catch(err => console.error(`Stock Flash click trigger error for ${symbol}:`, err));
                     });
-                    stockWidget.addEventListener('dblclick', () => {
-                        clearTimeout(stockWidgetClickTimer); // Cancel single-click
+                    stockWidget.addEventListener('dblclick', (e) => {
+                        if(stockWidgetClickTimer) clearTimeout(stockWidgetClickTimer);
+                        stockWidgetClickTimer = null;
                         stockSymbolsInput.value = getStockSymbols().join(', ');
-                        funModeCheckbox.checked = getFunModeState();
+                        stockFlashCheckbox.checked = getStockFlashState();
                         stockEditorMenu.classList.add('visible');
                     });
                     closeStockEditorBtn.addEventListener('click', () => stockEditorMenu.classList.remove('visible'));
@@ -428,8 +610,8 @@
                     saveStocksBtn.addEventListener('click', () => { 
                         const newSymbols = stockSymbolsInput.value.split(',').map(s => s.trim().toUpperCase()).filter(s => s.length > 0).slice(0, 7); 
                         saveStockSymbols(newSymbols); 
-                        saveFunModeState(funModeCheckbox.checked); 
-                        funModeStockIndex = 0;
+                        saveStockFlashState(stockFlashCheckbox.checked); 
+                        stockFlashIndex = 0;
                         updateStockWidget(); 
                         stockEditorMenu.classList.remove('visible');
                     });
@@ -440,7 +622,7 @@
                     loadPos();
                     fetchWeather(); setInterval(fetchWeather, 30 * 60 * 1000);
                     updateStockWidget(); setInterval(updateStockWidget, 60000);
-                    checkFunModeTrigger(); setInterval(checkFunModeTrigger, 60 * 1000);
+                    checkStockFlashTrigger(); setInterval(checkStockFlashTrigger, 60 * 1000);
                 })();
                 
                 const getWps = () => JSON.parse(localStorage.getItem('lockscreenWallpapers_v2')) || [initialWallpaper];
@@ -450,60 +632,19 @@
                 document.getElementById('wallpaper-url-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') { const url = e.target.value.trim(); if (url.match(/\.(jpeg|jpg|gif|png|webp)$/i)) { const wps = getWps(); if (!wps.some(w => w.url === url)) { const newWp = { url: url, position: 'center center' }; wps.push(newWp); saveWps(wps); setWp(newWp); localStorage.setItem('lockscreenLastSelectedWp', newWp.url); renderWpChoices(); } e.target.value = ''; settingsMenu.classList.remove('visible'); } else { alert('Invalid URL.'); } } });
                 function exitPanningMode() { if (!isPanningMode) return; isPanningMode = false; lockScreen.classList.remove('panning-active'); const url = currentWallpaperImg.src; const wps = getWps(); const idx = wps.findIndex(w => w.url === url); if (idx > -1) { wps[idx].position = lockScreen.style.backgroundPosition; saveWps(wps); } }
 
-                const resetInactivityPrompts = () => {
-                    clearTimeout(inactivityTimer);
-                    unlockPrompt.classList.remove('visible');
-                    fullscreenHint.classList.remove('visible');
-                    inactivityTimer = setTimeout(() => {
-                        if (document.fullscreenElement) {
-                            unlockPrompt.classList.add('visible');
-                        } else {
-                            fullscreenHint.classList.add('visible');
-                        }
-                    }, 60000);
-                };
+                const resetInactivityPrompts = () => { clearTimeout(inactivityTimer); unlockPrompt.classList.remove('visible'); fullscreenHint.classList.remove('visible'); inactivityTimer = setTimeout(() => { if (document.fullscreenElement) { unlockPrompt.classList.add('visible'); } else { fullscreenHint.classList.add('visible'); } }, 60000); };
                 ['mousemove', 'mousedown', 'keydown'].forEach(evt => document.addEventListener(evt, resetInactivityPrompts));
                 resetInactivityPrompts();
                 unlockPrompt.addEventListener('click', () => { if (document.fullscreenElement) document.exitFullscreen(); });
                 
-                lockScreen.addEventListener('click', (e) => {
-                    if (e.target.closest('.draggable-item') || e.target === unlockPrompt || hasMovedWp) return;
-                    if (isPanningMode) { exitPanningMode(); return; }
-                    if (document.fullscreenElement) { clearTimeout(clickTimer); clickTimer = setTimeout(() => { document.exitFullscreen(); }, 250); }
-                });
-                lockScreen.addEventListener('dblclick', (e) => {
-                    clearTimeout(clickTimer); clearTimeout(pressHoldTimer);
-                    if (e.target.closest('.draggable-item')) return;
-                    if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen();
-                });
+                lockScreen.addEventListener('click', (e) => { if (e.target.closest('.draggable-item') || e.target === unlockPrompt || hasMovedWp) return; if (isPanningMode) { exitPanningMode(); return; } if (document.fullscreenElement) { clearTimeout(clickTimer); clickTimer = setTimeout(() => { document.exitFullscreen(); }, 250); } });
+                lockScreen.addEventListener('dblclick', (e) => { clearTimeout(clickTimer); clearTimeout(pressHoldTimer); if (e.target.closest('.draggable-item')) return; if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); });
                 
                 let isDraggingWp = false, sPanX, sPanY, sBgX, sBgY;
                 const panMove = (e) => { if (!isDraggingWp) return; hasMovedWp = true; e.preventDefault(); const cX = e.touches ? e.touches[0].clientX : e.clientX; const cY = e.touches ? e.touches[0].clientY : e.clientY; const dX = cX - sPanX, dY = cY - sPanY; let nBgX = sBgX + dX, nBgY = sBgY + dY; const sW = lockScreen.clientWidth, sH = lockScreen.clientHeight; const iW = currentWallpaperImg.naturalWidth, iH = currentWallpaperImg.naturalHeight; const sR = sW / sH, iR = iW / iH; let scW, scH; if (iR > sR) { scH = sH; scW = sH * iR; } else { scW = sW; scH = sW / iR; } const minX = sW - scW, minY = sH - scH; nBgX = Math.max(minX, Math.min(0, nBgX)); nBgY = Math.max(minY, Math.min(0, nBgY)); lockScreen.style.backgroundPosition = `${nBgX}px ${nBgY}px`; };
                 const interactionEnd = () => { clearTimeout(pressHoldTimer); if (isPanningMode) { isDraggingWp = false; document.removeEventListener('mousemove', panMove); document.removeEventListener('touchmove', panMove); } document.removeEventListener('mouseup', interactionEnd); document.removeEventListener('touchend', interactionEnd); document.removeEventListener('mousemove', clearHoldTimer); };
                 const clearHoldTimer = () => { clearTimeout(pressHoldTimer); };
-                const interactionStart = (e) => {
-                    if (e.target.closest('.draggable-item')) return;
-                    
-                    const sW = lockScreen.clientWidth, sH = lockScreen.clientHeight, iW = currentWallpaperImg.naturalWidth, iH = currentWallpaperImg.naturalHeight;
-                    if (iW <= sW && iH <= sH && !isPanningMode) return;
-
-                    hasMovedWp = false;
-                    document.addEventListener('mouseup', interactionEnd);
-                    document.addEventListener('touchend', interactionEnd);
-
-                    clearTimeout(pressHoldTimer);
-                    pressHoldTimer = setTimeout(() => {
-                       isPanningMode = true; isDraggingWp = true;
-                       lockScreen.classList.add('panning-active');
-                       const bgPos = window.getComputedStyle(lockScreen).backgroundPosition.split(' ');
-                       sBgX = parseFloat(bgPos[0]); sBgY = parseFloat(bgPos[1]);
-                       sPanX = e.touches ? e.touches[0].clientX : e.clientX; sPanY = e.touches ? e.touches[0].clientY : e.clientY;
-                       document.addEventListener('mousemove', panMove);
-                       document.addEventListener('touchmove', panMove);
-                    }, 500);
-
-                    document.addEventListener('mousemove', clearHoldTimer, { once: true });
-                };
+                const interactionStart = (e) => { if (e.target.closest('.draggable-item')) return; const sW = lockScreen.clientWidth, sH = lockScreen.clientHeight, iW = currentWallpaperImg.naturalWidth, iH = currentWallpaperImg.naturalHeight; if (iW <= sW && iH <= sH && !isPanningMode) return; hasMovedWp = false; document.addEventListener('mouseup', interactionEnd); document.addEventListener('touchend', interactionEnd); clearTimeout(pressHoldTimer); pressHoldTimer = setTimeout(() => { isPanningMode = true; isDraggingWp = true; lockScreen.classList.add('panning-active'); const bgPos = window.getComputedStyle(lockScreen).backgroundPosition.split(' '); sBgX = parseFloat(bgPos[0]); sBgY = parseFloat(bgPos[1]); sPanX = e.touches ? e.touches[0].clientX : e.clientX; sPanY = e.touches ? e.touches[0].clientY : e.clientY; document.addEventListener('mousemove', panMove); document.addEventListener('touchmove', panMove); }, 500); document.addEventListener('mousemove', clearHoldTimer, { once: true }); };
                 lockScreen.addEventListener('mousedown', interactionStart);
                 lockScreen.addEventListener('touchstart', interactionStart, { passive: false });
                 
@@ -533,8 +674,8 @@
                 fontSelect.addEventListener('change', () => { const newFont = fontSelect.value; localStorage.setItem('lockscreenClockFont', newFont); applyFont(newFont); });
 
                 resetPositionsBtn.addEventListener('click', () => {
-                    localStorage.removeItem('lockscreenItemPositions_v2');
-                    ['clock', 'youtube-music-btn', 'youtube-btn', 'stock-widget', 'settings-btn', 'fun-stock-name-display'].forEach(id => {
+                    localStorage.removeItem('lockscreenItemPositions_v3');
+                    ['clock', 'youtube-music-btn', 'youtube-btn', 'stock-widget', 'settings-btn', 'fun-stock-name-display', 'note-widget', 'music-widget'].forEach(id => {
                         const el = document.getElementById(id);
                         if (el) el.style.cssText = '';
                     });
@@ -556,23 +697,21 @@
                 }
                 setWp(wpToLoad);
 
-
                 document.addEventListener('keydown', (e) => {
-                    if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
-                    if (!getFunModeState()) return;
-
+                    if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
+                    if (!getStockFlashState()) return;
+                    
                     let isUp = null;
                     if (e.key === 'ArrowUp') isUp = true;
                     if (e.key === 'ArrowDown') isUp = false;
-
+                    
                     if (isUp !== null) {
                         e.preventDefault();
                         const symbols = getStockSymbols();
                         if (symbols.length === 0) return;
-
-                        const symbol = symbols[funModeStockIndex];
+                        const symbol = symbols[stockFlashIndex];
                         const isSuper = e.shiftKey;
-                        triggerFunModeEffect(isUp, isSuper, symbol);
+                        triggerStockFlashEffect(isUp, isSuper, symbol);
                     }
                 });
             }
