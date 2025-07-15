@@ -38,8 +38,17 @@
         .stock-info { display: flex; align-items: center; gap: 10px; font-weight: 500; letter-spacing: 0.5px;}
         .stock-price { font-family: 'Roboto Mono', monospace; font-weight: 500; font-size: 1.1rem; }
         .stock-info .fa-caret-up { color: #2ecc71; } .stock-info .fa-caret-down { color: #e74c3c; }
-        #note-widget { top: 60%; left: 75%; width: 250px; height: 180px; padding: 0; resize: both; overflow: hidden; }
-        #note-textarea { width: 100%; height: 100%; background: transparent; border: none; color: var(--text-color); font-family: 'Roboto', sans-serif; font-size: 1rem; padding: 10px; resize: none; outline: none; text-align: center; }
+        
+        #note-widget { top: 60%; left: 75%; width: 250px; height: 180px; padding: 0; resize: both; overflow: hidden; transition: box-shadow 0.3s; }
+        #note-widget.edit-mode { cursor: default; box-shadow: 0 0 15px rgba(10, 132, 255, 0.7); }
+        #note-display, #note-textarea { width: 100%; height: 100%; background: transparent; border: none; color: var(--text-color); font-family: 'Roboto', sans-serif; font-size: 1rem; padding: 10px; resize: none; outline: none; text-align: center; }
+        #note-display { white-space: pre-wrap; word-wrap: break-word; user-select: none; }
+        #note-textarea { display: none; }
+        #note-widget.edit-mode #note-display { display: none; }
+        #note-widget.edit-mode #note-textarea { display: block; }
+        #note-settings-btn { position: absolute; top: 8px; right: 8px; width: 28px; height: 28px; background-color: rgba(0,0,0,0.5); color: white; border-radius: 50%; display: none; justify-content: center; align-items: center; font-size: 16px; cursor: pointer; z-index: 12; }
+        #note-widget.edit-mode #note-settings-btn { display: flex; }
+
         #music-widget { top: 45%; left: 10%; width: 300px; display: flex; flex-direction: column; justify-content: center; }
         #music-info-container { display: flex; gap: 12px; align-items: center; }
         #music-album-art { width: 60px; height: 60px; background-size: cover; background-position: center; border-radius: 8px; flex-shrink: 0; display: flex; justify-content: center; align-items: center; font-size: 2rem; }
@@ -56,75 +65,15 @@
         #gif-display { width: 100%; height: 100%; object-fit: contain; }
         #remove-gif-btn { position: absolute; top: 5px; right: 5px; width: 24px; height: 24px; background-color: rgba(231, 76, 60, 0.8); color: white; border-radius: 50%; display: none; justify-content: center; align-items: center; font-size: 16px; cursor: pointer; z-index: 12; }
         #gif-widget.has-gif:hover #remove-gif-btn { display: flex; }
-        
-        /* New Webcam Widget Styles */
-        #webcam-widget {
-            top: 20%; left: 20%;
-            width: 320px; height: 240px;
-            padding: 0;
-            resize: both;
-            overflow: hidden;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background-color: #000;
-            border: 2px solid var(--widget-bg);
-        }
-        #webcam-video {
-            width: 100%; height: 100%;
-            object-fit: cover;
-            display: none; /* Hidden until stream is active */
-            transform: scaleX(-1); /* Mirror view for a more natural feel */
-        }
-        #webcam-widget.active #webcam-video { display: block; }
-        #webcam-widget.active #webcam-placeholder { display: none; }
-        #webcam-placeholder {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 10px;
-            font-size: 1.2rem;
-            color: rgba(255, 255, 255, 0.7);
-            text-align: center;
-            padding: 10px;
-        }
+        #webcam-widget { top: 20%; left: 20%; width: 320px; height: 240px; padding: 0; resize: both; overflow: hidden; display: flex; align-items: center; justify-content: center; background-color: #000; border: 2px solid var(--widget-bg); }
+        #webcam-video { width: 100%; height: 100%; object-fit: cover; display: none; transform: scaleX(-1); }
+        #webcam-widget.active #webcam-video { display: block; } #webcam-widget.active #webcam-placeholder { display: none; }
+        #webcam-placeholder { display: flex; flex-direction: column; align-items: center; gap: 10px; font-size: 1.2rem; color: rgba(255, 255, 255, 0.7); text-align: center; padding: 10px; }
         #webcam-placeholder i { font-size: 3rem; }
-        #webcam-controls {
-            position: absolute;
-            bottom: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            background-color: rgba(0,0,0,0.5);
-            padding: 5px 10px;
-            border-radius: 8px;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            z-index: 12;
-        }
+        #webcam-controls { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; background-color: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 8px; opacity: 0; transition: opacity 0.3s ease; z-index: 12; }
         #webcam-widget:hover #webcam-controls { opacity: 1; }
-        #webcam-source-select {
-            background-color: #333;
-            color: white;
-            border: 1px solid #555;
-            border-radius: 5px;
-            padding: 3px;
-            max-width: 150px;
-        }
-        #webcam-stop-btn {
-            background: none;
-            border: none;
-            color: white;
-            font-size: 1.5rem;
-            cursor: pointer;
-            padding: 0;
-            line-height: 1;
-            display: flex;
-            align-items: center;
-        }
-
+        #webcam-source-select { background-color: #333; color: white; border: 1px solid #555; border-radius: 5px; padding: 3px; max-width: 150px; }
+        #webcam-stop-btn { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; padding: 0; line-height: 1; display: flex; align-items: center; }
         #lock-screen.light-theme #music-artist { color: #555; }
         #settings-btn { top: 80%; left: 50px; }
         #settings-btn svg circle:nth-child(2) { stroke: var(--icon-stroke-color); }
@@ -195,20 +144,11 @@
         @keyframes rise-anim { from { transform: translateY(110vh) rotate(0deg); opacity: 1; } to { transform: translateY(-10vh) rotate(720deg); opacity: 0; } }
         #fun-stock-name-display { position: absolute; bottom: 20vh; right: 5vw; font-size: 2.5rem; font-family: 'Oswald', sans-serif; color: var(--text-color); text-shadow: var(--text-shadow); opacity: 0; transition: opacity 1.5s ease-in-out; pointer-events: none; }
         #fun-stock-name-display.visible { opacity: 1; pointer-events: auto; }
-
-        /* Light Theme Rules */
         #lock-screen.light-theme { --icon-stroke-color: #333; }
         #lock-screen.light-theme #clock { color: #333; filter: drop-shadow(0 0 10px rgba(255,255,255,0.3));}
-        #lock-screen.light-theme #status-bar, #lock-screen.light-theme #unlock-prompt, #lock-screen.light-theme #fullscreen-hint, #lock-screen.light-theme #fun-stock-name-display {
-            color: var(--text-color-light);
-            text-shadow: var(--text-shadow-light);
-        }
-        #lock-screen.light-theme .widget, #lock-screen.light-theme #weather-info {
-             background-color: var(--widget-bg-light);
-             color: var(--text-color-light);
-             text-shadow: var(--text-shadow-light);
-        }
-        #lock-screen.light-theme #note-textarea { color: var(--text-color-light); }
+        #lock-screen.light-theme #status-bar, #lock-screen.light-theme #unlock-prompt, #lock-screen.light-theme #fullscreen-hint, #lock-screen.light-theme #fun-stock-name-display { color: var(--text-color-light); text-shadow: var(--text-shadow-light); }
+        #lock-screen.light-theme .widget, #lock-screen.light-theme #weather-info { background-color: var(--widget-bg-light); color: var(--text-color-light); text-shadow: var(--text-shadow-light); }
+        #lock-screen.light-theme #note-textarea, #lock-screen.light-theme #note-display { color: var(--text-color-light); }
     </style>
 </head>
 <body>
@@ -222,7 +162,13 @@
         
         <!-- Widgets -->
         <div id="stock-widget" class="draggable-item widget" title="Single-click to trigger effect | Double-click to edit"></div>
-        <div id="note-widget" class="draggable-item widget" title="Hold to move | Double-click to edit style"><textarea id="note-textarea" placeholder="Type a note..."></textarea></div>
+        
+        <div id="note-widget" class="draggable-item widget" title="Double-click to edit">
+            <div id="note-display"></div>
+            <textarea id="note-textarea" placeholder="Type a note..."></textarea>
+            <div id="note-settings-btn" title="Edit note style"><i class="fa-solid fa-cog"></i></div>
+        </div>
+
         <div id="music-widget" class="draggable-item widget no-station" title="Double-click to select radio">
             <div id="music-info-container">
                 <div id="music-album-art"></div>
@@ -242,17 +188,10 @@
             <img id="gif-display">
             <div id="remove-gif-btn">×</div>
         </div>
-        <!-- New Webcam Widget -->
         <div id="webcam-widget" class="draggable-item widget" title="Rear Seat Cam">
             <video id="webcam-video" playsinline autoplay muted></video>
-            <div id="webcam-placeholder">
-                <i class="fa-solid fa-video-slash"></i>
-                <span>Camera Inactive</span>
-            </div>
-            <div id="webcam-controls">
-                <select id="webcam-source-select"><option>No Cams</option></select>
-                <button id="webcam-stop-btn" title="Stop Camera"><i class="fa-solid fa-power-off"></i></button>
-            </div>
+            <div id="webcam-placeholder"><i class="fa-solid fa-video-slash"></i><span>Camera Inactive</span></div>
+            <div id="webcam-controls"><select id="webcam-source-select"><option>No Cams</option></select><button id="webcam-stop-btn" title="Stop Camera"><i class="fa-solid fa-power-off"></i></button></div>
         </div>
 
         <div id="settings-btn" class="draggable-item app-icon" title="Open settings menu"><svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="7.5" fill="rgba(80, 80, 80, 0.6)"/><circle cx="8" cy="8" r="4" fill="none" stroke="var(--icon-stroke-color)" stroke-width="1.5"/></svg></div>
@@ -274,10 +213,7 @@
                 </div>
                 <div class="settings-section">
                     <h3>Theme & Style</h3>
-                    <div class="setting-toggle">
-                        <label for="theme-toggle">Light Theme</label>
-                        <input type="checkbox" id="theme-toggle">
-                    </div>
+                    <div class="setting-toggle"><label for="theme-toggle">Light Theme</label><input type="checkbox" id="theme-toggle"></div>
                     <label for="clock-color-input">Clock Color</label>
                     <input type="color" id="clock-color-input" value="#ffffff">
                     <label for="font-select">Clock Font</label>
@@ -514,24 +450,71 @@
                 }
                 
                 (function setupWidgets() {
-                    // Note Widget
                     const noteWidget = document.getElementById('note-widget');
+                    const noteDisplay = document.getElementById('note-display');
                     const noteTextarea = document.getElementById('note-textarea');
+                    const noteSettingsBtn = document.getElementById('note-settings-btn');
                     const noteEditorMenu = document.getElementById('note-editor-menu');
                     const closeNoteEditorBtn = document.getElementById('close-note-editor-btn');
                     const noteFontSelect = document.getElementById('note-font-select');
                     const noteFontSizeInput = document.getElementById('note-font-size-input');
+
+                    const enterNoteEditMode = () => {
+                        noteWidget.isEditing = true;
+                        noteWidget.classList.add('edit-mode');
+                        noteTextarea.focus();
+                        setTimeout(() => {
+                            document.addEventListener('click', exitNoteEditModeOnClickOutside, { once: true });
+                        }, 0);
+                    };
+
+                    const exitNoteEditMode = () => {
+                        noteWidget.isEditing = false;
+                        noteWidget.classList.remove('edit-mode');
+                        localStorage.setItem('lockscreenNoteContent', noteTextarea.value);
+                        noteDisplay.innerText = noteTextarea.value;
+                        document.removeEventListener('click', exitNoteEditModeOnClickOutside);
+                    };
+
+                    const exitNoteEditModeOnClickOutside = (e) => {
+                        if (!noteWidget.contains(e.target)) {
+                            exitNoteEditMode();
+                        } else {
+                           document.addEventListener('click', exitNoteEditModeOnClickOutside, { once: true });
+                        }
+                    };
+
                     const applyNoteStyle = () => {
                         const fontFamily = localStorage.getItem('lockscreenNoteFontFamily') || "'Roboto', sans-serif";
                         const fontSize = localStorage.getItem('lockscreenNoteFontSize') || '16';
                         noteTextarea.style.fontFamily = fontFamily;
                         noteTextarea.style.fontSize = `${fontSize}px`;
+                        noteDisplay.style.fontFamily = fontFamily;
+                        noteDisplay.style.fontSize = `${fontSize}px`;
                         noteFontSelect.value = fontFamily;
                         noteFontSizeInput.value = fontSize;
                     };
-                    noteTextarea.value = localStorage.getItem('lockscreenNoteContent') || '';
-                    noteTextarea.addEventListener('input', () => { localStorage.setItem('lockscreenNoteContent', noteTextarea.value); });
-                    noteWidget.addEventListener('dblclick', (e) => { if (e.target === noteTextarea) return; noteEditorMenu.classList.add('visible'); });
+
+                    const savedText = localStorage.getItem('lockscreenNoteContent') || '';
+                    noteTextarea.value = savedText;
+                    noteDisplay.innerText = savedText;
+                    
+                    noteTextarea.addEventListener('input', () => { 
+                        localStorage.setItem('lockscreenNoteContent', noteTextarea.value);
+                        noteDisplay.innerText = noteTextarea.value;
+                    });
+                    
+                    noteWidget.addEventListener('dblclick', (e) => {
+                        if (noteWidget.isEditing) return;
+                        if (!e.target.hasMoved) {
+                            enterNoteEditMode();
+                        }
+                    });
+
+                    noteSettingsBtn.addEventListener('click', () => {
+                        noteEditorMenu.classList.add('visible');
+                    });
+                    
                     closeNoteEditorBtn.addEventListener('click', () => noteEditorMenu.classList.remove('visible'));
                     noteEditorMenu.addEventListener('click', (e) => { if (e.target === noteEditorMenu) noteEditorMenu.classList.remove('visible'); });
                     noteFontSelect.addEventListener('input', () => { localStorage.setItem('lockscreenNoteFontFamily', noteFontSelect.value); applyNoteStyle(); });
@@ -546,12 +529,12 @@
 
                     // Music Widget
                     const radioPlayer = {
-                        stations: [
+                        stations: [ // UPDATED STATION LIST
                             { name: 'Lofi Girl', genre: 'Beats to relax/study to', streamUrl: 'https://play.streamafrica.net/lofiradio' },
                             { name: 'SomaFM: Groove Salad', genre: 'Ambient Downtempo', streamUrl: 'https://ice1.somafm.com/groovesalad-128-mp3' },
                             { name: 'SomaFM: Underground 80s', genre: 'Early 80s UK Synthpop', streamUrl: 'https://ice2.somafm.com/u80s-128-mp3' },
-                            { name: 'Classic Rock Florida', genre: 'Classic Rock', streamUrl: 'https://vip2.fastcast4u.com/proxy/classicrock?mp=/1' },
-                            { name: 'Radio Intense', genre: 'Techno & House', streamUrl: 'https://radio.radiointense.com/stream/10/' }
+                            { name: 'Absolute Classic Rock', genre: 'Classic & Modern Rock', streamUrl: 'https://stream.live.absolute-radio.co.uk/ar-classicrock.mp3' },
+                            { name: 'SomaFM: Vaporwaves', genre: 'Hypnagogic Retro', streamUrl: 'https://ice1.somafm.com/vaporwaves-128-mp3' }
                         ],
                         currentStationIndex: -1,
                         audio: document.getElementById('audio-player'),
@@ -775,7 +758,7 @@
                                 this.stream = await navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: deviceId } } });
                                 this.elements.video.srcObject = this.stream;
                                 this.elements.widget.classList.add('active');
-                                await this.populateDevices(); // Repopulate with labels now that we have permission
+                                await this.populateDevices();
                             } catch (err) {
                                 console.error(`Error starting camera ${deviceId}:`, err);
                                 this.elements.widget.classList.remove('active');
@@ -877,7 +860,53 @@
                         }
                     };
                     
-                    const makeDraggable = (el) => { let oX, oY, isD, hasMoved, pressTimer; let isPinching = false, initialPinchDist, initialScale; const getDist = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY); const mv = (e) => { if (el.id === 'clock' && isPinching && e.touches && e.touches.length === 2) { e.preventDefault(); const oldWidth = el.offsetWidth, oldHeight = el.offsetHeight, oldLeft = el.offsetLeft, oldTop = el.offsetTop; const newDist = getDist(e.touches); const scaleRatio = newDist / initialPinchDist; const newScale = Math.max(0.5, Math.min(initialScale * scaleRatio, 3)); applyClockScale(newScale); const newWidth = el.offsetWidth, newHeight = el.offsetHeight; const deltaWidth = newWidth - oldWidth, deltaHeight = newHeight - oldHeight; el.style.left = `${oldLeft - (deltaWidth / 2)}px`; el.style.top = `${oldTop - (deltaHeight / 2)}px`; return; } if (!isD) return; e.preventDefault(); hasMoved = true; const cX = e.touches ? e.touches[0].clientX : e.clientX, cY = e.touches ? e.touches[0].clientY : e.clientY; let nX = cX - oX, nY = cY - oY; const sR = lockScreen.getBoundingClientRect(), eR = el.getBoundingClientRect(); nX = Math.max(0, Math.min(nX, sR.width - eR.width)); nY = Math.max(0, Math.min(nY, sR.height - eR.height)); el.style.left = `${nX}px`; el.style.top = `${nY}px`; if(['clock', 'stock-widget'].indexOf(el.id) === -1) el.style.transform = 'none'; }; const sD_common = (e) => { isD = true; hasMoved = false; const cX = e.touches ? e.touches[0].clientX : e.clientX, cY = e.touches ? e.touches[0].clientY : e.clientY; oX = cX - el.offsetLeft; oY = cY - el.offsetTop; if (el.id === 'fun-stock-name-display' && stockNameFadeOutTimer) { clearTimeout(stockNameFadeOutTimer); stockNameFadeOutTimer = null; } document.addEventListener('mousemove', mv, { passive: false }); document.addEventListener('touchmove', mv, { passive: false }); document.addEventListener('mouseup', stD, { once: true }); document.addEventListener('touchend', stD, { once: true }); }; const stD = (e) => { clearTimeout(pressTimer); if (el.id === 'note-widget' && !hasMoved) { if(e.target !== el.querySelector('textarea')) el.querySelector('textarea').focus(); } if (!isD && !isPinching) return; if (el.id === 'stock-widget' || el.id === 'music-widget' || el.id === 'gif-widget') { e.target.hasMoved = hasMoved; } if (el.id === 'fun-stock-name-display' && el.classList.contains('visible')) { stockNameFadeOutTimer = setTimeout(() => { el.classList.remove('visible'); }, 3000); } isD = false; isPinching = false; if (hasMoved) savePos(); document.removeEventListener('mousemove', mv); document.removeEventListener('touchmove', mv); }; const sD_longPress = (e) => { if (e.target.closest('#music-controls, #remove-gif-btn, #webcam-controls')) return; if (e.touches && e.touches.length === 2 && el.id === 'clock') { isPinching = true; isD = false; initialPinchDist = getDist(e.touches); initialScale = clockScale; return; } clearTimeout(pressTimer); if (el.id === 'note-widget' && e.target === el.querySelector('textarea')) { pressTimer = setTimeout(() => { if (!hasMoved) { sD_common(e); } }, 300); } else { sD_common(e); } document.addEventListener('mouseup', stD, { once: true }); document.addEventListener('touchend', stD, { once: true }); }; el.addEventListener('mousedown', sD_longPress); el.addEventListener('touchstart', sD_longPress, { passive: false }); const lnk = el.querySelector('a'); if (lnk) { lnk.addEventListener('click', (e) => { if (hasMoved) e.preventDefault(); }); } if(el.id === 'settings-btn') { el.addEventListener('click', (e) => { if (!hasMoved) { showWallpaperSettings(); settingsMenu.classList.add('visible'); } }); } };
+                    const makeDraggable = (el) => {
+                        let oX, oY, isD, hasMoved;
+                        let isPinching = false, initialPinchDist, initialScale;
+                        const getDist = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+                        const mv = (e) => {
+                            if (el.isEditing) return;
+                            if (el.id === 'clock' && isPinching && e.touches && e.touches.length === 2) {
+                                e.preventDefault(); const oldWidth = el.offsetWidth, oldHeight = el.offsetHeight, oldLeft = el.offsetLeft, oldTop = el.offsetTop;
+                                const newDist = getDist(e.touches); const scaleRatio = newDist / initialPinchDist; const newScale = Math.max(0.5, Math.min(initialScale * scaleRatio, 3));
+                                applyClockScale(newScale); const newWidth = el.offsetWidth, newHeight = el.offsetHeight; const deltaWidth = newWidth - oldWidth, deltaHeight = newHeight - oldHeight;
+                                el.style.left = `${oldLeft - (deltaWidth / 2)}px`; el.style.top = `${oldTop - (deltaHeight / 2)}px`; return;
+                            }
+                            if (!isD) return; e.preventDefault(); hasMoved = true;
+                            const cX = e.touches ? e.touches[0].clientX : e.clientX, cY = e.touches ? e.touches[0].clientY : e.clientY;
+                            let nX = cX - oX, nY = cY - oY;
+                            const sR = lockScreen.getBoundingClientRect(), eR = el.getBoundingClientRect();
+                            nX = Math.max(0, Math.min(nX, sR.width - eR.width)); nY = Math.max(0, Math.min(nY, sR.height - eR.height));
+                            el.style.left = `${nX}px`; el.style.top = `${nY}px`;
+                            if(['clock', 'stock-widget'].indexOf(el.id) === -1) el.style.transform = 'none';
+                        };
+                        const stD = (e) => {
+                            if (!isD && !isPinching) return;
+                            e.target.hasMoved = hasMoved;
+                            if (el.id === 'fun-stock-name-display' && el.classList.contains('visible')) { stockNameFadeOutTimer = setTimeout(() => { el.classList.remove('visible'); }, 3000); }
+                            isD = false; isPinching = false;
+                            if (hasMoved) savePos();
+                            document.removeEventListener('mousemove', mv); document.removeEventListener('touchmove', mv);
+                        };
+                        const sD_longPress = (e) => {
+                            if (el.isEditing) return;
+                            if (e.target.closest('#music-controls, #remove-gif-btn, #webcam-controls, #note-settings-btn')) return;
+                            if (e.touches && e.touches.length === 2 && el.id === 'clock') { isPinching = true; isD = false; initialPinchDist = getDist(e.touches); initialScale = clockScale; return; }
+                            
+                            isD = true; hasMoved = false; e.target.hasMoved = false;
+                            const cX = e.touches ? e.touches[0].clientX : e.clientX, cY = e.touches ? e.touches[0].clientY : e.clientY;
+                            oX = cX - el.offsetLeft; oY = cY - el.offsetTop;
+                            if (el.id === 'fun-stock-name-display' && stockNameFadeOutTimer) { clearTimeout(stockNameFadeOutTimer); stockNameFadeOutTimer = null; }
+                            document.addEventListener('mousemove', mv, { passive: false });
+                            document.addEventListener('touchmove', mv, { passive: false });
+                            document.addEventListener('mouseup', stD, { once: true });
+                            document.addEventListener('touchend', stD, { once: true });
+                        };
+                        el.addEventListener('mousedown', sD_longPress);
+                        el.addEventListener('touchstart', sD_longPress, { passive: false });
+                        const lnk = el.querySelector('a'); if (lnk) { lnk.addEventListener('click', (e) => { if (hasMoved) e.preventDefault(); }); }
+                        if(el.id === 'settings-btn') { el.addEventListener('click', (e) => { if (!hasMoved) { showWallpaperSettings(); settingsMenu.classList.add('visible'); } }); }
+                    };
                     
                     stockWidget.addEventListener('click', (e) => {
                         if (e.target.hasMoved) return;
@@ -1029,6 +1058,13 @@
                 setWp(wpToLoad);
 
                 document.addEventListener('keydown', (e) => {
+                    if (document.getElementById('note-widget').classList.contains('edit-mode')) {
+                        if (e.key === 'Escape') {
+                            document.getElementById('note-widget').querySelector('#note-textarea').blur();
+                            exitNoteEditMode();
+                        }
+                        return;
+                    }
                     if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
                     if (!getStockFlashState()) return;
                     
