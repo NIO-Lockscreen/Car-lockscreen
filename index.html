@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Dynamic Lockscreen</title>
+    <!-- Favicons for Car Dash / Browser Tabs -->
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%232c2c2e'/%3E%3Cpath fill='white' d='M87.5,56.2c-2.4,0-4.5,1.7-5,4c-0.1,0.5-0.1,1-0.1,1.5c0,4.4,3.6,8,8,8s8-3.6,8-8c0-0.5-0.1-1-0.1-1.5 c-0.5-2.3-2.6-4-5-4H87.5z M25.4,61.7c-0.5-2.3-2.6-4-5,4c-2.4,0-4.5,1.7-5,4c-0.1,0.5-0.1,1-0.1,1.5c0,4.4,3.6,8,8,8s8-3.6,8-8 C25.5,62.7,25.5,62.2,25.4,61.7z M87.9,49.9L75.3,32.7c-1.3-1.8-3.4-2.8-5.6-2.8H29.1c-2.2,0-4.3,1.1-5.6,2.8L12.1,49.9 c-0.1,0.1-0.1,0.2-0.2,0.3c-1,1.2-1.5,2.7-1.5,4.3v10.3c0,0.8,0.7,1.5,1.5,1.5h3.4c0.6,0,1.1-0.4,1.4-0.9c0.7-1.4,2.2-2.4,3.8-2.4 c1.7,0,3.1,1,3.8,2.4c0.3,0.5,0.8,0.9,1.4,0.9h40.2c0.6,0,1.1-0.4,1.4-0.9c0.7-1.4,2.2-2.4,3.8-2.4c1.7,0,3.1,1,3.8,2.4 c0.3,0.5,0.8,0.9,1.4,0.9h3.4c0.8,0,1.5-0.7,1.5-1.5V54.4c0-1.6-0.5-3.1-1.5-4.3C88,50.1,88,50,87.9,49.9z M28.2,35.9h42.4l9.1,12.5 H19.1L28.2,35.9z'/%3E%3C/svg%3E">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%232c2c2e'/%3E%3Cpath fill='white' d='M87.5,56.2c-2.4,0-4.5,1.7-5,4c-0.1,0.5-0.1,1-0.1,1.5c0,4.4,3.6,8,8,8s8-3.6,8-8c0-0.5-0.1-1-0.1-1.5 c-0.5-2.3-2.6-4-5-4H87.5z M25.4,61.7c-0.5-2.3-2.6-4-5,4c-2.4,0-4.5,1.7-5,4c-0.1,0.5-0.1,1-0.1,1.5c0,4.4,3.6,8,8,8s8-3.6,8-8 C25.5,62.7,25.5,62.2,25.4,61.7z M87.9,49.9L75.3,32.7c-1.3-1.8-3.4-2.8-5.6-2.8H29.1c-2.2,0-4.3,1.1-5.6,2.8L12.1,49.9 c-0.1,0.1-0.1,0.2-0.2,0.3c-1,1.2-1.5,2.7-1.5,4.3v10.3c0,0.8,0.7,1.5,1.5,1.5h3.4c0.6,0,1.1-0.4,1.4-0.9c0.7-1.4,2.2-2.4,3.8-2.4 c1.7,0,3.1,1,3.8,2.4c0.3,0.5,0.8,0.9,1.4,0.9h40.2c0.6,0,1.1-0.4,1.4-0.9c0.7-1.4,2.2-2.4,3.8-2.4c1.7,0,3.1,1,3.8,2.4 c0.3,0.5,0.8,0.9,1.4,0.9h3.4c0.8,0,1.5-0.7,1.5-1.5V54.4c0-1.6-0.5-3.1-1.5-4.3C88,50.1,88,50,87.9,49.9z M28.2,35.9h42.4l9.1,12.5 H19.1L28.2,35.9z'/%3E%3C/svg%3E">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <style>
@@ -35,8 +38,17 @@
         .stock-info { display: flex; align-items: center; gap: 10px; font-weight: 500; letter-spacing: 0.5px;}
         .stock-price { font-family: 'Roboto Mono', monospace; font-weight: 500; font-size: 1.1rem; }
         .stock-info .fa-caret-up { color: #2ecc71; } .stock-info .fa-caret-down { color: #e74c3c; }
-        #note-widget { top: 60%; left: 75%; width: 250px; height: 180px; padding: 0; resize: both; overflow: hidden; }
-        #note-textarea { width: 100%; height: 100%; background: transparent; border: none; color: var(--text-color); font-family: 'Roboto', sans-serif; font-size: 1rem; padding: 10px; resize: none; outline: none; text-align: center; }
+        
+        #note-widget { top: 60%; left: 75%; width: 250px; height: 180px; padding: 0; resize: both; overflow: hidden; transition: box-shadow 0.3s; }
+        #note-widget.edit-mode { cursor: default; box-shadow: 0 0 15px rgba(10, 132, 255, 0.7); }
+        #note-display, #note-textarea { width: 100%; height: 100%; background: transparent; border: none; color: var(--text-color); font-family: 'Roboto', sans-serif; font-size: 1rem; padding: 10px; resize: none; outline: none; text-align: center; }
+        #note-display { white-space: pre-wrap; word-wrap: break-word; user-select: none; }
+        #note-textarea { display: none; }
+        #note-widget.edit-mode #note-display { display: none; }
+        #note-widget.edit-mode #note-textarea { display: block; }
+        #note-settings-btn { position: absolute; top: 8px; right: 8px; width: 28px; height: 28px; background-color: rgba(0,0,0,0.5); color: white; border-radius: 50%; display: none; justify-content: center; align-items: center; font-size: 16px; cursor: pointer; z-index: 12; }
+        #note-widget.edit-mode #note-settings-btn { display: flex; }
+
         #music-widget { top: 45%; left: 10%; width: 300px; display: flex; flex-direction: column; justify-content: center; }
         #music-info-container { display: flex; gap: 12px; align-items: center; }
         #music-album-art { width: 60px; height: 60px; background-size: cover; background-position: center; border-radius: 8px; flex-shrink: 0; display: flex; justify-content: center; align-items: center; font-size: 2rem; }
@@ -53,6 +65,30 @@
         #gif-display { width: 100%; height: 100%; object-fit: contain; }
         #remove-gif-btn { position: absolute; top: 5px; right: 5px; width: 24px; height: 24px; background-color: rgba(231, 76, 60, 0.8); color: white; border-radius: 50%; display: none; justify-content: center; align-items: center; font-size: 16px; cursor: pointer; z-index: 12; }
         #gif-widget.has-gif:hover #remove-gif-btn { display: flex; }
+        
+        /* MODIFIED Webcam Widget CSS */
+        #webcam-widget { top: 20%; left: 20%; width: 320px; height: 240px; padding: 0; resize: both; overflow: hidden; display: flex; align-items: center; justify-content: center; background-color: #000; border: 2px solid var(--widget-bg); }
+        #webcam-video {
+            display: none; /* Hidden by default, shown when active */
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1); /* Mirror effect */
+            filter: grayscale(100%); /* Grayscale filter */
+        }
+        #webcam-widget.active #webcam-video {
+            display: block;
+        }
+        #webcam-widget.active #webcam-placeholder {
+            display: none;
+        }
+        #webcam-placeholder { display: flex; flex-direction: column; align-items: center; gap: 10px; font-size: 1.2rem; color: rgba(255, 255, 255, 0.7); text-align: center; padding: 10px; }
+        #webcam-placeholder i { font-size: 3rem; }
+        #webcam-controls { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; background-color: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 8px; opacity: 0; transition: opacity 0.3s ease; z-index: 12; }
+        #webcam-widget:hover #webcam-controls { opacity: 1; }
+        #webcam-source-select { background-color: #333; color: white; border: 1px solid #555; border-radius: 5px; padding: 3px; max-width: 150px; }
+        #webcam-stop-btn { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; padding: 0; line-height: 1; display: flex; align-items: center; }
+
         #lock-screen.light-theme #music-artist { color: #555; }
         #settings-btn { top: 80%; left: 50px; }
         #settings-btn svg circle:nth-child(2) { stroke: var(--icon-stroke-color); }
@@ -123,20 +159,11 @@
         @keyframes rise-anim { from { transform: translateY(110vh) rotate(0deg); opacity: 1; } to { transform: translateY(-10vh) rotate(720deg); opacity: 0; } }
         #fun-stock-name-display { position: absolute; bottom: 20vh; right: 5vw; font-size: 2.5rem; font-family: 'Oswald', sans-serif; color: var(--text-color); text-shadow: var(--text-shadow); opacity: 0; transition: opacity 1.5s ease-in-out; pointer-events: none; }
         #fun-stock-name-display.visible { opacity: 1; pointer-events: auto; }
-
-        /* Light Theme Rules */
         #lock-screen.light-theme { --icon-stroke-color: #333; }
         #lock-screen.light-theme #clock { color: #333; filter: drop-shadow(0 0 10px rgba(255,255,255,0.3));}
-        #lock-screen.light-theme #status-bar, #lock-screen.light-theme #unlock-prompt, #lock-screen.light-theme #fullscreen-hint, #lock-screen.light-theme #fun-stock-name-display {
-            color: var(--text-color-light);
-            text-shadow: var(--text-shadow-light);
-        }
-        #lock-screen.light-theme .widget, #lock-screen.light-theme #weather-info {
-             background-color: var(--widget-bg-light);
-             color: var(--text-color-light);
-             text-shadow: var(--text-shadow-light);
-        }
-        #lock-screen.light-theme #note-textarea { color: var(--text-color-light); }
+        #lock-screen.light-theme #status-bar, #lock-screen.light-theme #unlock-prompt, #lock-screen.light-theme #fullscreen-hint, #lock-screen.light-theme #fun-stock-name-display { color: var(--text-color-light); text-shadow: var(--text-shadow-light); }
+        #lock-screen.light-theme .widget, #lock-screen.light-theme #weather-info { background-color: var(--widget-bg-light); color: var(--text-color-light); text-shadow: var(--text-shadow-light); }
+        #lock-screen.light-theme #note-textarea, #lock-screen.light-theme #note-display { color: var(--text-color-light); }
     </style>
 </head>
 <body>
@@ -150,7 +177,13 @@
         
         <!-- Widgets -->
         <div id="stock-widget" class="draggable-item widget" title="Single-click to trigger effect | Double-click to edit"></div>
-        <div id="note-widget" class="draggable-item widget" title="Hold to move | Double-click to edit style"><textarea id="note-textarea" placeholder="Type a note..."></textarea></div>
+        
+        <div id="note-widget" class="draggable-item widget" title="Double-click to edit">
+            <div id="note-display"></div>
+            <textarea id="note-textarea" placeholder="Type a note..."></textarea>
+            <div id="note-settings-btn" title="Edit note style"><i class="fa-solid fa-cog"></i></div>
+        </div>
+
         <div id="music-widget" class="draggable-item widget no-station" title="Double-click to select radio">
             <div id="music-info-container">
                 <div id="music-album-art"></div>
@@ -171,6 +204,16 @@
             <div id="remove-gif-btn">×</div>
         </div>
 
+        <!-- MODIFIED Webcam Widget HTML -->
+        <div id="webcam-widget" class="draggable-item widget" title="Double-click to refresh sources | Use dropdown to switch">
+            <video id="webcam-video" playsinline muted></video>
+            <div id="webcam-placeholder"><i class="fa-solid fa-video-slash"></i><span>Camera Inactive</span></div>
+            <div id="webcam-controls">
+                <select id="webcam-source-select"><option>No Cams</option></select>
+                <button id="webcam-stop-btn" title="Stop Camera"><i class="fa-solid fa-power-off"></i></button>
+            </div>
+        </div>
+
         <div id="settings-btn" class="draggable-item app-icon" title="Open settings menu"><svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="7.5" fill="rgba(80, 80, 80, 0.6)"/><circle cx="8" cy="8" r="4" fill="none" stroke="var(--icon-stroke-color)" stroke-width="1.5"/></svg></div>
         <div id="fun-stock-name-display" class="draggable-item"></div>
         <div id="unlock-prompt">Press to unlock</div>
@@ -186,13 +229,11 @@
                     <div class="setting-toggle"><label for="toggle-note-widget">Note Widget</label><input type="checkbox" id="toggle-note-widget"></div>
                     <div class="setting-toggle"><label for="toggle-music-widget">Music Widget</label><input type="checkbox" id="toggle-music-widget"></div>
                     <div class="setting-toggle"><label for="toggle-gif-widget">GIF Widget</label><input type="checkbox" id="toggle-gif-widget"></div>
+                    <div class="setting-toggle"><label for="toggle-webcam-widget">Rear Seat Cam</label><input type="checkbox" id="toggle-webcam-widget"></div>
                 </div>
                 <div class="settings-section">
                     <h3>Theme & Style</h3>
-                    <div class="setting-toggle">
-                        <label for="theme-toggle">Light Theme</label>
-                        <input type="checkbox" id="theme-toggle">
-                    </div>
+                    <div class="setting-toggle"><label for="theme-toggle">Light Theme</label><input type="checkbox" id="theme-toggle"></div>
                     <label for="clock-color-input">Clock Color</label>
                     <input type="color" id="clock-color-input" value="#ffffff">
                     <label for="font-select">Clock Font</label>
@@ -429,24 +470,71 @@
                 }
                 
                 (function setupWidgets() {
-                    // Note Widget
                     const noteWidget = document.getElementById('note-widget');
+                    const noteDisplay = document.getElementById('note-display');
                     const noteTextarea = document.getElementById('note-textarea');
+                    const noteSettingsBtn = document.getElementById('note-settings-btn');
                     const noteEditorMenu = document.getElementById('note-editor-menu');
                     const closeNoteEditorBtn = document.getElementById('close-note-editor-btn');
                     const noteFontSelect = document.getElementById('note-font-select');
                     const noteFontSizeInput = document.getElementById('note-font-size-input');
+
+                    const enterNoteEditMode = () => {
+                        noteWidget.isEditing = true;
+                        noteWidget.classList.add('edit-mode');
+                        noteTextarea.focus();
+                        setTimeout(() => {
+                            document.addEventListener('click', exitNoteEditModeOnClickOutside, { once: true });
+                        }, 0);
+                    };
+
+                    const exitNoteEditMode = () => {
+                        noteWidget.isEditing = false;
+                        noteWidget.classList.remove('edit-mode');
+                        localStorage.setItem('lockscreenNoteContent', noteTextarea.value);
+                        noteDisplay.innerText = noteTextarea.value;
+                        document.removeEventListener('click', exitNoteEditModeOnClickOutside);
+                    };
+
+                    const exitNoteEditModeOnClickOutside = (e) => {
+                        if (!noteWidget.contains(e.target)) {
+                            exitNoteEditMode();
+                        } else {
+                           document.addEventListener('click', exitNoteEditModeOnClickOutside, { once: true });
+                        }
+                    };
+
                     const applyNoteStyle = () => {
                         const fontFamily = localStorage.getItem('lockscreenNoteFontFamily') || "'Roboto', sans-serif";
                         const fontSize = localStorage.getItem('lockscreenNoteFontSize') || '16';
                         noteTextarea.style.fontFamily = fontFamily;
                         noteTextarea.style.fontSize = `${fontSize}px`;
+                        noteDisplay.style.fontFamily = fontFamily;
+                        noteDisplay.style.fontSize = `${fontSize}px`;
                         noteFontSelect.value = fontFamily;
                         noteFontSizeInput.value = fontSize;
                     };
-                    noteTextarea.value = localStorage.getItem('lockscreenNoteContent') || '';
-                    noteTextarea.addEventListener('input', () => { localStorage.setItem('lockscreenNoteContent', noteTextarea.value); });
-                    noteWidget.addEventListener('dblclick', (e) => { if (e.target === noteTextarea) return; noteEditorMenu.classList.add('visible'); });
+
+                    const savedText = localStorage.getItem('lockscreenNoteContent') || '';
+                    noteTextarea.value = savedText;
+                    noteDisplay.innerText = savedText;
+                    
+                    noteTextarea.addEventListener('input', () => { 
+                        localStorage.setItem('lockscreenNoteContent', noteTextarea.value);
+                        noteDisplay.innerText = noteTextarea.value;
+                    });
+                    
+                    noteWidget.addEventListener('dblclick', (e) => {
+                        if (noteWidget.isEditing) return;
+                        if (!e.target.hasMoved) {
+                            enterNoteEditMode();
+                        }
+                    });
+
+                    noteSettingsBtn.addEventListener('click', () => {
+                        noteEditorMenu.classList.add('visible');
+                    });
+                    
                     closeNoteEditorBtn.addEventListener('click', () => noteEditorMenu.classList.remove('visible'));
                     noteEditorMenu.addEventListener('click', (e) => { if (e.target === noteEditorMenu) noteEditorMenu.classList.remove('visible'); });
                     noteFontSelect.addEventListener('input', () => { localStorage.setItem('lockscreenNoteFontFamily', noteFontSelect.value); applyNoteStyle(); });
@@ -465,8 +553,8 @@
                             { name: 'Lofi Girl', genre: 'Beats to relax/study to', streamUrl: 'https://play.streamafrica.net/lofiradio' },
                             { name: 'SomaFM: Groove Salad', genre: 'Ambient Downtempo', streamUrl: 'https://ice1.somafm.com/groovesalad-128-mp3' },
                             { name: 'SomaFM: Underground 80s', genre: 'Early 80s UK Synthpop', streamUrl: 'https://ice2.somafm.com/u80s-128-mp3' },
-                            { name: 'Phonk FM', genre: 'Phonk & Drift', streamUrl: 'https://radio.streemlion.com:2350/stream' },
-                            { name: '181.FM: Classic Rock Hits', genre: 'Classic Rock', streamUrl: 'https://listen.181fm.com/181-classicrock_128k.mp3' }
+                            { name: 'Phonk', genre: 'Classic & Modern Phonk', streamUrl: 'https://stream.laut.fm/phonk' },
+                            { name: 'SomaFM: Vaporwaves', genre: 'Hypnagogic Retro', streamUrl: 'https://ice1.somafm.com/vaporwaves-128-mp3' }
                         ],
                         currentStationIndex: -1,
                         audio: document.getElementById('audio-player'),
@@ -633,15 +721,114 @@
                     closeGifChooserBtn.addEventListener('click', () => gifChooserMenu.classList.remove('visible'));
                     window.addGif = addGif;
                     renderCurrentGif();
-                })();
 
+                    // MODIFIED Webcam Widget Logic
+                    const webcamPlayer = {
+                        stream: null,
+                        elements: {
+                            widget: document.getElementById('webcam-widget'),
+                            video: document.getElementById('webcam-video'),
+                            select: document.getElementById('webcam-source-select'),
+                            stopBtn: document.getElementById('webcam-stop-btn'),
+                            placeholder: document.getElementById('webcam-placeholder'),
+                        },
+                        init() {
+                            this.elements.select.addEventListener('change', () => this.start());
+                            this.elements.stopBtn.addEventListener('click', () => this.stop());
+                            this.elements.widget.addEventListener('dblclick', (e) => {
+                                if (e.target.closest('#webcam-controls')) return;
+                                this.populateDevices(false);
+                            });
+
+                            if (!this.elements.widget.classList.contains('hidden')) {
+                                this.populateDevices(true);
+                            }
+                        },
+                        async populateDevices(shouldAutoload = false) {
+                            try {
+                                const devices = await navigator.mediaDevices.enumerateDevices();
+                                const videoDevices = devices.filter(d => d.kind === 'videoinput');
+                                const currentDeviceId = this.stream ? this.stream.getVideoTracks()[0].getSettings().deviceId : null;
+
+                                this.elements.select.innerHTML = '';
+                                if (videoDevices.length === 0) {
+                                    this.elements.select.innerHTML = '<option value="">No cameras</option>';
+                                    this.stop();
+                                    return;
+                                }
+
+                                videoDevices.forEach((device) => {
+                                    const option = document.createElement('option');
+                                    option.value = device.deviceId;
+                                    option.textContent = device.label || `Camera ${videoDevices.indexOf(device) + 1}`;
+                                    this.elements.select.appendChild(option);
+                                });
+
+                                if (currentDeviceId && this.elements.select.querySelector(`option[value="${currentDeviceId}"]`)) {
+                                    this.elements.select.value = currentDeviceId;
+                                }
+
+                                if (shouldAutoload && !this.stream && videoDevices.length > 0) {
+                                    this.elements.select.value = videoDevices[0].deviceId;
+                                    this.start();
+                                }
+                            } catch (err) {
+                                console.error("Error enumerating devices:", err);
+                                this.elements.placeholder.querySelector('span').textContent = "Device Error";
+                            }
+                        },
+                        async start() {
+                            if (this.stream) {
+                                if (this.stream.getVideoTracks()[0].getSettings().deviceId === this.elements.select.value) {
+                                    return;
+                                }
+                                this.stop(true);
+                            }
+
+                            const deviceId = this.elements.select.value;
+                            if (!deviceId) {
+                                this.stop();
+                                return;
+                            }
+
+                            const constraints = { video: { deviceId: { exact: deviceId } } };
+
+                            try {
+                                this.stream = await navigator.mediaDevices.getUserMedia(constraints);
+                                this.elements.video.srcObject = this.stream;
+                                this.elements.video.onloadedmetadata = () => {
+                                    this.elements.video.play();
+                                    this.elements.widget.classList.add('active');
+                                };
+                                this.populateDevices(false);
+                            } catch (err) {
+                                console.error(`Error starting camera:`, err);
+                                this.elements.widget.classList.remove('active');
+                                this.elements.placeholder.querySelector('span').textContent = "Access Denied";
+                                this.stop();
+                            }
+                        },
+                        stop(isRestarting = false) {
+                            if (this.stream) {
+                                this.stream.getTracks().forEach(track => track.stop());
+                            }
+                            this.stream = null;
+                            this.elements.video.srcObject = null;
+                            this.elements.widget.classList.remove('active');
+                        }
+                    };
+                    window.webcamPlayer = webcamPlayer;
+                    webcamPlayer.init();
+                })();
+                
                 (function setupBaseFeatures() {
-                    const DRAGGABLE_ELEMENT_IDS = ['clock', 'youtube-music-btn', 'youtube-btn', 'stock-widget', 'settings-btn', 'fun-stock-name-display', 'note-widget', 'music-widget', 'gif-widget'];
+                    const DRAGGABLE_ELEMENT_IDS = ['clock', 'youtube-music-btn', 'youtube-btn', 'stock-widget', 'settings-btn', 'fun-stock-name-display', 'note-widget', 'music-widget', 'gif-widget', 'webcam-widget'];
                     const WIDGETS = {
                         stock: { el: document.getElementById('stock-widget'), toggle: document.getElementById('toggle-stock-widget'), default: true },
                         note: { el: document.getElementById('note-widget'), toggle: document.getElementById('toggle-note-widget'), default: false },
                         music: { el: document.getElementById('music-widget'), toggle: document.getElementById('toggle-music-widget'), default: false },
                         gif: { el: document.getElementById('gif-widget'), toggle: document.getElementById('toggle-gif-widget'), default: false },
+                        webcam: { el: document.getElementById('webcam-widget'), toggle: document.getElementById('toggle-webcam-widget'), default: false },
                     };
                     
                     function initializeWidgetToggles() {
@@ -657,6 +844,14 @@
                                 const isChecked = widget.toggle.checked;
                                 widget.el.classList.toggle('hidden', !isChecked);
                                 localStorage.setItem(`widget_${key}_visible`, isChecked);
+
+                                if (key === 'webcam') {
+                                    if (isChecked) {
+                                        window.webcamPlayer.populateDevices(true);
+                                    } else {
+                                        window.webcamPlayer.stop();
+                                    }
+                                }
                             });
                         }
                     }
@@ -685,13 +880,13 @@
                             if (e) {
                                 p[id] = { t: `${(e.offsetTop / lockScreen.clientHeight) * 100}%`, l: `${(e.offsetLeft / lockScreen.clientWidth) * 100}%` };
                                 if (id === 'clock') p[id].s = clockScale;
-                                if (id === 'note-widget' || id === 'gif-widget') { p[id].w = e.style.width; p[id].h = e.style.height; }
+                                if (id === 'note-widget' || id === 'gif-widget' || id === 'webcam-widget') { p[id].w = e.style.width; p[id].h = e.style.height; }
                             }
                         });
-                        localStorage.setItem('lockscreenItemPositions_v4', JSON.stringify(p));
+                        localStorage.setItem('lockscreenItemPositions_v5', JSON.stringify(p));
                     };
                     const loadPos = () => {
-                        const p = JSON.parse(localStorage.getItem('lockscreenItemPositions_v4'));
+                        const p = JSON.parse(localStorage.getItem('lockscreenItemPositions_v5'));
                         if (p) {
                             Object.keys(p).forEach(id => {
                                 const e = document.getElementById(id);
@@ -700,14 +895,59 @@
                                     e.style.top = pos.t; e.style.left = pos.l;
                                     e.style.transform = (id === 'clock' || id === 'stock-widget') ? 'none' : e.style.transform;
                                     if (id === 'clock' && pos.s) applyClockScale(pos.s);
-                                    if (id === 'note-widget') { e.style.width = pos.w || '250px'; e.style.height = pos.h || '180px'; }
-                                    if (id === 'gif-widget') { e.style.width = pos.w || '200px'; e.style.height = pos.h || '200px'; }
+                                    if (id === 'note-widget' || id === 'gif-widget' || id === 'webcam-widget') { e.style.width = pos.w || e.style.width; e.style.height = pos.h || e.style.height; }
                                 }
                             });
                         }
                     };
                     
-                    const makeDraggable = (el) => { let oX, oY, isD, hasMoved, pressTimer; const getDist = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY); const mv = (e) => { if (el.id === 'clock' && isPinching && e.touches && e.touches.length === 2) { e.preventDefault(); const oldWidth = el.offsetWidth, oldHeight = el.offsetHeight, oldLeft = el.offsetLeft, oldTop = el.offsetTop; const newDist = getDist(e.touches); const scaleRatio = newDist / initialPinchDist; const newScale = Math.max(0.5, Math.min(initialScale * scaleRatio, 3)); applyClockScale(newScale); const newWidth = el.offsetWidth, newHeight = el.offsetHeight; const deltaWidth = newWidth - oldWidth, deltaHeight = newHeight - oldHeight; el.style.left = `${oldLeft - (deltaWidth / 2)}px`; el.style.top = `${oldTop - (deltaHeight / 2)}px`; return; } if (!isD) return; e.preventDefault(); hasMoved = true; const cX = e.touches ? e.touches[0].clientX : e.clientX, cY = e.touches ? e.touches[0].clientY : e.clientY; let nX = cX - oX, nY = cY - oY; const sR = lockScreen.getBoundingClientRect(), eR = el.getBoundingClientRect(); nX = Math.max(0, Math.min(nX, sR.width - eR.width)); nY = Math.max(0, Math.min(nY, sR.height - eR.height)); el.style.left = `${nX}px`; el.style.top = `${nY}px`; if(el.id !== 'note-widget' && el.id !== 'gif-widget') el.style.transform = 'none'; }; const sD_common = (e) => { isD = true; hasMoved = false; const cX = e.touches ? e.touches[0].clientX : e.clientX, cY = e.touches ? e.touches[0].clientY : e.clientY; oX = cX - el.offsetLeft; oY = cY - el.offsetTop; if (el.id === 'fun-stock-name-display' && stockNameFadeOutTimer) { clearTimeout(stockNameFadeOutTimer); stockNameFadeOutTimer = null; } document.addEventListener('mousemove', mv, { passive: false }); document.addEventListener('touchmove', mv, { passive: false }); document.addEventListener('mouseup', stD, { once: true }); document.addEventListener('touchend', stD, { once: true }); }; const stD = (e) => { clearTimeout(pressTimer); if (el.id === 'note-widget' && !hasMoved) { if(e.target !== el.querySelector('textarea')) el.querySelector('textarea').focus(); } if (!isD && !isPinching) return; if (el.id === 'stock-widget' || el.id === 'music-widget' || el.id === 'gif-widget') { e.target.hasMoved = hasMoved; } if (el.id === 'fun-stock-name-display' && el.classList.contains('visible')) { stockNameFadeOutTimer = setTimeout(() => { el.classList.remove('visible'); }, 3000); } isD = false; isPinching = false; if (hasMoved) savePos(); document.removeEventListener('mousemove', mv); document.removeEventListener('touchmove', mv); }; const sD_longPress = (e) => { if (e.target.closest('#music-controls, #remove-gif-btn')) return; if (e.touches && e.touches.length === 2 && el.id === 'clock') { isPinching = true; isD = false; initialPinchDist = getDist(e.touches); initialScale = clockScale; return; } clearTimeout(pressTimer); if (el.id === 'note-widget' && e.target === el.querySelector('textarea')) { pressTimer = setTimeout(() => { if (!hasMoved) { sD_common(e); } }, 300); } else { sD_common(e); } document.addEventListener('mouseup', stD, { once: true }); document.addEventListener('touchend', stD, { once: true }); }; el.addEventListener('mousedown', sD_longPress); el.addEventListener('touchstart', sD_longPress, { passive: false }); const lnk = el.querySelector('a'); if (lnk) { lnk.addEventListener('click', (e) => { if (hasMoved) e.preventDefault(); }); } if(el.id === 'settings-btn') { el.addEventListener('click', (e) => { if (!hasMoved) { showWallpaperSettings(); settingsMenu.classList.add('visible'); } }); } };
+                    const makeDraggable = (el) => {
+                        let oX, oY, isD, hasMoved;
+                        let isPinching = false, initialPinchDist, initialScale;
+                        const getDist = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+                        const mv = (e) => {
+                            if (el.isEditing) return;
+                            if (el.id === 'clock' && isPinching && e.touches && e.touches.length === 2) {
+                                e.preventDefault(); const oldWidth = el.offsetWidth, oldHeight = el.offsetHeight, oldLeft = el.offsetLeft, oldTop = el.offsetTop;
+                                const newDist = getDist(e.touches); const scaleRatio = newDist / initialPinchDist; const newScale = Math.max(0.5, Math.min(initialScale * scaleRatio, 3));
+                                applyClockScale(newScale); const newWidth = el.offsetWidth, newHeight = el.offsetHeight; const deltaWidth = newWidth - oldWidth, deltaHeight = newHeight - oldHeight;
+                                el.style.left = `${oldLeft - (deltaWidth / 2)}px`; el.style.top = `${oldTop - (deltaHeight / 2)}px`; return;
+                            }
+                            if (!isD) return; e.preventDefault(); hasMoved = true;
+                            const cX = e.touches ? e.touches[0].clientX : e.clientX, cY = e.touches ? e.touches[0].clientY : e.clientY;
+                            let nX = cX - oX, nY = cY - oY;
+                            const sR = lockScreen.getBoundingClientRect(), eR = el.getBoundingClientRect();
+                            nX = Math.max(0, Math.min(nX, sR.width - eR.width)); nY = Math.max(0, Math.min(nY, sR.height - eR.height));
+                            el.style.left = `${nX}px`; el.style.top = `${nY}px`;
+                            if(['clock', 'stock-widget'].indexOf(el.id) === -1) el.style.transform = 'none';
+                        };
+                        const stD = (e) => {
+                            if (!isD && !isPinching) return;
+                            e.target.hasMoved = hasMoved;
+                            if (el.id === 'fun-stock-name-display' && el.classList.contains('visible')) { stockNameFadeOutTimer = setTimeout(() => { el.classList.remove('visible'); }, 3000); }
+                            isD = false; isPinching = false;
+                            if (hasMoved) savePos();
+                            document.removeEventListener('mousemove', mv); document.removeEventListener('touchmove', mv);
+                        };
+                        const sD_longPress = (e) => {
+                            if (el.isEditing) return;
+                            if (e.target.closest('#music-controls, #remove-gif-btn, #webcam-controls, #note-settings-btn')) return;
+                            if (e.touches && e.touches.length === 2 && el.id === 'clock') { isPinching = true; isD = false; initialPinchDist = getDist(e.touches); initialScale = clockScale; return; }
+                            
+                            isD = true; hasMoved = false; e.target.hasMoved = false;
+                            const cX = e.touches ? e.touches[0].clientX : e.clientX, cY = e.touches ? e.touches[0].clientY : e.clientY;
+                            oX = cX - el.offsetLeft; oY = cY - el.offsetTop;
+                            if (el.id === 'fun-stock-name-display' && stockNameFadeOutTimer) { clearTimeout(stockNameFadeOutTimer); stockNameFadeOutTimer = null; }
+                            document.addEventListener('mousemove', mv, { passive: false });
+                            document.addEventListener('touchmove', mv, { passive: false });
+                            document.addEventListener('mouseup', stD, { once: true });
+                            document.addEventListener('touchend', stD, { once: true });
+                        };
+                        el.addEventListener('mousedown', sD_longPress);
+                        el.addEventListener('touchstart', sD_longPress, { passive: false });
+                        const lnk = el.querySelector('a'); if (lnk) { lnk.addEventListener('click', (e) => { if (hasMoved) e.preventDefault(); }); }
+                        if(el.id === 'settings-btn') { el.addEventListener('click', (e) => { if (!hasMoved) { showWallpaperSettings(); settingsMenu.classList.add('visible'); } }); }
+                    };
                     
                     stockWidget.addEventListener('click', (e) => {
                         if (e.target.hasMoved) return;
@@ -797,15 +1037,16 @@
                 fontSelect.addEventListener('change', () => { const newFont = fontSelect.value; localStorage.setItem('lockscreenClockFont', newFont); applyFont(newFont); });
 
                 resetPositionsBtn.addEventListener('click', () => {
-                    localStorage.removeItem('lockscreenItemPositions_v4');
+                    localStorage.removeItem('lockscreenItemPositions_v5');
                     localStorage.removeItem('lockscreenNoteContent');
                     localStorage.removeItem('lockscreenNoteFontFamily');
                     localStorage.removeItem('lockscreenNoteFontSize');
                     localStorage.removeItem('lockscreenGifUrls_v2');
                     localStorage.removeItem('lockscreenLastGif');
                     window.radioPlayer.reset();
+                    window.webcamPlayer.stop();
                     document.getElementById('gif-display').src = '';
-                    ['clock', 'youtube-music-btn', 'youtube-btn', 'stock-widget', 'settings-btn', 'fun-stock-name-display', 'note-widget', 'music-widget', 'gif-widget'].forEach(id => {
+                    ['clock', 'youtube-music-btn', 'youtube-btn', 'stock-widget', 'settings-btn', 'fun-stock-name-display', 'note-widget', 'music-widget', 'gif-widget', 'webcam-widget'].forEach(id => {
                         const el = document.getElementById(id);
                         if (el) el.style.cssText = '';
                     });
@@ -858,6 +1099,13 @@
                 setWp(wpToLoad);
 
                 document.addEventListener('keydown', (e) => {
+                    if (document.getElementById('note-widget').classList.contains('edit-mode')) {
+                        if (e.key === 'Escape') {
+                            document.getElementById('note-widget').querySelector('#note-textarea').blur();
+                            exitNoteEditMode();
+                        }
+                        return;
+                    }
                     if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
                     if (!getStockFlashState()) return;
                     
