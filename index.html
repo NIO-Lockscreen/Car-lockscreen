@@ -65,15 +65,28 @@
         #gif-display { width: 100%; height: 100%; object-fit: contain; }
         #remove-gif-btn { position: absolute; top: 5px; right: 5px; width: 24px; height: 24px; background-color: rgba(231, 76, 60, 0.8); color: white; border-radius: 50%; display: none; justify-content: center; align-items: center; font-size: 16px; cursor: pointer; z-index: 12; }
         #gif-widget.has-gif:hover #remove-gif-btn { display: flex; }
-        #webcam-widget { top: 20%; left: 20%; width: 320px; height: 240px; padding: 0; resize: both; overflow: hidden; display: flex; align-items: center; justify-content: center; background-color: #000; border: 2px solid var(--widget-bg); }
-        #webcam-video { width: 100%; height: 100%; object-fit: cover; display: none; transform: scaleX(-1); }
-        #webcam-widget.active #webcam-video { display: block; } #webcam-widget.active #webcam-placeholder { display: none; }
+        
+        #webcam-widget {
+            top: 20%; left: 20%; width: 320px; height: 197px; /* Cropped height */
+            padding: 0; resize: both; overflow: hidden;
+            display: flex; align-items: center; justify-content: center;
+            background-color: #000; border: 2px solid var(--widget-bg);
+        }
+        #webcam-canvas { width: 100%; height: 100%; display: none; transform: scaleX(-1); }
+        #webcam-widget.active #webcam-canvas { display: block; }
+        #webcam-widget.active #webcam-placeholder { display: none; }
         #webcam-placeholder { display: flex; flex-direction: column; align-items: center; gap: 10px; font-size: 1.2rem; color: rgba(255, 255, 255, 0.7); text-align: center; padding: 10px; }
         #webcam-placeholder i { font-size: 3rem; }
         #webcam-controls { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; background-color: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 8px; opacity: 0; transition: opacity 0.3s ease; z-index: 12; }
         #webcam-widget:hover #webcam-controls { opacity: 1; }
-        #webcam-source-select { background-color: #333; color: white; border: 1px solid #555; border-radius: 5px; padding: 3px; max-width: 150px; }
-        #webcam-stop-btn { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; padding: 0; line-height: 1; display: flex; align-items: center; }
+        #filter-select, #webcam-stop-btn {
+            color: white; background-color: #333; border: 1px solid #555;
+            border-radius: 5px; padding: 5px 8px; cursor: pointer;
+        }
+        #webcam-stop-btn { background: #333; border: 1px solid #555; font-size: 1.2rem; padding: 5px 10px; line-height: 1; }
+        #webcam-stop-btn .fa-power-off { vertical-align: middle; }
+        #filter-select:hover, #webcam-stop-btn:hover { background-color: #555; }
+
         #lock-screen.light-theme #music-artist { color: #555; }
         #settings-btn { top: 80%; left: 50px; }
         #settings-btn svg circle:nth-child(2) { stroke: var(--icon-stroke-color); }
@@ -89,9 +102,10 @@
         #note-font-size-input { -moz-appearance: textfield; } #note-font-size-input::-webkit-outer-spin-button, #note-font-size-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
         #clock-color-input { padding: 5px; height: 50px; }
         #stock-symbols-input { margin: 10px 0; text-transform: uppercase; text-align: center; }
-        #save-stocks-btn, #qr-upload-btn, #reset-positions-btn, #add-new-gif-btn { background-color: #0a84ff; color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-size: 0.9em; margin-top: 10px; }
+        #save-stocks-btn, #qr-upload-btn, #reset-positions-btn, #add-new-gif-btn, #reset-radio-btn { background-color: #0a84ff; color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-size: 0.9em; margin-top: 10px; }
         #add-new-gif-btn { width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; }
-        #reset-positions-btn { background-color: #e74c3c; width: 100%; }
+        #reset-positions-btn, #reset-radio-btn { background-color: #e74c3c; width: 100%; }
+        #reset-radio-btn { margin-top: 20px; text-align: center; }
         .settings-section { margin-top: 25px; border-top: 1px solid #444; padding-top: 20px; }
         .settings-section:first-child { margin-top: 0; border-top: none; padding-top: 0; }
         .settings-section h3, .settings-section > label { margin-bottom: 5px; text-align: center; display: block; } .settings-section h4 { margin-top: 15px; margin-bottom: 5px; color: #ccc; font-weight: 500; }
@@ -106,7 +120,7 @@
         .remove-thumb-btn { position: absolute; top: 2px; right: 2px; width: 20px; height: 20px; background-color: rgba(0,0,0,0.6); color: white; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 14px; line-height: 20px; font-family: sans-serif; cursor: pointer; opacity: 0; transition: opacity 0.2s; z-index: 2;}
         .wallpaper-thumbnail:hover .remove-thumb-btn, .gif-thumbnail:hover .remove-thumb-btn { opacity: 1; }
         #radio-channel-list { margin-top: 20px; }
-        .radio-channel-item { padding: 15px; border-bottom: 1px solid #444; cursor: pointer; transition: background-color 0.2s; }
+        .radio-channel-item { padding: 15px; border-bottom: 1px solid #444; cursor: pointer; transition: background-color 0.2s; user-select: none; -webkit-user-select: none; }
         .radio-channel-item:hover { background-color: rgba(255,255,255,0.1); }
         .radio-channel-item:last-child { border-bottom: none; }
         .radio-channel-item .name { font-weight: 500; }
@@ -188,10 +202,24 @@
             <img id="gif-display">
             <div id="remove-gif-btn">×</div>
         </div>
+        
         <div id="webcam-widget" class="draggable-item widget" title="Rear Seat Cam">
-            <video id="webcam-video" playsinline autoplay muted></video>
-            <div id="webcam-placeholder"><i class="fa-solid fa-video-slash"></i><span>Camera Inactive</span></div>
-            <div id="webcam-controls"><select id="webcam-source-select"><option>No Cams</option></select><button id="webcam-stop-btn" title="Stop Camera"><i class="fa-solid fa-power-off"></i></button></div>
+            <video id="webcam-video" playsinline autoplay muted style="display: none;"></video>
+            <canvas id="webcam-canvas"></canvas>
+            <div id="webcam-placeholder">
+                <i class="fa-solid fa-video-slash"></i>
+                <span>Camera Inactive</span>
+            </div>
+            <div id="webcam-controls">
+                <select id="filter-select">
+                    <option value="corrected">Corrected Color</option>
+                    <option value="grayscale">Grayscale</option>
+                    <option value="rgb">Original (Bugged)</option>
+                </select>
+                <button id="webcam-stop-btn" title="Stop Camera">
+                    <i class="fa-solid fa-power-off"></i>
+                </button>
+            </div>
         </div>
 
         <div id="settings-btn" class="draggable-item app-icon" title="Open settings menu"><svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="7.5" fill="rgba(80, 80, 80, 0.6)"/><circle cx="8" cy="8" r="4" fill="none" stroke="var(--icon-stroke-color)" stroke-width="1.5"/></svg></div>
@@ -252,7 +280,7 @@
     </div>
     <div id="stock-editor-menu"><div class="menu-content"><button id="close-stock-editor-btn">×</button><h2>Edit Stock Symbols</h2><p>Enter up to 7 stock symbols, separated by commas.</p><input type="text" id="stock-symbols-input" placeholder="TSLA, GOOGL, AKBA..."><div class="stock-flash-toggle"><label for="stock-flash-checkbox">Stock Flash 🎉</label><input type="checkbox" id="stock-flash-checkbox"></div><button id="save-stocks-btn">Save and Update</button></div></div>
     <div id="note-editor-menu"><div class="menu-content"><button id="close-note-editor-btn">×</button><h2>Edit Note Style</h2><div class="settings-section"><label for="note-font-select">Font Family</label><select id="note-font-select"><option value="'Roboto', sans-serif">Roboto (Default)</option><option value="'Lora', serif">Lora</option><option value="'Inter', sans-serif">Inter</option><option value="'Source Code Pro', monospace">Source Code Pro</option></select></div><div class="settings-section"><label for="note-font-size-input">Font Size (px)</label><input type="text" id="note-font-size-input" inputmode="numeric" pattern="[0-9]*" value="16"></div></div></div>
-    <div id="radio-menu"><div class="menu-content"><button id="close-radio-btn">×</button><h2>Select a Radio Station</h2><div id="radio-channel-list"></div></div></div>
+    <div id="radio-menu"><div class="menu-content"><button id="close-radio-btn">×</button><h2>Select a Radio Station</h2><p style="text-align:center;font-size:0.8rem;color:#aaa;">Long-press a station to edit it.</p><div id="radio-channel-list"></div><button id="reset-radio-btn">Reset All Stations to Default</button></div></div>
     <div id="gif-chooser-menu"><div class="menu-content"><button id="close-gif-chooser-btn">×</button><h2>Choose a GIF</h2><div id="gif-choices"></div><button id="add-new-gif-btn"><i class="fa-solid fa-plus"></i> Add New GIF</button></div></div>
     <div id="qr-modal"><div id="qr-modal-content"><h2>Scan with your phone</h2><div id="qr-code"></div><p>Scan to send an image URL from your phone.</p></div></div>
     <div id="upload-view"><div id="phone-upload-container"><h2>Add Wallpaper from Phone</h2><label for="file-input" id="upload-label">Tap to Upload Image</label><input type="file" id="file-input" accept="image/*" style="display: none;"><p class="separator-text">... or ...</p><p>Paste an image URL below</p><input type="url" id="phone-url-input" placeholder="https://example.com/image.jpg"><button id="phone-url-submit">Use this URL</button><h2 id="upload-status"></h2></div></div>
@@ -261,6 +289,9 @@
     
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            // Global objects for widgets
+            let radioPlayer, webcamPlayer;
+
             const NPOINT_BIN_ID = 'f76d79c771a62c1ce33a';
             const lockScreen = document.getElementById('lock-screen');
             const clock = document.getElementById('clock');
@@ -302,6 +333,276 @@
             }
 
             function initializeLockscreen() {
+                setupWidgets();
+                setupBaseFeatures();
+            }
+
+            function setupWidgets() {
+                // Note Widget
+                const noteWidget = document.getElementById('note-widget');
+                const noteDisplay = document.getElementById('note-display');
+                const noteTextarea = document.getElementById('note-textarea');
+                const noteSettingsBtn = document.getElementById('note-settings-btn');
+                const noteEditorMenu = document.getElementById('note-editor-menu');
+                const closeNoteEditorBtn = document.getElementById('close-note-editor-btn');
+                const noteFontSelect = document.getElementById('note-font-select');
+                const noteFontSizeInput = document.getElementById('note-font-size-input');
+
+                const enterNoteEditMode = () => {
+                    noteWidget.isEditing = true;
+                    noteWidget.classList.add('edit-mode');
+                    noteTextarea.focus();
+                    setTimeout(() => { document.addEventListener('click', exitNoteEditModeOnClickOutside, { once: true }); }, 0);
+                };
+                const exitNoteEditMode = () => {
+                    noteWidget.isEditing = false;
+                    noteWidget.classList.remove('edit-mode');
+                    localStorage.setItem('lockscreenNoteContent', noteTextarea.value);
+                    noteDisplay.innerText = noteTextarea.value;
+                    document.removeEventListener('click', exitNoteEditModeOnClickOutside);
+                };
+                const exitNoteEditModeOnClickOutside = (e) => {
+                    if (!noteWidget.contains(e.target)) { exitNoteEditMode(); } 
+                    else { document.addEventListener('click', exitNoteEditModeOnClickOutside, { once: true }); }
+                };
+                const applyNoteStyle = () => {
+                    const fontFamily = localStorage.getItem('lockscreenNoteFontFamily') || "'Roboto', sans-serif";
+                    const fontSize = localStorage.getItem('lockscreenNoteFontSize') || '16';
+                    [noteTextarea, noteDisplay].forEach(el => {
+                        el.style.fontFamily = fontFamily;
+                        el.style.fontSize = `${fontSize}px`;
+                    });
+                    noteFontSelect.value = fontFamily;
+                    noteFontSizeInput.value = fontSize;
+                };
+                const savedText = localStorage.getItem('lockscreenNoteContent') || '';
+                noteTextarea.value = savedText;
+                noteDisplay.innerText = savedText;
+                noteTextarea.addEventListener('input', () => { 
+                    localStorage.setItem('lockscreenNoteContent', noteTextarea.value);
+                    noteDisplay.innerText = noteTextarea.value;
+                });
+                noteWidget.addEventListener('dblclick', (e) => { if (!noteWidget.isEditing && !e.target.hasMoved) enterNoteEditMode(); });
+                noteSettingsBtn.addEventListener('click', () => noteEditorMenu.classList.add('visible'));
+                closeNoteEditorBtn.addEventListener('click', () => noteEditorMenu.classList.remove('visible'));
+                noteEditorMenu.addEventListener('click', (e) => { if (e.target === noteEditorMenu) noteEditorMenu.classList.remove('visible'); });
+                noteFontSelect.addEventListener('input', () => { localStorage.setItem('lockscreenNoteFontFamily', noteFontSelect.value); applyNoteStyle(); });
+                noteFontSizeInput.addEventListener('input', () => {
+                    const size = parseInt(noteFontSizeInput.value, 10);
+                    if (size >= 8 && size <= 48) { localStorage.setItem('lockscreenNoteFontSize', size); applyNoteStyle(); }
+                });
+                applyNoteStyle();
+
+                // Music Widget
+                radioPlayer = {
+                    storageKey: 'lockscreenRadioStations_v3',
+                    defaultStations: [
+                        { name: 'Lofi Girl', genre: 'Beats to relax/study to', streamUrl: 'https://play.streamafrica.net/lofiradio' },
+                        { name: 'Phonk', genre: 'laut.fm/phonk', streamUrl: 'https://stream.laut.fm/phonk' },
+                        { name: 'Classic Rock Florida', genre: 'HD Radio', streamUrl: 'https://rfcmedia.streamguys1.com/7000-ir.mp3' },
+                        { name: 'SomaFM: Groove Salad', genre: 'Ambient Downtempo', streamUrl: 'https://ice1.somafm.com/groovesalad-128-mp3' },
+                        { name: 'SomaFM: Vaporwaves', genre: 'Hypnagogic Retro', streamUrl: 'https://ice1.somafm.com/vaporwaves-128-mp3' }
+                    ],
+                    stations: [], currentStationIndex: -1, audio: document.getElementById('audio-player'),
+                    elements: {
+                        widget: document.getElementById('music-widget'), art: document.getElementById('music-album-art'),
+                        title: document.getElementById('music-title'), artist: document.getElementById('music-artist'),
+                        playPause: document.getElementById('music-play-pause'), next: document.getElementById('music-next'), prev: document.getElementById('music-prev'),
+                        radioMenu: document.getElementById('radio-menu'), closeRadioBtn: document.getElementById('close-radio-btn'),
+                        resetRadioBtn: document.getElementById('reset-radio-btn'), radioChannelList: document.getElementById('radio-channel-list')
+                    },
+                    init() {
+                        this.stations = JSON.parse(localStorage.getItem(this.storageKey)) || [...this.defaultStations];
+                        this.elements.widget.addEventListener('dblclick', (e) => { if (!e.target.closest('#music-controls')) this.openRadioMenu(); });
+                        this.elements.closeRadioBtn.addEventListener('click', () => this.elements.radioMenu.classList.remove('visible'));
+                        this.elements.resetRadioBtn.addEventListener('click', () => this.resetStations());
+                        this.elements.playPause.addEventListener('click', () => this.togglePlay());
+                        this.elements.next.addEventListener('click', () => this.playNext());
+                        this.elements.prev.addEventListener('click', () => this.playPrev());
+                        this.audio.addEventListener('play', () => this.updatePlayState(true));
+                        this.audio.addEventListener('pause', () => this.updatePlayState(false));
+                        this.elements.art.innerHTML = '<i class="fa-solid fa-headphones"></i>';
+                        this.setupMediaSession();
+                    },
+                    saveStations() { localStorage.setItem(this.storageKey, JSON.stringify(this.stations)); },
+                    editStation(index) {
+                        const station = this.stations[index];
+                        const newName = prompt(`Edit station name for "${station.name}":`, station.name);
+                        if (newName === null) return;
+                        const newUrl = prompt(`Edit stream URL for "${newName}":`, station.streamUrl);
+                        if (newUrl === null) return;
+                        if (!newName.trim() || !newUrl.trim().startsWith('http')) { alert('Invalid name or URL. URL must start with http(s).'); return; }
+                        this.stations[index] = { ...this.stations[index], name: newName.trim(), streamUrl: newUrl.trim() };
+                        this.saveStations(); this.openRadioMenu();
+                    },
+                    resetStations() {
+                        if (confirm('Reset all radio stations to default? This will erase your custom edits.')) {
+                            localStorage.removeItem(this.storageKey);
+                            this.stations = [...this.defaultStations]; this.openRadioMenu();
+                        }
+                    },
+                    updatePlayState(isPlaying) { this.elements.playPause.className = `fa-solid ${isPlaying ? 'fa-pause' : 'fa-play'}`; },
+                    togglePlay() { if (this.currentStationIndex !== -1) this.audio.paused ? this.audio.play() : this.audio.pause(); },
+                    playNext() { this.loadStation((this.currentStationIndex + 1) % this.stations.length); },
+                    playPrev() { this.loadStation((this.currentStationIndex - 1 + this.stations.length) % this.stations.length); },
+                    loadStation(index) {
+                        if (this.currentStationIndex === index && !this.audio.paused) return;
+                        this.currentStationIndex = index; const station = this.stations[index];
+                        this.elements.widget.classList.remove('no-station');
+                        this.elements.art.innerHTML = '<i class="fa-solid fa-tower-broadcast"></i>';
+                        this.elements.title.textContent = station.name; this.elements.artist.textContent = station.genre;
+                        this.audio.src = station.streamUrl;
+                        this.audio.play().catch(e => { console.error("Audio play failed:", e); this.elements.artist.textContent = "Error: Stream failed"; });
+                        if ('mediaSession' in navigator) { navigator.mediaSession.metadata = new MediaMetadata({ title: station.name, artist: station.genre }); }
+                    },
+                    openRadioMenu() {
+                        this.elements.radioChannelList.innerHTML = '';
+                        this.stations.forEach((station, index) => {
+                            const item = document.createElement('div'); item.className = 'radio-channel-item';
+                            item.innerHTML = `<div class="name">${station.name}</div><div class="genre">${station.genre}</div>`;
+                            let pressTimer, wasLongPressed = false;
+                            const startPress = (e) => { e.preventDefault(); pressTimer = setTimeout(() => { wasLongPressed = true; this.editStation(index); }, 800); };
+                            const cancelPress = () => clearTimeout(pressTimer);
+                            const clickHandler = (e) => { if (!wasLongPressed) { this.loadStation(index); this.elements.radioMenu.classList.remove('visible'); } };
+                            item.addEventListener('mousedown', startPress); item.addEventListener('touchstart', startPress);
+                            ['mouseup', 'mouseleave', 'touchend', 'touchmove'].forEach(evt => item.addEventListener(evt, cancelPress));
+                            item.addEventListener('click', clickHandler);
+                            this.elements.radioChannelList.appendChild(item);
+                        });
+                        this.elements.radioMenu.classList.add('visible');
+                    },
+                    reset() {
+                        this.audio.pause(); this.audio.src = ''; this.currentStationIndex = -1;
+                        this.elements.widget.classList.add('no-station');
+                        this.elements.title.textContent = 'No Station Loaded'; this.elements.artist.textContent = 'Double click to select';
+                        this.elements.art.innerHTML = '<i class="fa-solid fa-headphones"></i>'; this.updatePlayState(false);
+                        if (navigator.mediaSession) navigator.mediaSession.metadata = null;
+                    },
+                    setupMediaSession() {
+                        if (!('mediaSession' in navigator)) return;
+                        navigator.mediaSession.setActionHandler('play', () => this.togglePlay());
+                        navigator.mediaSession.setActionHandler('pause', () => this.togglePlay());
+                        navigator.mediaSession.setActionHandler('nexttrack', () => this.playNext());
+                        navigator.mediaSession.setActionHandler('previoustrack', () => this.playPrev());
+                    }
+                };
+                radioPlayer.init();
+
+                // GIF Widget
+                const gifWidget = document.getElementById('gif-widget'); const gifDisplay = document.getElementById('gif-display');
+                const gifPlaceholder = document.getElementById('gif-widget-placeholder'); const removeGifBtn = document.getElementById('remove-gif-btn');
+                const gifChooserMenu = document.getElementById('gif-chooser-menu'); const closeGifChooserBtn = document.getElementById('close-gif-chooser-btn');
+                const gifChoices = document.getElementById('gif-choices'); const addNewGifBtn = document.getElementById('add-new-gif-btn');
+                const getGifs = () => JSON.parse(localStorage.getItem('lockscreenGifUrls_v2')) || [];
+                const saveGifs = (gifs) => localStorage.setItem('lockscreenGifUrls_v2', JSON.stringify(gifs));
+                const renderCurrentGif = () => {
+                    const lastGif = localStorage.getItem('lockscreenLastGif'); const gifs = getGifs();
+                    const urlToLoad = lastGif && gifs.includes(lastGif) ? lastGif : (gifs.length > 0 ? gifs[0] : null);
+                    if (urlToLoad) { gifDisplay.src = urlToLoad; gifWidget.classList.add('has-gif'); gifPlaceholder.style.display = 'none'; } 
+                    else { gifDisplay.src = ''; gifWidget.classList.remove('has-gif'); gifPlaceholder.style.display = 'flex'; }
+                };
+                const addGif = (url) => {
+                    if (!url.toLowerCase().endsWith('.gif')) { alert("Invalid URL. Please provide a direct link to a GIF."); return; }
+                    const gifs = getGifs(); if (!gifs.includes(url)) { gifs.push(url); } saveGifs(gifs);
+                    localStorage.setItem('lockscreenLastGif', url); renderCurrentGif();
+                };
+                const openGifChooser = () => {
+                    const gifs = getGifs(); gifChoices.innerHTML = '';
+                    if (gifs.length === 0) { gifChoices.innerHTML = '<p style="text-align:center;color:#aaa;">No GIFs added. Click the widget to add one.</p>'; } 
+                    else {
+                        gifs.forEach(gifUrl => {
+                            const thumb = document.createElement('div'); thumb.className = 'gif-thumbnail';
+                            thumb.innerHTML = `<img src="${gifUrl}" alt="GIF thumbnail"><span class="remove-thumb-btn">×</span>`;
+                            thumb.querySelector('.remove-thumb-btn').onclick = (e) => {
+                                e.stopPropagation(); const newGifs = getGifs().filter(url => url !== gifUrl); saveGifs(newGifs);
+                                if (localStorage.getItem('lockscreenLastGif') === gifUrl) localStorage.removeItem('lockscreenLastGif');
+                                renderCurrentGif(); openGifChooser();
+                            };
+                            thumb.onclick = () => { localStorage.setItem('lockscreenLastGif', gifUrl); renderCurrentGif(); gifChooserMenu.classList.remove('visible'); };
+                            gifChoices.appendChild(thumb);
+                        });
+                    }
+                    gifChooserMenu.classList.add('visible');
+                };
+                removeGifBtn.addEventListener('click', (e) => {
+                    e.stopPropagation(); const currentSrc = gifDisplay.src; const newGifs = getGifs().filter(url => url !== currentSrc);
+                    saveGifs(newGifs); if (localStorage.getItem('lockscreenLastGif') === currentSrc) localStorage.removeItem('lockscreenLastGif'); renderCurrentGif();
+                });
+                addNewGifBtn.addEventListener('click', () => { gifChooserMenu.classList.remove('visible'); window.startPolling(`gif_session_${Date.now()}`, 'gif'); });
+                gifWidget.addEventListener('click', (e) => { if (!e.target.hasMoved && !gifWidget.classList.contains('has-gif')) window.startPolling(`gif_session_${Date.now()}`, 'gif'); });
+                gifWidget.addEventListener('dblclick', (e) => { if (!e.target.hasMoved) openGifChooser(); });
+                closeGifChooserBtn.addEventListener('click', () => gifChooserMenu.classList.remove('visible'));
+                window.addGif = addGif; renderCurrentGif();
+
+                // Webcam Widget
+                webcamPlayer = {
+                    stream: null, animationFrameId: null, currentFilter: 'corrected',
+                    elements: {
+                        widget: document.getElementById('webcam-widget'), video: document.getElementById('webcam-video'), canvas: document.getElementById('webcam-canvas'),
+                        stopBtn: document.getElementById('webcam-stop-btn'), filterSelect: document.getElementById('filter-select'), placeholder: document.getElementById('webcam-placeholder'),
+                    },
+                    init() {
+                        this.elements.stopBtn.addEventListener('click', () => this.stop());
+                        this.elements.filterSelect.addEventListener('change', (e) => { this.currentFilter = e.target.value; });
+                        this.elements.filterSelect.value = this.currentFilter;
+                    },
+                    async autoStartCamera() {
+                        if (this.stream) return;
+                        try {
+                            await navigator.mediaDevices.getUserMedia({ video: true }); // Request permission
+                            const devices = await navigator.mediaDevices.enumerateDevices();
+                            const videoDevices = devices.filter(d => d.kind === 'videoinput');
+                            if (videoDevices.length === 0) { this.elements.placeholder.querySelector('span').textContent = "No cameras found."; return; }
+                            const targetCamera = videoDevices.find(d => d.label.startsWith("camera2 1")) || videoDevices[0];
+                            if (targetCamera) this.start(targetCamera.deviceId);
+                            else this.elements.placeholder.querySelector('span').textContent = "Target camera not found.";
+                        } catch (err) { console.error("Error accessing camera:", err); this.elements.placeholder.querySelector('span').textContent = "Camera access denied."; }
+                    },
+                    async start(deviceId) {
+                        if (!deviceId) return; if (this.stream) this.stop();
+                        try {
+                            this.stream = await navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: deviceId } } });
+                            this.elements.video.srcObject = this.stream;
+                            this.elements.video.oncanplay = () => {
+                                this.elements.widget.classList.add('active');
+                                this.elements.canvas.width = this.elements.video.videoWidth;
+                                this.elements.canvas.height = this.elements.video.videoHeight;
+                                this.drawLoop();
+                            };
+                        } catch (err) { console.error("Error starting webcam:", err); this.stop(); }
+                    },
+                    stop() {
+                        if (this.animationFrameId) { cancelAnimationFrame(this.animationFrameId); this.animationFrameId = null; }
+                        if (this.stream) { this.stream.getTracks().forEach(track => track.stop()); }
+                        this.stream = null; this.elements.video.srcObject = null;
+                        this.elements.widget.classList.remove('active');
+                        this.elements.placeholder.querySelector('span').textContent = "Camera Inactive";
+                    },
+                    drawLoop() {
+                        if (!this.stream) return;
+                        const { video, canvas } = this.elements;
+                        const ctx = canvas.getContext('2d');
+                        const cropPercentage = 0.18;
+                        const sourceHeight = video.videoHeight * (1 - cropPercentage);
+                        canvas.height = sourceHeight; // Adjust canvas aspect ratio
+                        ctx.drawImage(video, 0, 0, video.videoWidth, sourceHeight, 0, 0, canvas.width, canvas.height);
+                        if (this.currentFilter !== 'rgb') {
+                            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                            const data = imageData.data;
+                            for (let i = 0; i < data.length; i += 4) {
+                                const r = data[i], g = data[i + 1], b = data[i + 2];
+                                if (this.currentFilter === 'grayscale') { const gray = 0.299 * r + 0.587 * g + 0.114 * b; data[i] = data[i + 1] = data[i + 2] = gray; } 
+                                else if (this.currentFilter === 'corrected') { data[i] = b; data[i + 2] = r; }
+                            }
+                            ctx.putImageData(imageData, 0, 0);
+                        }
+                        this.animationFrameId = requestAnimationFrame(() => this.drawLoop());
+                    }
+                };
+                webcamPlayer.init();
+            }
+            
+            function setupBaseFeatures() {
                 const settingsMenu = document.getElementById('settings-menu');
                 const closeSettingsBtn = document.getElementById('close-settings-btn');
                 const fullscreenHint = document.getElementById('fullscreen-hint');
@@ -315,119 +616,166 @@
                 const wallpaperSection = document.getElementById('wallpaper-section');
 
                 const showFullSettings = () => {
-                    advancedSettingsView.classList.remove('hidden');
-                    advancedSettingsFooter.classList.remove('hidden');
-                    showAdvancedBtn.classList.add('hidden');
-                    hideAdvancedBtn.classList.remove('hidden');
-                    wallpaperSection.classList.add('hidden');
-                    settingsTitle.textContent = 'Full Settings';
+                    advancedSettingsView.classList.remove('hidden'); advancedSettingsFooter.classList.remove('hidden');
+                    showAdvancedBtn.classList.add('hidden'); hideAdvancedBtn.classList.remove('hidden');
+                    wallpaperSection.classList.add('hidden'); settingsTitle.textContent = 'Full Settings';
                 };
                 const showWallpaperSettings = () => {
-                    advancedSettingsView.classList.add('hidden');
-                    advancedSettingsFooter.classList.add('hidden');
-                    showAdvancedBtn.classList.remove('hidden');
-                    hideAdvancedBtn.classList.add('hidden');
-                    wallpaperSection.classList.remove('hidden');
-                    settingsTitle.textContent = 'Wallpapers';
+                    advancedSettingsView.classList.add('hidden'); advancedSettingsFooter.classList.add('hidden');
+                    showAdvancedBtn.classList.remove('hidden'); hideAdvancedBtn.classList.add('hidden');
+                    wallpaperSection.classList.remove('hidden'); settingsTitle.textContent = 'Wallpapers';
                 };
-
                 showAdvancedBtn.addEventListener('click', showFullSettings);
                 hideAdvancedBtn.addEventListener('click', showWallpaperSettings);
-
                 closeSettingsBtn.addEventListener('click', () => settingsMenu.classList.remove('visible'));
                 settingsMenu.addEventListener('click', (e) => { if (e.target === settingsMenu) settingsMenu.classList.remove('visible'); });
 
                 const FINNHUB_API_KEY = 'd1obuihr01qtrav0d5sgd1obuihr01qtrav0d5t0';
-                
                 const stockWidget = document.getElementById('stock-widget');
                 const stockEditorMenu = document.getElementById('stock-editor-menu');
                 const closeStockEditorBtn = document.getElementById('close-stock-editor-btn');
                 const saveStocksBtn = document.getElementById('save-stocks-btn');
                 const stockSymbolsInput = document.getElementById('stock-symbols-input');
                 const stockFlashCheckbox = document.getElementById('stock-flash-checkbox');
-
                 const getStockSymbols = () => JSON.parse(localStorage.getItem('lockscreenStockSymbols')) || ['NIO'];
                 const saveStockSymbols = (symbols) => localStorage.setItem('lockscreenStockSymbols', JSON.stringify(symbols));
                 const getStockFlashState = () => localStorage.getItem('lockscreenStockFlashEnabled') === 'true';
                 const saveStockFlashState = (isEnabled) => localStorage.setItem('lockscreenStockFlashEnabled', isEnabled);
-                
                 stockFlashCheckbox.checked = getStockFlashState();
                 stockFlashCheckbox.addEventListener('change', () => saveStockFlashState(stockFlashCheckbox.checked));
 
-                function triggerScreenFlash(isUp, isSuper = false) {
-                    const flashEl = isUp ? document.getElementById('flash-top') : document.getElementById('flash-bottom');
-                    if (isSuper) flashEl.classList.add('super-flash');
-                    flashEl.classList.add('flash-active');
-                    setTimeout(() => {
-                        flashEl.classList.remove('flash-active');
-                        if (isSuper) flashEl.classList.remove('super-flash');
-                    }, 1500);
-                }
+                const DRAGGABLE_ELEMENT_IDS = ['clock', 'youtube-music-btn', 'youtube-btn', 'stock-widget', 'settings-btn', 'fun-stock-name-display', 'note-widget', 'music-widget', 'gif-widget', 'webcam-widget'];
+                const WIDGETS = {
+                    stock: { el: document.getElementById('stock-widget'), toggle: document.getElementById('toggle-stock-widget'), default: true },
+                    note: { el: document.getElementById('note-widget'), toggle: document.getElementById('toggle-note-widget'), default: false },
+                    music: { el: document.getElementById('music-widget'), toggle: document.getElementById('toggle-music-widget'), default: false },
+                    gif: { el: document.getElementById('gif-widget'), toggle: document.getElementById('toggle-gif-widget'), default: false },
+                    webcam: { el: document.getElementById('webcam-widget'), toggle: document.getElementById('toggle-webcam-widget'), default: false },
+                };
+                
+                function initializeWidgetToggles() {
+                    for(const key in WIDGETS) {
+                        const widget = WIDGETS[key];
+                        const savedState = localStorage.getItem(`widget_${key}_visible`);
+                        const isVisible = savedState === null ? widget.default : savedState === 'true';
+                        widget.el.classList.toggle('hidden', !isVisible);
+                        widget.toggle.checked = isVisible;
+                        
+                        if (key === 'webcam' && isVisible) {
+                           webcamPlayer.autoStartCamera();
+                        }
 
-                function triggerIconShower(isUp, isSuper = false) {
-                    const iconCount = isSuper ? 60 : 20;
-                    for (let i = 0; i < iconCount; i++) {
-                        const icon = document.createElement('i');
-                        icon.className = `fa-solid raining-icon ${isUp ? 'fa-caret-up up' : 'fa-caret-down down'}`;
-                        icon.style.left = `${Math.random() * 100}vw`;
-                        icon.style.animationDuration = `${(Math.random() * 2) + 3}s`;
-                        icon.style.animationDelay = `${Math.random() * 2}s`;
-                        icon.style.transform = `scale(${(Math.random() * 0.5) + 0.8})`;
-                        icon.addEventListener('animationend', () => icon.remove());
-                        document.body.appendChild(icon);
+                        widget.toggle.addEventListener('change', () => {
+                            const isChecked = widget.toggle.checked;
+                            widget.el.classList.toggle('hidden', !isChecked);
+                            localStorage.setItem(`widget_${key}_visible`, isChecked);
+                            if (key === 'webcam') {
+                                isChecked ? webcamPlayer.autoStartCamera() : webcamPlayer.stop();
+                            }
+                        });
                     }
                 }
+                initializeWidgetToggles();
 
-                function triggerStockFlashEffect(isUp, isSuper, symbol) {
-                    const nameDisplay = document.getElementById('fun-stock-name-display');
-                    nameDisplay.textContent = symbol;
-                    nameDisplay.classList.add('visible');
-
-                    if (stockNameFadeOutTimer) clearTimeout(stockNameFadeOutTimer);
-
-                    setTimeout(() => {
-                        triggerScreenFlash(isUp, isSuper);
-                        triggerIconShower(isUp, isSuper);
-                    }, 1500);
-
-                    stockNameFadeOutTimer = setTimeout(() => {
-                        nameDisplay.classList.remove('visible');
-                    }, 4500);
-                }
+                const timeElems = { h: document.getElementById('hours'), m: document.getElementById('minutes'), d: document.getElementById('date') };
+                const weatherElems = { t: document.getElementById('temperature'), i: document.getElementById('weather-icon') };
+                const weatherLocationInput = document.getElementById('weather-location-input');
+                let clockScale = 1;
+                const getweatherLocation = () => localStorage.getItem('lockscreenWeatherLocation') || '';
+                const fetchWeather = () => {
+                    const location = getweatherLocation();
+                    weatherLocationInput.value = location;
+                    const url = `https://wttr.in/${location || 'Trondheim'}?format=j1`;
+                    const iM = { 'sunny': 'fa-sun', 'clear': 'fa-sun', 'partly cloudy': 'fa-cloud-sun', 'cloudy': 'fa-cloud', 'overcast': 'fa-cloud', 'mist': 'fa-smog', 'fog': 'fa-smog', 'patchy rain': 'fa-cloud-rain', 'rain': 'fa-cloud-showers-heavy', 'drizzle': 'fa-cloud-rain', 'patchy snow': 'fa-snowflake', 'snow': 'fa-snowflake', 'sleet': 'fa-cloud-meatball', 'ice pellets': 'fa-icicles', 'thunder': 'fa-cloud-bolt', 'blizzard': 'fa-wind' };
+                    fetch(url).then(r => r.json()).then(d => { const c = d.current_condition[0]; weatherElems.t.textContent = `${c.temp_C}°C`; const ds = c.weatherDesc[0].value.toLowerCase(); let ic = 'fa-cloud-sun'; for (const k in iM) { if (ds.includes(k)) { ic = iM[k]; break; } } weatherElems.i.className = `fa-solid ${ic}`; }).catch(e => { weatherElems.t.textContent = 'N/A'; });
+                };
+                weatherLocationInput.addEventListener('change', () => { localStorage.setItem('lockscreenWeatherLocation', weatherLocationInput.value.trim()); fetchWeather(); });
+                const updateTime = () => { const n = new Date(); timeElems.h.textContent = String(n.getHours()).padStart(2, '0'); timeElems.m.textContent = String(n.getMinutes()).padStart(2, '0'); timeElems.d.textContent = n.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }); };
+                const applyClockScale = (scale) => { const baseSizeVW = 15; const newSize = baseSizeVW * scale; timeElems.h.style.fontSize = `clamp(${newSize * 0.4}rem, ${newSize}vw, ${newSize * 0.8}rem)`; timeElems.m.style.fontSize = `clamp(${newSize * 0.4}rem, ${newSize}vw, ${newSize * 0.8}rem)`; clockScale = scale; };
                 
-                function isMarketOpen() {
-                    const now = new Date();
-                    const day = now.getDay(); 
-                    const hour = now.getHours();
-                    const minute = now.getMinutes();
-                    if (day < 1 || day > 5) return false;
-                    const currentTime = hour * 100 + minute;
-                    return currentTime >= 1530 && currentTime < 2100;
-                }
+                const savePos = () => {
+                    const p = {};
+                    DRAGGABLE_ELEMENT_IDS.forEach(id => {
+                        const e = document.getElementById(id);
+                        if (e && !e.classList.contains('hidden')) {
+                            p[id] = { t: `${(e.offsetTop / lockScreen.clientHeight) * 100}%`, l: `${(e.offsetLeft / lockScreen.clientWidth) * 100}%` };
+                            if (id === 'clock') p[id].s = clockScale;
+                            if (['note-widget', 'gif-widget', 'webcam-widget'].includes(id)) { p[id].w = e.style.width; p[id].h = e.style.height; }
+                        }
+                    });
+                    localStorage.setItem('lockscreenItemPositions_v5', JSON.stringify(p));
+                };
+                const loadPos = () => {
+                    const p = JSON.parse(localStorage.getItem('lockscreenItemPositions_v5'));
+                    if (p) {
+                        Object.keys(p).forEach(id => {
+                            const e = document.getElementById(id); const pos = p[id];
+                            if (e && pos.t && pos.l) {
+                                e.style.top = pos.t; e.style.left = pos.l;
+                                e.style.transform = (['clock', 'stock-widget'].includes(id)) ? 'none' : '';
+                                if (id === 'clock' && pos.s) applyClockScale(pos.s);
+                                if (['note-widget', 'gif-widget', 'webcam-widget'].includes(id)) { e.style.width = pos.w || e.style.width; e.style.height = pos.h || e.style.height; }
+                            }
+                        });
+                    }
+                };
                 
-                function handleStockData(data, symbol) {
-                    if (!data || typeof data.c === 'undefined' || typeof data.o === 'undefined' || data.o === 0 || data.c === data.o) return;
-                    const isUp = data.c > data.o;
-                    const percentChange = ((data.c - data.o) / data.o) * 100;
-                    const isSuper = Math.abs(percentChange) > 5;
-                    triggerStockFlashEffect(isUp, isSuper, symbol);
-                }
+                const makeDraggable = (el) => {
+                    let oX, oY, isD, hasMoved;
+                    let isPinching = false, initialPinchDist, initialScale;
+                    const getDist = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+                    const mv = (e) => {
+                        if (el.isEditing) return;
+                        if (el.id === 'clock' && isPinching && e.touches && e.touches.length === 2) {
+                            e.preventDefault(); const oldWidth = el.offsetWidth, oldHeight = el.offsetHeight, oldLeft = el.offsetLeft, oldTop = el.offsetTop;
+                            const newDist = getDist(e.touches); const scaleRatio = newDist / initialPinchDist; const newScale = Math.max(0.5, Math.min(initialScale * scaleRatio, 3));
+                            applyClockScale(newScale); const newWidth = el.offsetWidth, newHeight = el.offsetHeight; const deltaWidth = newWidth - oldWidth, deltaHeight = newHeight - oldHeight;
+                            el.style.left = `${oldLeft - (deltaWidth / 2)}px`; el.style.top = `${oldTop - (deltaHeight / 2)}px`; return;
+                        }
+                        if (!isD) return; e.preventDefault(); hasMoved = true;
+                        const cX = e.touches ? e.touches[0].clientX : e.clientX, cY = e.touches ? e.touches[0].clientY : e.clientY;
+                        let nX = cX - oX, nY = cY - oY;
+                        const sR = lockScreen.getBoundingClientRect(), eR = el.getBoundingClientRect();
+                        nX = Math.max(0, Math.min(nX, sR.width - eR.width)); nY = Math.max(0, Math.min(nY, sR.height - eR.height));
+                        el.style.left = `${nX}px`; el.style.top = `${nY}px`;
+                        if(!['clock', 'stock-widget'].includes(el.id)) el.style.transform = 'none';
+                    };
+                    const stD = (e) => {
+                        if (!isD && !isPinching) return;
+                        e.target.hasMoved = hasMoved; isD = false; isPinching = false;
+                        if (hasMoved) savePos();
+                        document.removeEventListener('mousemove', mv); document.removeEventListener('touchmove', mv);
+                    };
+                    const sD_longPress = (e) => {
+                        if (el.isEditing || e.target.closest('a, button, select, input, .remove-thumb-btn')) return;
+                        if (e.touches && e.touches.length === 2 && el.id === 'clock') { isPinching = true; isD = false; initialPinchDist = getDist(e.touches); initialScale = clockScale; return; }
+                        isD = true; hasMoved = false; e.target.hasMoved = false;
+                        const cX = e.touches ? e.touches[0].clientX : e.clientX, cY = e.touches ? e.touches[0].clientY : e.clientY;
+                        oX = cX - el.offsetLeft; oY = cY - el.offsetTop;
+                        document.addEventListener('mousemove', mv, { passive: false });
+                        document.addEventListener('touchmove', mv, { passive: false });
+                        document.addEventListener('mouseup', stD, { once: true });
+                        document.addEventListener('touchend', stD, { once: true });
+                    };
+                    el.addEventListener('mousedown', sD_longPress);
+                    el.addEventListener('touchstart', sD_longPress, { passive: false });
+                    if(el.id === 'settings-btn') { el.addEventListener('click', (e) => { if (!hasMoved) { showWallpaperSettings(); settingsMenu.classList.add('visible'); } }); }
+                };
                 
-                function checkStockFlashTrigger() {
-                    if (!getStockFlashState() || !isMarketOpen()) return;
-                    const symbols = getStockSymbols();
-                    if (symbols.length === 0) return;
-                    const symbol = symbols[stockFlashIndex];
-                    stockFlashIndex = (stockFlashIndex + 1) % symbols.length;
-
-                    fetch(`https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${FINNHUB_API_KEY}`)
-                        .then(r => r.json()).then(data => handleStockData(data, symbol))
-                        .catch(err => console.error(`Stock Flash fetch error for ${symbol}:`, err));
-                }
-
+                stockWidget.addEventListener('dblclick', (e) => {
+                    stockSymbolsInput.value = getStockSymbols().join(', ');
+                    stockFlashCheckbox.checked = getStockFlashState();
+                    stockEditorMenu.classList.add('visible');
+                });
+                closeStockEditorBtn.addEventListener('click', () => stockEditorMenu.classList.remove('visible'));
+                stockEditorMenu.addEventListener('click', (e) => { if (e.target === stockEditorMenu) stockEditorMenu.classList.remove('visible'); });
+                saveStocksBtn.addEventListener('click', () => { 
+                    const newSymbols = stockSymbolsInput.value.split(',').map(s => s.trim().toUpperCase()).filter(Boolean).slice(0, 7); 
+                    saveStockSymbols(newSymbols); saveStockFlashState(stockFlashCheckbox.checked); stockFlashIndex = 0;
+                    updateStockWidget(); stockEditorMenu.classList.remove('visible');
+                });
                 function updateStockWidget() {
-                    const symbols = getStockSymbols();
-                    stockWidget.innerHTML = '';
+                    const symbols = getStockSymbols(); stockWidget.innerHTML = '';
                     if (!FINNHUB_API_KEY || FINNHUB_API_KEY.includes('PASTE')) { stockWidget.innerHTML = '<div class="stock-row"><span>NO API KEY</span></div>'; return; }
                     symbols.forEach(symbol => {
                         const row = document.createElement('div'); row.className = 'stock-row';
@@ -439,536 +787,29 @@
                                 const priceEl = row.querySelector('.stock-price');
                                 const iconEl = row.querySelector('i');
                                 priceEl.textContent = (data.c < 10) ? data.c.toFixed(3) : data.c.toFixed(2);
-                                iconEl.className = 'fa-solid';
-                                if (data.c > data.o) {
-                                    iconEl.classList.add('fa-caret-up');
-                                } else if (data.c < data.o) {
-                                    iconEl.classList.add('fa-caret-down');
-                                }
+                                iconEl.className = `fa-solid ${data.c > data.o ? 'fa-caret-up' : 'fa-caret-down'}`;
                             });
                     });
                 }
+
+                setInterval(updateTime, 1000); updateTime();
+                DRAGGABLE_ELEMENT_IDS.forEach(id => { const el = document.getElementById(id); if (el) makeDraggable(el); });
                 
-                (function setupWidgets() {
-                    const noteWidget = document.getElementById('note-widget');
-                    const noteDisplay = document.getElementById('note-display');
-                    const noteTextarea = document.getElementById('note-textarea');
-                    const noteSettingsBtn = document.getElementById('note-settings-btn');
-                    const noteEditorMenu = document.getElementById('note-editor-menu');
-                    const closeNoteEditorBtn = document.getElementById('close-note-editor-btn');
-                    const noteFontSelect = document.getElementById('note-font-select');
-                    const noteFontSizeInput = document.getElementById('note-font-size-input');
-
-                    const enterNoteEditMode = () => {
-                        noteWidget.isEditing = true;
-                        noteWidget.classList.add('edit-mode');
-                        noteTextarea.focus();
-                        setTimeout(() => {
-                            document.addEventListener('click', exitNoteEditModeOnClickOutside, { once: true });
-                        }, 0);
-                    };
-
-                    const exitNoteEditMode = () => {
-                        noteWidget.isEditing = false;
-                        noteWidget.classList.remove('edit-mode');
-                        localStorage.setItem('lockscreenNoteContent', noteTextarea.value);
-                        noteDisplay.innerText = noteTextarea.value;
-                        document.removeEventListener('click', exitNoteEditModeOnClickOutside);
-                    };
-
-                    const exitNoteEditModeOnClickOutside = (e) => {
-                        if (!noteWidget.contains(e.target)) {
-                            exitNoteEditMode();
-                        } else {
-                           document.addEventListener('click', exitNoteEditModeOnClickOutside, { once: true });
-                        }
-                    };
-
-                    const applyNoteStyle = () => {
-                        const fontFamily = localStorage.getItem('lockscreenNoteFontFamily') || "'Roboto', sans-serif";
-                        const fontSize = localStorage.getItem('lockscreenNoteFontSize') || '16';
-                        noteTextarea.style.fontFamily = fontFamily;
-                        noteTextarea.style.fontSize = `${fontSize}px`;
-                        noteDisplay.style.fontFamily = fontFamily;
-                        noteDisplay.style.fontSize = `${fontSize}px`;
-                        noteFontSelect.value = fontFamily;
-                        noteFontSizeInput.value = fontSize;
-                    };
-
-                    const savedText = localStorage.getItem('lockscreenNoteContent') || '';
-                    noteTextarea.value = savedText;
-                    noteDisplay.innerText = savedText;
-                    
-                    noteTextarea.addEventListener('input', () => { 
-                        localStorage.setItem('lockscreenNoteContent', noteTextarea.value);
-                        noteDisplay.innerText = noteTextarea.value;
-                    });
-                    
-                    noteWidget.addEventListener('dblclick', (e) => {
-                        if (noteWidget.isEditing) return;
-                        if (!e.target.hasMoved) {
-                            enterNoteEditMode();
-                        }
-                    });
-
-                    noteSettingsBtn.addEventListener('click', () => {
-                        noteEditorMenu.classList.add('visible');
-                    });
-                    
-                    closeNoteEditorBtn.addEventListener('click', () => noteEditorMenu.classList.remove('visible'));
-                    noteEditorMenu.addEventListener('click', (e) => { if (e.target === noteEditorMenu) noteEditorMenu.classList.remove('visible'); });
-                    noteFontSelect.addEventListener('input', () => { localStorage.setItem('lockscreenNoteFontFamily', noteFontSelect.value); applyNoteStyle(); });
-                    noteFontSizeInput.addEventListener('input', () => {
-                        const size = parseInt(noteFontSizeInput.value, 10);
-                        if (size >= 8 && size <= 48) {
-                            localStorage.setItem('lockscreenNoteFontSize', size);
-                            applyNoteStyle();
-                        }
-                    });
-                    applyNoteStyle();
-
-                    // Music Widget
-                    const radioPlayer = {
-                        stations: [ // UPDATED STATION LIST
-                            { name: 'Lofi Girl', genre: 'Beats to relax/study to', streamUrl: 'https://play.streamafrica.net/lofiradio' },
-                            { name: 'SomaFM: Groove Salad', genre: 'Ambient Downtempo', streamUrl: 'https://ice1.somafm.com/groovesalad-128-mp3' },
-                            { name: 'SomaFM: Underground 80s', genre: 'Early 80s UK Synthpop', streamUrl: 'https://ice2.somafm.com/u80s-128-mp3' },
-                            { name: 'Absolute Classic Rock', genre: 'Classic & Modern Rock', streamUrl: 'https://stream.live.absolute-radio.co.uk/ar-classicrock.mp3' },
-                            { name: 'SomaFM: Vaporwaves', genre: 'Hypnagogic Retro', streamUrl: 'https://ice1.somafm.com/vaporwaves-128-mp3' }
-                        ],
-                        currentStationIndex: -1,
-                        audio: document.getElementById('audio-player'),
-                        elements: {
-                            widget: document.getElementById('music-widget'),
-                            art: document.getElementById('music-album-art'),
-                            title: document.getElementById('music-title'),
-                            artist: document.getElementById('music-artist'),
-                            playPause: document.getElementById('music-play-pause'),
-                            next: document.getElementById('music-next'),
-                            prev: document.getElementById('music-prev'),
-                            radioMenu: document.getElementById('radio-menu'),
-                            closeRadioBtn: document.getElementById('close-radio-btn'),
-                            radioChannelList: document.getElementById('radio-channel-list')
-                        },
-                        init() {
-                            this.elements.widget.addEventListener('dblclick', (e) => { if (e.target.closest('#music-controls')) return; this.openRadioMenu(); });
-                            this.elements.closeRadioBtn.addEventListener('click', () => this.elements.radioMenu.classList.remove('visible'));
-                            this.elements.playPause.addEventListener('click', () => this.togglePlay());
-                            this.elements.next.addEventListener('click', () => this.playNext());
-                            this.elements.prev.addEventListener('click', () => this.playPrev());
-                            this.audio.addEventListener('play', () => this.updatePlayState(true));
-                            this.audio.addEventListener('pause', () => this.updatePlayState(false));
-                            this.elements.art.innerHTML = '<i class="fa-solid fa-headphones"></i>';
-                            this.setupMediaSession();
-                        },
-                        updatePlayState(isPlaying) { this.elements.playPause.className = `fa-solid ${isPlaying ? 'fa-pause' : 'fa-play'}`; },
-                        togglePlay() { if (this.currentStationIndex !== -1) this.audio.paused ? this.audio.play() : this.audio.pause(); },
-                        playNext() { this.loadStation((this.currentStationIndex + 1) % this.stations.length); },
-                        playPrev() { this.loadStation((this.currentStationIndex - 1 + this.stations.length) % this.stations.length); },
-                        loadStation(index) {
-                            if (this.currentStationIndex === index && !this.audio.paused) return;
-                            this.currentStationIndex = index;
-                            const station = this.stations[index];
-                            this.elements.widget.classList.remove('no-station');
-                            this.elements.art.innerHTML = '<i class="fa-solid fa-tower-broadcast"></i>';
-                            this.elements.title.textContent = station.name;
-                            this.elements.artist.textContent = station.genre;
-                            this.audio.src = station.streamUrl;
-                            this.audio.play().catch(e => console.error("Audio play failed:", e));
-
-                            if ('mediaSession' in navigator) {
-                                navigator.mediaSession.metadata = new MediaMetadata({
-                                    title: station.name,
-                                    artist: station.genre,
-                                });
-                            }
-                        },
-                        openRadioMenu() {
-                            this.elements.radioChannelList.innerHTML = '';
-                            this.stations.forEach((station, index) => {
-                                const item = document.createElement('div');
-                                item.className = 'radio-channel-item';
-                                item.innerHTML = `<div class="name">${station.name}</div><div class="genre">${station.genre}</div>`;
-                                item.onclick = () => { this.loadStation(index); this.elements.radioMenu.classList.remove('visible'); };
-                                this.elements.radioChannelList.appendChild(item);
-                            });
-                            this.elements.radioMenu.classList.add('visible');
-                        },
-                        reset() {
-                            this.audio.pause(); this.audio.src = ''; this.currentStationIndex = -1;
-                            this.elements.widget.classList.add('no-station');
-                            this.elements.title.textContent = 'No Station Loaded'; this.elements.artist.textContent = 'Double click to select';
-                            this.elements.art.innerHTML = '<i class="fa-solid fa-headphones"></i>'; this.updatePlayState(false);
-                            if (navigator.mediaSession) navigator.mediaSession.metadata = null;
-                        },
-                        setupMediaSession() {
-                            if (!('mediaSession' in navigator)) return;
-                            navigator.mediaSession.setActionHandler('play', () => this.togglePlay());
-                            navigator.mediaSession.setActionHandler('pause', () => this.togglePlay());
-                            navigator.mediaSession.setActionHandler('nexttrack', () => this.playNext());
-                            navigator.mediaSession.setActionHandler('previoustrack', () => this.playPrev());
-                        }
-                    };
-                    window.radioPlayer = radioPlayer;
-                    radioPlayer.init();
-
-                    // GIF Widget
-                    const gifWidget = document.getElementById('gif-widget');
-                    const gifDisplay = document.getElementById('gif-display');
-                    const gifPlaceholder = document.getElementById('gif-widget-placeholder');
-                    const removeGifBtn = document.getElementById('remove-gif-btn');
-                    const gifChooserMenu = document.getElementById('gif-chooser-menu');
-                    const closeGifChooserBtn = document.getElementById('close-gif-chooser-btn');
-                    const gifChoices = document.getElementById('gif-choices');
-                    const addNewGifBtn = document.getElementById('add-new-gif-btn');
-                    const getGifs = () => JSON.parse(localStorage.getItem('lockscreenGifUrls_v2')) || [];
-                    const saveGifs = (gifs) => localStorage.setItem('lockscreenGifUrls_v2', JSON.stringify(gifs));
-                    
-                    const renderCurrentGif = () => {
-                        const lastGif = localStorage.getItem('lockscreenLastGif');
-                        const gifs = getGifs();
-                        const urlToLoad = lastGif && gifs.includes(lastGif) ? lastGif : (gifs.length > 0 ? gifs[0] : null);
-                        
-                        if (urlToLoad) {
-                            gifDisplay.src = urlToLoad;
-                            gifWidget.classList.add('has-gif');
-                            gifPlaceholder.style.display = 'none';
-                        } else {
-                            gifDisplay.src = '';
-                            gifWidget.classList.remove('has-gif');
-                            gifPlaceholder.style.display = 'flex';
-                        }
-                    };
-
-                    const addGif = (url) => {
-                        if (!url.toLowerCase().endsWith('.gif')) { alert("Invalid URL. Please provide a direct link to a GIF."); return; }
-                        const gifs = getGifs();
-                        if (!gifs.includes(url)) { gifs.push(url); }
-                        saveGifs(gifs);
-                        localStorage.setItem('lockscreenLastGif', url);
-                        renderCurrentGif();
-                    };
-
-                    const openGifChooser = () => {
-                        const gifs = getGifs();
-                        gifChoices.innerHTML = '';
-                        if (gifs.length === 0) {
-                            gifChoices.innerHTML = '<p style="text-align:center;color:#aaa;">No GIFs added yet. Click the widget on the lockscreen to add one.</p>';
-                        } else {
-                            gifs.forEach(gifUrl => {
-                                const thumb = document.createElement('div');
-                                thumb.className = 'gif-thumbnail';
-                                thumb.innerHTML = `<img src="${gifUrl}" alt="GIF thumbnail">`;
-                                const rmvBtn = document.createElement('span');
-                                rmvBtn.className = 'remove-thumb-btn';
-                                rmvBtn.innerHTML = '×';
-                                rmvBtn.onclick = (e) => {
-                                    e.stopPropagation();
-                                    const newGifs = getGifs().filter(url => url !== gifUrl);
-                                    saveGifs(newGifs);
-                                    if (localStorage.getItem('lockscreenLastGif') === gifUrl) localStorage.removeItem('lockscreenLastGif');
-                                    renderCurrentGif();
-                                    openGifChooser();
-                                };
-                                thumb.appendChild(rmvBtn);
-                                thumb.onclick = () => {
-                                    localStorage.setItem('lockscreenLastGif', gifUrl);
-                                    renderCurrentGif();
-                                    gifChooserMenu.classList.remove('visible');
-                                };
-                                gifChoices.appendChild(thumb);
-                            });
-                        }
-                        gifChooserMenu.classList.add('visible');
-                    };
-                    
-                    removeGifBtn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        const currentSrc = gifDisplay.src;
-                        const newGifs = getGifs().filter(url => url !== currentSrc);
-                        saveGifs(newGifs);
-                        if (localStorage.getItem('lockscreenLastGif') === currentSrc) localStorage.removeItem('lockscreenLastGif');
-                        renderCurrentGif();
-                    });
-
-                    addNewGifBtn.addEventListener('click', () => {
-                        gifChooserMenu.classList.remove('visible');
-                        window.startPolling(`gif_session_${Date.now()}`, 'gif');
-                    });
-
-                    gifWidget.addEventListener('click', (e) => { if (!e.target.hasMoved && !gifWidget.classList.contains('has-gif')) window.startPolling(`gif_session_${Date.now()}`, 'gif'); });
-                    gifWidget.addEventListener('dblclick', (e) => { if (!e.target.hasMoved) openGifChooser(); });
-                    closeGifChooserBtn.addEventListener('click', () => gifChooserMenu.classList.remove('visible'));
-                    window.addGif = addGif;
-                    renderCurrentGif();
-
-                    // Webcam Widget
-                    const webcamPlayer = {
-                        stream: null,
-                        elements: {
-                            widget: document.getElementById('webcam-widget'),
-                            video: document.getElementById('webcam-video'),
-                            select: document.getElementById('webcam-source-select'),
-                            stopBtn: document.getElementById('webcam-stop-btn'),
-                            placeholder: document.getElementById('webcam-placeholder'),
-                        },
-                        init() {
-                            this.elements.select.addEventListener('change', () => this.start(this.elements.select.value));
-                            this.elements.stopBtn.addEventListener('click', () => this.stop());
-                            if (!this.elements.widget.classList.contains('hidden')) {
-                                this.populateDevices();
-                            }
-                        },
-                        async populateDevices() {
-                            try {
-                                const devices = await navigator.mediaDevices.enumerateDevices();
-                                const videoDevices = devices.filter(d => d.kind === 'videoinput');
-                                const currentSelection = this.elements.select.value;
-                                this.elements.select.innerHTML = '';
-                                if (videoDevices.length === 0) {
-                                    this.elements.select.innerHTML = '<option value="">No cameras</option>';
-                                    return;
-                                }
-                                const placeholderOption = document.createElement('option');
-                                placeholderOption.value = "";
-                                placeholderOption.textContent = "Select Camera";
-                                this.elements.select.appendChild(placeholderOption);
-                                
-                                videoDevices.forEach((device, index) => {
-                                    const option = document.createElement('option');
-                                    option.value = device.deviceId;
-                                    option.textContent = device.label || `Camera ${index + 1}`;
-                                    this.elements.select.appendChild(option);
-                                });
-                                
-                                if (this.elements.select.querySelector(`option[value="${currentSelection}"]`)) {
-                                    this.elements.select.value = currentSelection;
-                                }
-
-                            } catch (err) {
-                                console.error("Error enumerating devices:", err);
-                                this.elements.placeholder.querySelector('span').textContent = "Device Error";
-                            }
-                        },
-                        async start(deviceId) {
-                            if (this.stream) this.stop();
-                            if (!deviceId) return;
-
-                            try {
-                                this.stream = await navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: deviceId } } });
-                                this.elements.video.srcObject = this.stream;
-                                this.elements.widget.classList.add('active');
-                                await this.populateDevices();
-                            } catch (err) {
-                                console.error(`Error starting camera ${deviceId}:`, err);
-                                this.elements.widget.classList.remove('active');
-                                this.elements.placeholder.querySelector('span').textContent = "Access Denied";
-                                this.stop();
-                            }
-                        },
-                        stop() {
-                            if (this.stream) {
-                                this.stream.getTracks().forEach(track => track.stop());
-                            }
-                            this.stream = null;
-                            this.elements.video.srcObject = null;
-                            this.elements.widget.classList.remove('active');
-                            this.elements.select.value = "";
-                        }
-                    };
-                    window.webcamPlayer = webcamPlayer;
-                    webcamPlayer.init();
-                })();
-                
-                (function setupBaseFeatures() {
-                    const DRAGGABLE_ELEMENT_IDS = ['clock', 'youtube-music-btn', 'youtube-btn', 'stock-widget', 'settings-btn', 'fun-stock-name-display', 'note-widget', 'music-widget', 'gif-widget', 'webcam-widget'];
-                    const WIDGETS = {
-                        stock: { el: document.getElementById('stock-widget'), toggle: document.getElementById('toggle-stock-widget'), default: true },
-                        note: { el: document.getElementById('note-widget'), toggle: document.getElementById('toggle-note-widget'), default: false },
-                        music: { el: document.getElementById('music-widget'), toggle: document.getElementById('toggle-music-widget'), default: false },
-                        gif: { el: document.getElementById('gif-widget'), toggle: document.getElementById('toggle-gif-widget'), default: false },
-                        webcam: { el: document.getElementById('webcam-widget'), toggle: document.getElementById('toggle-webcam-widget'), default: false },
-                    };
-                    
-                    function initializeWidgetToggles() {
-                        for(const key in WIDGETS) {
-                            const widget = WIDGETS[key];
-                            const savedState = localStorage.getItem(`widget_${key}_visible`);
-                            const isVisible = savedState === null ? widget.default : savedState === 'true';
-                            
-                            widget.el.classList.toggle('hidden', !isVisible);
-                            widget.toggle.checked = isVisible;
-
-                            widget.toggle.addEventListener('change', () => {
-                                const isChecked = widget.toggle.checked;
-                                widget.el.classList.toggle('hidden', !isChecked);
-                                localStorage.setItem(`widget_${key}_visible`, isChecked);
-
-                                if (key === 'webcam') {
-                                    if (isChecked) {
-                                        window.webcamPlayer.populateDevices();
-                                    } else {
-                                        window.webcamPlayer.stop();
-                                    }
-                                }
-                            });
-                        }
-                    }
-                    initializeWidgetToggles();
-
-                    const timeElems = { h: document.getElementById('hours'), m: document.getElementById('minutes'), d: document.getElementById('date') };
-                    const weatherElems = { t: document.getElementById('temperature'), i: document.getElementById('weather-icon') };
-                    const weatherLocationInput = document.getElementById('weather-location-input');
-                    let clockScale = 1;
-                    const getweatherLocation = () => localStorage.getItem('lockscreenWeatherLocation') || '';
-                    const fetchWeather = () => {
-                        const location = getweatherLocation();
-                        weatherLocationInput.value = location;
-                        const url = `https://wttr.in/${location || 'Trondheim'}?format=j1`;
-                        const iM = { 'sunny': 'fa-sun', 'clear': 'fa-sun', 'partly cloudy': 'fa-cloud-sun', 'cloudy': 'fa-cloud', 'overcast': 'fa-cloud', 'mist': 'fa-smog', 'fog': 'fa-smog', 'patchy rain': 'fa-cloud-rain', 'rain': 'fa-cloud-showers-heavy', 'drizzle': 'fa-cloud-rain', 'patchy snow': 'fa-snowflake', 'snow': 'fa-snowflake', 'sleet': 'fa-cloud-meatball', 'ice pellets': 'fa-icicles', 'thunder': 'fa-cloud-bolt', 'blizzard': 'fa-wind' };
-                        fetch(url).then(r => r.json()).then(d => { const c = d.current_condition[0]; weatherElems.t.textContent = `${c.temp_C}°C`; const ds = c.weatherDesc[0].value.toLowerCase(); let ic = 'fa-cloud-sun'; for (const k in iM) { if (ds.includes(k)) { ic = iM[k]; break; } } weatherElems.i.className = `fa-solid ${ic}`; }).catch(e => { weatherElems.t.textContent = 'N/A'; });
-                    };
-                    weatherLocationInput.addEventListener('change', () => { localStorage.setItem('lockscreenWeatherLocation', weatherLocationInput.value.trim()); fetchWeather(); });
-                    const updateTime = () => { const n = new Date(); timeElems.h.textContent = String(n.getHours()).padStart(2, '0'); timeElems.m.textContent = String(n.getMinutes()).padStart(2, '0'); timeElems.d.textContent = n.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }); };
-                    const applyClockScale = (scale) => { const baseSizeVW = 15; const newSize = baseSizeVW * scale; timeElems.h.style.fontSize = `clamp(${newSize * 0.4}rem, ${newSize}vw, ${newSize * 0.8}rem)`; timeElems.m.style.fontSize = `clamp(${newSize * 0.4}rem, ${newSize}vw, ${newSize * 0.8}rem)`; clockScale = scale; };
-                    
-                    const savePos = () => {
-                        const p = {};
-                        DRAGGABLE_ELEMENT_IDS.forEach(id => {
-                            const e = document.getElementById(id);
-                            if (e) {
-                                p[id] = { t: `${(e.offsetTop / lockScreen.clientHeight) * 100}%`, l: `${(e.offsetLeft / lockScreen.clientWidth) * 100}%` };
-                                if (id === 'clock') p[id].s = clockScale;
-                                if (id === 'note-widget' || id === 'gif-widget' || id === 'webcam-widget') { p[id].w = e.style.width; p[id].h = e.style.height; }
-                            }
-                        });
-                        localStorage.setItem('lockscreenItemPositions_v5', JSON.stringify(p));
-                    };
-                    const loadPos = () => {
-                        const p = JSON.parse(localStorage.getItem('lockscreenItemPositions_v5'));
-                        if (p) {
-                            Object.keys(p).forEach(id => {
-                                const e = document.getElementById(id);
-                                const pos = p[id];
-                                if (e && pos.t && pos.l) {
-                                    e.style.top = pos.t; e.style.left = pos.l;
-                                    e.style.transform = (id === 'clock' || id === 'stock-widget') ? 'none' : e.style.transform;
-                                    if (id === 'clock' && pos.s) applyClockScale(pos.s);
-                                    if (id === 'note-widget' || id === 'gif-widget' || id === 'webcam-widget') { e.style.width = pos.w || e.style.width; e.style.height = pos.h || e.style.height; }
-                                }
-                            });
-                        }
-                    };
-                    
-                    const makeDraggable = (el) => {
-                        let oX, oY, isD, hasMoved;
-                        let isPinching = false, initialPinchDist, initialScale;
-                        const getDist = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
-                        const mv = (e) => {
-                            if (el.isEditing) return;
-                            if (el.id === 'clock' && isPinching && e.touches && e.touches.length === 2) {
-                                e.preventDefault(); const oldWidth = el.offsetWidth, oldHeight = el.offsetHeight, oldLeft = el.offsetLeft, oldTop = el.offsetTop;
-                                const newDist = getDist(e.touches); const scaleRatio = newDist / initialPinchDist; const newScale = Math.max(0.5, Math.min(initialScale * scaleRatio, 3));
-                                applyClockScale(newScale); const newWidth = el.offsetWidth, newHeight = el.offsetHeight; const deltaWidth = newWidth - oldWidth, deltaHeight = newHeight - oldHeight;
-                                el.style.left = `${oldLeft - (deltaWidth / 2)}px`; el.style.top = `${oldTop - (deltaHeight / 2)}px`; return;
-                            }
-                            if (!isD) return; e.preventDefault(); hasMoved = true;
-                            const cX = e.touches ? e.touches[0].clientX : e.clientX, cY = e.touches ? e.touches[0].clientY : e.clientY;
-                            let nX = cX - oX, nY = cY - oY;
-                            const sR = lockScreen.getBoundingClientRect(), eR = el.getBoundingClientRect();
-                            nX = Math.max(0, Math.min(nX, sR.width - eR.width)); nY = Math.max(0, Math.min(nY, sR.height - eR.height));
-                            el.style.left = `${nX}px`; el.style.top = `${nY}px`;
-                            if(['clock', 'stock-widget'].indexOf(el.id) === -1) el.style.transform = 'none';
-                        };
-                        const stD = (e) => {
-                            if (!isD && !isPinching) return;
-                            e.target.hasMoved = hasMoved;
-                            if (el.id === 'fun-stock-name-display' && el.classList.contains('visible')) { stockNameFadeOutTimer = setTimeout(() => { el.classList.remove('visible'); }, 3000); }
-                            isD = false; isPinching = false;
-                            if (hasMoved) savePos();
-                            document.removeEventListener('mousemove', mv); document.removeEventListener('touchmove', mv);
-                        };
-                        const sD_longPress = (e) => {
-                            if (el.isEditing) return;
-                            if (e.target.closest('#music-controls, #remove-gif-btn, #webcam-controls, #note-settings-btn')) return;
-                            if (e.touches && e.touches.length === 2 && el.id === 'clock') { isPinching = true; isD = false; initialPinchDist = getDist(e.touches); initialScale = clockScale; return; }
-                            
-                            isD = true; hasMoved = false; e.target.hasMoved = false;
-                            const cX = e.touches ? e.touches[0].clientX : e.clientX, cY = e.touches ? e.touches[0].clientY : e.clientY;
-                            oX = cX - el.offsetLeft; oY = cY - el.offsetTop;
-                            if (el.id === 'fun-stock-name-display' && stockNameFadeOutTimer) { clearTimeout(stockNameFadeOutTimer); stockNameFadeOutTimer = null; }
-                            document.addEventListener('mousemove', mv, { passive: false });
-                            document.addEventListener('touchmove', mv, { passive: false });
-                            document.addEventListener('mouseup', stD, { once: true });
-                            document.addEventListener('touchend', stD, { once: true });
-                        };
-                        el.addEventListener('mousedown', sD_longPress);
-                        el.addEventListener('touchstart', sD_longPress, { passive: false });
-                        const lnk = el.querySelector('a'); if (lnk) { lnk.addEventListener('click', (e) => { if (hasMoved) e.preventDefault(); }); }
-                        if(el.id === 'settings-btn') { el.addEventListener('click', (e) => { if (!hasMoved) { showWallpaperSettings(); settingsMenu.classList.add('visible'); } }); }
-                    };
-                    
-                    stockWidget.addEventListener('click', (e) => {
-                        if (e.target.hasMoved) return;
-                        clearTimeout(stockWidgetClickTimer);
-                        stockWidgetClickTimer = setTimeout(() => {
-                            if (!getStockFlashState()) return;
-                            const symbols = getStockSymbols();
-                            if (symbols.length === 0) return;
-                            const symbol = symbols[stockFlashIndex];
-                            stockFlashIndex = (stockFlashIndex + 1) % symbols.length;
-                            fetch(`https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${FINNHUB_API_KEY}`)
-                                .then(r => r.json()).then(data => handleStockData(data, symbol))
-                                .catch(err => console.error(`Stock Flash click trigger error for ${symbol}:`, err));
-                        }, 200);
-                    });
-                    stockWidget.addEventListener('dblclick', (e) => {
-                        clearTimeout(stockWidgetClickTimer);
-                        stockSymbolsInput.value = getStockSymbols().join(', ');
-                        stockFlashCheckbox.checked = getStockFlashState();
-                        stockEditorMenu.classList.add('visible');
-                    });
-                    closeStockEditorBtn.addEventListener('click', () => stockEditorMenu.classList.remove('visible'));
-                    stockEditorMenu.addEventListener('click', (e) => { if (e.target === stockEditorMenu) stockEditorMenu.classList.remove('visible'); });
-                    saveStocksBtn.addEventListener('click', () => { 
-                        const newSymbols = stockSymbolsInput.value.split(',').map(s => s.trim().toUpperCase()).filter(s => s.length > 0).slice(0, 7); 
-                        saveStockSymbols(newSymbols); 
-                        saveStockFlashState(stockFlashCheckbox.checked); 
-                        stockFlashIndex = 0;
-                        updateStockWidget(); 
-                        stockEditorMenu.classList.remove('visible');
-                    });
-
-                    setInterval(updateTime, 1000); updateTime();
-                    DRAGGABLE_ELEMENT_IDS.forEach(id => { const el = document.getElementById(id); if (el) makeDraggable(el); });
-                    
-                    loadPos();
-                    fetchWeather(); setInterval(fetchWeather, 30 * 60 * 1000);
-                    updateStockWidget(); setInterval(updateStockWidget, 60000);
-                    checkStockFlashTrigger(); setInterval(checkStockFlashTrigger, 60 * 1000);
-                })();
+                loadPos(); fetchWeather(); setInterval(fetchWeather, 30 * 60 * 1000);
+                updateStockWidget(); setInterval(updateStockWidget, 60000);
                 
                 const getWps = () => JSON.parse(localStorage.getItem('lockscreenWallpapers_v2')) || [initialWallpaper];
                 const saveWps = (wps) => localStorage.setItem('lockscreenWallpapers_v2', JSON.stringify(wps));
                 const setWp = (wpObj) => { exitPanningMode(); lockScreen.style.backgroundImage = `url('${wpObj.url}')`; lockScreen.style.backgroundPosition = wpObj.position || 'center center'; currentWallpaperImg.src = wpObj.url; };
-                const renderWpChoices = () => { const cont = document.getElementById('wallpaper-choices'); cont.innerHTML = ''; getWps().forEach(wp => { const thumb = document.createElement('div'); thumb.className = 'wallpaper-thumbnail'; thumb.style.backgroundImage = `url('${wp.url}')`; const rmvBtn = document.createElement('span'); rmvBtn.className = 'remove-thumb-btn'; rmvBtn.innerHTML = '×'; rmvBtn.title = 'Remove wallpaper'; rmvBtn.addEventListener('click', (e) => { e.stopPropagation(); const newWps = getWps().filter(w => w.url !== wp.url); saveWps(newWps); renderWpChoices(); }); thumb.appendChild(rmvBtn); thumb.addEventListener('click', () => { setWp(wp); localStorage.setItem('lockscreenLastSelectedWp', wp.url); settingsMenu.classList.remove('visible'); }); cont.appendChild(thumb); }); };
+                const renderWpChoices = () => { const cont = document.getElementById('wallpaper-choices'); cont.innerHTML = ''; getWps().forEach(wp => { const thumb = document.createElement('div'); thumb.className = 'wallpaper-thumbnail'; thumb.style.backgroundImage = `url('${wp.url}')`; thumb.innerHTML = '<span class="remove-thumb-btn">×</span>'; thumb.querySelector('.remove-thumb-btn').addEventListener('click', (e) => { e.stopPropagation(); const newWps = getWps().filter(w => w.url !== wp.url); saveWps(newWps); renderWpChoices(); }); thumb.addEventListener('click', () => { setWp(wp); localStorage.setItem('lockscreenLastSelectedWp', wp.url); settingsMenu.classList.remove('visible'); }); cont.appendChild(thumb); }); };
                 document.getElementById('wallpaper-url-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') { const url = e.target.value.trim(); if(url.toLowerCase().endsWith('.gif')) { alert('Please use the GIF widget to add GIFs.'); e.target.value = ''; return; } if (url.match(/\.(jpeg|jpg|gif|png|webp)$/i)) { const wps = getWps(); if (!wps.some(w => w.url === url)) { const newWp = { url: url, position: 'center center' }; wps.push(newWp); saveWps(wps); setWp(newWp); localStorage.setItem('lockscreenLastSelectedWp', newWp.url); renderWpChoices(); } e.target.value = ''; settingsMenu.classList.remove('visible'); } else { alert('Invalid URL.'); } } });
                 function exitPanningMode() { if (!isPanningMode) return; isPanningMode = false; lockScreen.classList.remove('panning-active'); const url = currentWallpaperImg.src; const wps = getWps(); const idx = wps.findIndex(w => w.url === url); if (idx > -1) { wps[idx].position = lockScreen.style.backgroundPosition; saveWps(wps); } }
 
                 const resetInactivityPrompts = () => { clearTimeout(inactivityTimer); unlockPrompt.classList.remove('visible'); fullscreenHint.classList.remove('visible'); inactivityTimer = setTimeout(() => { if (document.fullscreenElement) { unlockPrompt.classList.add('visible'); } else { fullscreenHint.classList.add('visible'); } }, 60000); };
-                ['mousemove', 'mousedown', 'keydown'].forEach(evt => document.addEventListener(evt, resetInactivityPrompts));
+                ['mousemove', 'mousedown', 'keydown', 'touchstart'].forEach(evt => document.addEventListener(evt, resetInactivityPrompts));
                 resetInactivityPrompts();
                 unlockPrompt.addEventListener('click', () => { if (document.fullscreenElement) document.exitFullscreen(); });
-                
-                lockScreen.addEventListener('dblclick', (e) => { if (e.target.closest('.draggable-item')) return; if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); });
-                
-                let isDraggingWp = false, sPanX, sPanY, sBgX, sBgY;
-                const panMove = (e) => { if (!isDraggingWp) return; hasMovedWp = true; e.preventDefault(); const cX = e.touches ? e.touches[0].clientX : e.clientX; const cY = e.touches ? e.touches[0].clientY : e.clientY; const dX = cX - sPanX, dY = cY - sPanY; let nBgX = sBgX + dX, nBgY = sBgY + dY; const sW = lockScreen.clientWidth, sH = lockScreen.clientHeight; const iW = currentWallpaperImg.naturalWidth, iH = currentWallpaperImg.naturalHeight; const sR = sW / sH, iR = iW / iH; let scW, scH; if (iR > sR) { scH = sH; scW = sH * iR; } else { scW = sW; scH = sW / iR; } const minX = sW - scW, minY = sH - scH; nBgX = Math.max(minX, Math.min(0, nBgX)); nBgY = Math.max(minY, Math.min(0, nBgY)); lockScreen.style.backgroundPosition = `${nBgX}px ${nBgY}px`; };
-                const interactionEnd = () => { clearTimeout(pressHoldTimer); if (isPanningMode) { isDraggingWp = false; document.removeEventListener('mousemove', panMove); document.removeEventListener('touchmove', panMove); } document.removeEventListener('mouseup', interactionEnd); document.removeEventListener('touchend', interactionEnd); document.removeEventListener('mousemove', clearHoldTimer); };
-                const clearHoldTimer = () => { clearTimeout(pressHoldTimer); };
-                const interactionStart = (e) => { if (e.target.closest('.draggable-item')) return; const sW = lockScreen.clientWidth, sH = lockScreen.clientHeight, iW = currentWallpaperImg.naturalWidth, iH = currentWallpaperImg.naturalHeight; if (iW <= sW && iH <= sH && !isPanningMode) return; hasMovedWp = false; document.addEventListener('mouseup', interactionEnd); document.addEventListener('touchend', interactionEnd); clearTimeout(pressHoldTimer); pressHoldTimer = setTimeout(() => { isPanningMode = true; isDraggingWp = true; lockScreen.classList.add('panning-active'); const bgPos = window.getComputedStyle(lockScreen).backgroundPosition.split(' '); sBgX = parseFloat(bgPos[0]); sBgY = parseFloat(bgPos[1]); sPanX = e.touches ? e.touches[0].clientX : e.clientX; sPanY = e.touches ? e.touches[0].clientY : e.clientY; document.addEventListener('mousemove', panMove); document.addEventListener('touchmove', panMove); }, 500); document.addEventListener('mousemove', clearHoldTimer, { once: true }); };
-                lockScreen.addEventListener('mousedown', interactionStart);
-                lockScreen.addEventListener('touchstart', interactionStart, { passive: false });
+                lockScreen.addEventListener('dblclick', (e) => { if (e.target.closest('.draggable-item, a, button')) return; if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); });
                 
                 const themeToggle = document.getElementById('theme-toggle');
                 const clockColorInput = document.getElementById('clock-color-input');
@@ -980,68 +821,49 @@
                 const applyFont = (font) => clock.style.fontFamily = font;
 
                 const savedTheme = localStorage.getItem('lockscreenTheme') || 'dark';
-                themeToggle.checked = savedTheme === 'light';
-                applyTheme(savedTheme);
-                
+                themeToggle.checked = savedTheme === 'light'; applyTheme(savedTheme);
                 const savedColor = localStorage.getItem('lockscreenClockColor') || '#ffffff';
-                clockColorInput.value = savedColor;
-                applyClockColor(savedColor);
-
+                clockColorInput.value = savedColor; applyClockColor(savedColor);
                 const savedFont = localStorage.getItem('lockscreenClockFont') || "'Oswald', sans-serif";
-                fontSelect.value = savedFont;
-                applyFont(savedFont);
+                fontSelect.value = savedFont; applyFont(savedFont);
 
                 themeToggle.addEventListener('change', () => { const newTheme = themeToggle.checked ? 'light' : 'dark'; localStorage.setItem('lockscreenTheme', newTheme); applyTheme(newTheme); });
                 clockColorInput.addEventListener('input', () => { const newColor = clockColorInput.value; localStorage.setItem('lockscreenClockColor', newColor); applyClockColor(newColor); });
                 fontSelect.addEventListener('change', () => { const newFont = fontSelect.value; localStorage.setItem('lockscreenClockFont', newFont); applyFont(newFont); });
-
                 resetPositionsBtn.addEventListener('click', () => {
-                    localStorage.removeItem('lockscreenItemPositions_v5');
-                    localStorage.removeItem('lockscreenNoteContent');
-                    localStorage.removeItem('lockscreenNoteFontFamily');
-                    localStorage.removeItem('lockscreenNoteFontSize');
-                    localStorage.removeItem('lockscreenGifUrls_v2');
-                    localStorage.removeItem('lockscreenLastGif');
-                    window.radioPlayer.reset();
-                    window.webcamPlayer.stop();
-                    document.getElementById('gif-display').src = '';
-                    ['clock', 'youtube-music-btn', 'youtube-btn', 'stock-widget', 'settings-btn', 'fun-stock-name-display', 'note-widget', 'music-widget', 'gif-widget', 'webcam-widget'].forEach(id => {
-                        const el = document.getElementById(id);
-                        if (el) el.style.cssText = '';
-                    });
-                    const applyClockScale = (scale) => { clockScale = scale; const baseSizeVW = 15; const newSize = baseSizeVW * scale; document.getElementById('hours').style.fontSize = `clamp(${newSize * 0.4}rem, ${newSize}vw, ${newSize * 0.8}rem)`; document.getElementById('minutes').style.fontSize = `clamp(${newSize * 0.4}rem, ${newSize}vw, ${newSize * 0.8}rem)`; };
-                    applyClockScale(1);
-                    settingsMenu.classList.remove('visible');
+                    if (confirm("Reset all widget positions and clear note/gif/radio data?")) {
+                        localStorage.removeItem('lockscreenItemPositions_v5');
+                        localStorage.removeItem('lockscreenNoteContent');
+                        localStorage.removeItem('lockscreenNoteFontFamily');
+                        localStorage.removeItem('lockscreenNoteFontSize');
+                        localStorage.removeItem('lockscreenGifUrls_v2');
+                        localStorage.removeItem('lockscreenLastGif');
+                        localStorage.removeItem(radioPlayer.storageKey);
+                        window.location.reload();
+                    }
                 });
-
+                
                 window.startPolling = (session, type = 'wallpaper') => {
                     if (pollingInterval) clearInterval(pollingInterval);
                     const uploadUrl = `${window.location.href.split('?')[0]}?upload=true&session=${session}`;
                     const qrCodeContainer = document.getElementById('qr-code');
-                    qrCodeContainer.innerHTML = '';
-                    qrModal.style.display = 'flex';
+                    qrCodeContainer.innerHTML = ''; qrModal.style.display = 'flex';
                     new QRCode(qrCodeContainer, { text: uploadUrl, width: 200, height: 200 });
-
                     pollingInterval = setInterval(() => {
                         fetch(`https://api.npoint.io/${NPOINT_BIN_ID}`, { cache: 'no-cache' })
-                            .then(r => r.json())
-                            .then(data => {
-                                if (data && data[session]) {
-                                    clearInterval(pollingInterval);
-                                    pollingInterval = null;
-                                    qrModal.style.display = 'none';
-                                    const newUrl = data[session];
-
-                                    if (type === 'gif') {
-                                        window.addGif(newUrl);
-                                    } else {
-                                        const newWp = { url: newUrl, position: 'center center' };
-                                        const wps = getWps();
-                                        if (!wps.some(w => w.url === newWp.url)) { wps.push(newWp); saveWps(wps); }
-                                        setWp(newWp); localStorage.setItem('lockscreenLastSelectedWp', newWp.url); renderWpChoices();
-                                    }
+                        .then(r => r.json()).then(data => {
+                            if (data && data[session]) {
+                                clearInterval(pollingInterval); pollingInterval = null; qrModal.style.display = 'none';
+                                const newUrl = data[session];
+                                if (type === 'gif') { window.addGif(newUrl); } 
+                                else {
+                                    const newWp = { url: newUrl, position: 'center center' };
+                                    const wps = getWps();
+                                    if (!wps.some(w => w.url === newWp.url)) { wps.push(newWp); saveWps(wps); }
+                                    setWp(newWp); localStorage.setItem('lockscreenLastSelectedWp', newWp.url); renderWpChoices();
                                 }
-                            }).catch(err => { console.log("Polling... waiting for data."); });
+                            }
+                        }).catch(err => { console.log("Polling..."); });
                     }, 2500);
                 }
 
@@ -1053,32 +875,14 @@
                 const lastSelectedUrl = localStorage.getItem('lockscreenLastSelectedWp');
                 let wpToLoad = allWps.find(w => w.url === lastSelectedUrl);
                 if (!wpToLoad) {
-                    wpToLoad = allWps[0] || initialWallpaper;
+                    wpToLoad = allWps[0] || initialWallpaper; // CORRECTED THIS LINE
                 }
                 setWp(wpToLoad);
 
                 document.addEventListener('keydown', (e) => {
-                    if (document.getElementById('note-widget').classList.contains('edit-mode')) {
-                        if (e.key === 'Escape') {
-                            document.getElementById('note-widget').querySelector('#note-textarea').blur();
-                            exitNoteEditMode();
-                        }
-                        return;
-                    }
-                    if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
-                    if (!getStockFlashState()) return;
-                    
-                    let isUp = null;
-                    if (e.key === 'ArrowUp') isUp = true;
-                    if (e.key === 'ArrowDown') isUp = false;
-                    
-                    if (isUp !== null) {
-                        e.preventDefault();
-                        const symbols = getStockSymbols();
-                        if (symbols.length === 0) return;
-                        const symbol = symbols[stockFlashIndex];
-                        const isSuper = e.shiftKey;
-                        triggerStockFlashEffect(isUp, isSuper, symbol);
+                    if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') {
+                         if (e.key === 'Escape') document.activeElement.blur();
+                         return;
                     }
                 });
             }
