@@ -68,9 +68,10 @@
         
         /* Webcam Widget CSS */
         #webcam-widget { top: 20%; left: 20%; width: 320px; height: 240px; padding: 0; resize: both; overflow: hidden; display: flex; align-items: center; justify-content: center; background-color: #000; border: 2px solid var(--widget-bg); }
-        .webcam-video-wrapper { display: none; width: 100%; height: 100%; transform: scaleX(-1); /* Default to mirrored */ touch-action: none; /* For Pointer Events */ }
+        .webcam-video-wrapper { display: none; width: 100%; height: 100%; transform: scaleX(-1); /* Default to mirrored */ touch-action: none; /* For Pointer Events */ cursor: grab; }
+        .webcam-video-wrapper.panning { cursor: grabbing; }
         .webcam-video-wrapper.normal-view { transform: scaleX(1); /* Class to un-mirror */ }
-        #webcam-video { width: 100%; height: 100%; object-fit: cover; filter: grayscale(100%); transition: transform 0.1s ease-out; /* Smooth pan/zoom */ }
+        #webcam-video { width: 100%; height: 100%; object-fit: cover; filter: grayscale(100%); transition: transform 0.1s ease-out; /* Smooth pan/zoom */ transform-origin: center center; }
         #webcam-widget.active .webcam-video-wrapper { display: block; }
         #webcam-widget.active #webcam-placeholder { display: none; }
         #webcam-placeholder { display: flex; flex-direction: column; align-items: center; gap: 10px; font-size: 1.2rem; color: rgba(255, 255, 255, 0.7); text-align: center; padding: 10px; }
@@ -838,7 +839,9 @@
                             this.elements.video.srcObject = null;
                             this.elements.widget.classList.remove('active');
                             if (this.elements.toggleIcon) this.elements.toggleIcon.className = 'fa-solid fa-video-slash';
-                            this.elements.widget.style.display = 'none';
+                            if (!isRestarting) {
+                                this.elements.widget.style.display = 'none';
+                            }
                         }
                     };
                     window.webcamPlayer = webcamPlayer;
@@ -855,6 +858,7 @@
                     let webcam_pinching = false;
                     let webcam_start_pos = { x: 0, y: 0 };
                     let webcam_initial_pinch_dist = 0;
+                    let webcam_tap_timer = null;
 
                     function applyWebcamTransform() {
                         videoEl.style.transform = `translate(${webcam_transform.panX}px, ${webcam_transform.panY}px) scale(${webcam_transform.scale})`;
@@ -872,22 +876,32 @@
                         }
                     });
 
-                    let webcam_touch_end_timer = null;
                     videoWrapper.addEventListener('touchstart', (e) => {
-                        e.stopPropagation();
+                        if (webcam_transform.scale <= 1) {
+                            return; // Not zoomed, let event bubble up to drag the widget
+                        }
+                        e.stopPropagation(); // Is zoomed, so stop widget drag and handle pan/zoom
+                        
                         if (e.touches.length === 1) {
                             webcam_panning = true;
+                            videoWrapper.classList.add('panning');
                             webcam_start_pos = { x: e.touches[0].clientX - webcam_transform.panX, y: e.touches[0].clientY - webcam_transform.panY };
                         } else if (e.touches.length === 2) {
                             webcam_panning = false;
+                            videoWrapper.classList.remove('panning');
                             webcam_pinching = true;
                             webcam_initial_pinch_dist = get_touch_dist(e.touches);
                         }
                     }, { passive: false });
 
                     videoWrapper.addEventListener('touchmove', (e) => {
+                        clearTimeout(webcam_tap_timer);
+                        webcam_tap_timer = null;
+
+                        if (!webcam_panning && !webcam_pinching) return;
                         e.preventDefault();
                         e.stopPropagation();
+
                         if (webcam_pinching && e.touches.length === 2) {
                             const new_dist = get_touch_dist(e.touches);
                             const scale_ratio = new_dist / webcam_initial_pinch_dist;
@@ -905,32 +919,35 @@
                             webcam_transform.panX = e.touches[0].clientX - webcam_start_pos.x;
                             webcam_transform.panY = e.touches[0].clientY - webcam_start_pos.y;
                         }
-                        if (webcam_transform.scale <= 1) {
-                            webcam_transform.panX = 0;
-                            webcam_transform.panY = 0;
-                        } else {
-                            const rect = videoWrapper.getBoundingClientRect();
-                            const max_panX = (rect.width * webcam_transform.scale - rect.width) / 2;
-                            const max_panY = (rect.height * webcam_transform.scale - rect.height) / 2;
-                            webcam_transform.panX = Math.max(-max_panX, Math.min(max_panX, webcam_transform.panX));
-                            webcam_transform.panY = Math.max(-max_panY, Math.min(max_panY, webcam_transform.panY));
-                        }
+                        const rect = videoWrapper.getBoundingClientRect();
+                        const max_panX = (rect.width * webcam_transform.scale - rect.width) / 2;
+                        const max_panY = (rect.height * webcam_transform.scale - rect.height) / 2;
+                        webcam_transform.panX = Math.max(-max_panX, Math.min(max_panX, webcam_transform.panX));
+                        webcam_transform.panY = Math.max(-max_panY, Math.min(max_panY, webcam_transform.panY));
+                        
                         applyWebcamTransform();
                     }, { passive: false });
                     
                     videoWrapper.addEventListener('touchend', (e) => {
-                        e.stopPropagation();
-                        if (!webcam_pinching && !webcam_panning) {
-                             if (webcam_touch_end_timer) {
-                                clearTimeout(webcam_touch_end_timer);
-                                webcam_touch_end_timer = null;
+                        if (webcam_panning || webcam_pinching) {
+                             e.stopPropagation();
+                        }
+
+                        if (e.touches.length < 2) webcam_pinching = false;
+                        if (e.touches.length < 1) {
+                            webcam_panning = false;
+                            videoWrapper.classList.remove('panning');
+                        }
+
+                        if (!e.target.hasMoved && webcam_transform.scale > 1) {
+                             if (webcam_tap_timer) {
+                                clearTimeout(webcam_tap_timer);
+                                webcam_tap_timer = null;
                                 resetWebcamTransform();
                             } else {
-                                webcam_touch_end_timer = setTimeout(() => { webcam_touch_end_timer = null; }, 300);
+                                webcam_tap_timer = setTimeout(() => { webcam_tap_timer = null; }, 300);
                             }
                         }
-                        if (e.touches.length < 2) webcam_pinching = false;
-                        if (e.touches.length < 1) webcam_panning = false;
                     });
                 })();
                 
@@ -956,10 +973,8 @@
 
                             if (key === 'webcam') {
                                 webcamToggleBtn.classList.toggle('hidden', !isVisible);
-                                if (isVisible) {
+                                if (isVisible && document.getElementById('toggle-webcam-widget').checked) {
                                     window.webcamPlayer.populateDevices();
-                                } else {
-                                    window.webcamPlayer.stop();
                                 }
                             }
 
@@ -1064,7 +1079,7 @@
                         };
                         const sD_longPress = (e) => {
                             if (el.isEditing) return;
-                            if (e.target.closest('#music-controls, #remove-gif-btn, #webcam-controls, #note-settings-btn, .webcam-video-wrapper')) return;
+                            if (e.target.closest('#music-controls, #remove-gif-btn, #webcam-controls, #note-settings-btn')) return;
                             if (e.touches && e.touches.length === 2 && el.id === 'clock') { isPinching = true; isD = false; initialPinchDist = getDist(e.touches); initialScale = clockScale; return; }
                             
                             isD = true; hasMoved = false; e.target.hasMoved = false;
