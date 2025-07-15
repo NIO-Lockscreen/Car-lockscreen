@@ -79,7 +79,7 @@
         #webcam-source-select { background-color: #333; color: white; border: 1px solid #555; border-radius: 5px; padding: 3px; max-width: 150px; }
         #webcam-stop-btn { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; padding: 0; line-height: 1; display: flex; align-items: center; }
 
-        /* Webcam Toggle Button */
+        /* NEW: Webcam Toggle Button */
         #webcam-toggle-btn {
             top: 80%;
             left: 130px; /* Initial position next to settings icon */
@@ -220,6 +220,7 @@
             </div>
         </div>
 
+        <!-- NEW: Webcam Toggle Button -->
         <div id="webcam-toggle-btn" class="draggable-item app-icon hidden" title="Toggle Rear Seat Cam">
             <i class="fa-solid fa-video-slash"></i>
         </div>
@@ -748,30 +749,42 @@
                             this.elements.stopBtn.addEventListener('click', () => this.stop());
                             this.elements.widget.addEventListener('dblclick', (e) => {
                                 if (e.target.closest('#webcam-controls')) return;
-                                if (this.stream) { this.elements.widget.querySelector('.webcam-video-wrapper').classList.toggle('normal-view');
-                                } else { this.populateDevices(false); }
+
+                                if (this.stream) { // If video is active, toggle mirror
+                                    this.elements.widget.querySelector('.webcam-video-wrapper').classList.toggle('normal-view');
+                                } else { // If video is inactive, refresh devices
+                                    this.populateDevices(false);
+                                }
                             });
+
+                            if (!this.elements.widget.classList.contains('hidden')) {
+                                this.populateDevices(true);
+                            }
                         },
                         async populateDevices(shouldAutoload = false) {
                             try {
                                 const devices = await navigator.mediaDevices.enumerateDevices();
                                 const videoDevices = devices.filter(d => d.kind === 'videoinput');
                                 const currentDeviceId = this.stream ? this.stream.getVideoTracks()[0].getSettings().deviceId : null;
+
                                 this.elements.select.innerHTML = '';
                                 if (videoDevices.length === 0) {
                                     this.elements.select.innerHTML = '<option value="">No cameras</option>';
                                     this.stop();
                                     return;
                                 }
+
                                 videoDevices.forEach((device) => {
                                     const option = document.createElement('option');
                                     option.value = device.deviceId;
                                     option.textContent = device.label || `Camera ${videoDevices.indexOf(device) + 1}`;
                                     this.elements.select.appendChild(option);
                                 });
+
                                 if (currentDeviceId && this.elements.select.querySelector(`option[value="${currentDeviceId}"]`)) {
                                     this.elements.select.value = currentDeviceId;
                                 }
+
                                 if (shouldAutoload && !this.stream && videoDevices.length > 0) {
                                     this.elements.select.value = videoDevices[0].deviceId;
                                     this.start();
@@ -782,19 +795,28 @@
                             }
                         },
                         async start() {
-                            if (this.stream && this.stream.getVideoTracks()[0].getSettings().deviceId === this.elements.select.value) return;
-                            if (this.stream) this.stop(true);
+                            if (this.stream) {
+                                if (this.stream.getVideoTracks()[0].getSettings().deviceId === this.elements.select.value) {
+                                    return; // Already running this device
+                                }
+                                this.stop(true); // Stop before starting a new one
+                            }
+
                             const deviceId = this.elements.select.value;
-                            if (!deviceId) { this.stop(); return; }
+                            if (!deviceId) {
+                                this.stop();
+                                return;
+                            }
+
                             const constraints = { video: { deviceId: { exact: deviceId } } };
+
                             try {
                                 this.stream = await navigator.mediaDevices.getUserMedia(constraints);
                                 this.elements.video.srcObject = this.stream;
                                 this.elements.video.onloadedmetadata = () => {
                                     this.elements.video.play();
                                     this.elements.widget.classList.add('active');
-                                    this.elements.widget.classList.remove('hidden'); // Show the widget
-                                    this.elements.widget.querySelector('.webcam-video-wrapper').classList.remove('normal-view');
+                                    this.elements.widget.querySelector('.webcam-video-wrapper').classList.remove('normal-view'); // Default to mirrored
                                     if (this.elements.toggleIcon) this.elements.toggleIcon.className = 'fa-solid fa-video';
                                 };
                                 this.populateDevices(false);
@@ -806,11 +828,12 @@
                             }
                         },
                         stop(isRestarting = false) {
-                            if (this.stream) { this.stream.getTracks().forEach(track => track.stop()); }
+                            if (this.stream) {
+                                this.stream.getTracks().forEach(track => track.stop());
+                            }
                             this.stream = null;
                             this.elements.video.srcObject = null;
                             this.elements.widget.classList.remove('active');
-                            this.elements.widget.classList.add('hidden'); // Hide the widget
                             if (this.elements.toggleIcon) this.elements.toggleIcon.className = 'fa-solid fa-video-slash';
                         }
                     };
@@ -835,20 +858,16 @@
                             const savedState = localStorage.getItem(`widget_${key}_visible`);
                             const isVisible = savedState === null ? widget.default : savedState === 'true';
                             
+                            widget.el.classList.toggle('hidden', !isVisible);
                             widget.toggle.checked = isVisible;
 
                             if (key === 'webcam') {
                                 webcamToggleBtn.classList.toggle('hidden', !isVisible);
-                                widget.el.classList.add('hidden'); // Always start hidden
-                                if (isVisible) {
-                                    window.webcamPlayer.populateDevices(true);
-                                }
-                            } else {
-                                widget.el.classList.toggle('hidden', !isVisible);
                             }
 
                             widget.toggle.addEventListener('change', () => {
                                 const isChecked = widget.toggle.checked;
+                                widget.el.classList.toggle('hidden', !isChecked);
                                 localStorage.setItem(`widget_${key}_visible`, isChecked);
 
                                 if (key === 'webcam') {
@@ -858,8 +877,6 @@
                                     } else {
                                         window.webcamPlayer.stop();
                                     }
-                                } else {
-                                     widget.el.classList.toggle('hidden', !isChecked);
                                 }
                             });
                         }
