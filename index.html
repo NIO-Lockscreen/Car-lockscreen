@@ -66,28 +66,33 @@
         #remove-gif-btn { position: absolute; top: 5px; right: 5px; width: 24px; height: 24px; background-color: rgba(231, 76, 60, 0.8); color: white; border-radius: 50%; display: none; justify-content: center; align-items: center; font-size: 16px; cursor: pointer; z-index: 12; }
         #gif-widget.has-gif:hover #remove-gif-btn { display: flex; }
         
-        /* MODIFIED Webcam Widget CSS */
+        /* Webcam Widget CSS */
         #webcam-widget { top: 20%; left: 20%; width: 320px; height: 240px; padding: 0; resize: both; overflow: hidden; display: flex; align-items: center; justify-content: center; background-color: #000; border: 2px solid var(--widget-bg); }
-        #webcam-video {
-            display: none; /* Hidden by default, shown when active */
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transform: scaleX(-1); /* Mirror effect */
-            filter: grayscale(100%); /* Grayscale filter */
-        }
-        #webcam-widget.active #webcam-video {
-            display: block;
-        }
-        #webcam-widget.active #webcam-placeholder {
-            display: none;
-        }
+        .webcam-video-wrapper { display: none; width: 100%; height: 100%; transform: scaleX(-1); /* Default to mirrored */ }
+        .webcam-video-wrapper.normal-view { transform: scaleX(1); /* Class to un-mirror */ }
+        #webcam-video { width: 100%; height: 100%; object-fit: cover; filter: grayscale(100%); }
+        #webcam-widget.active .webcam-video-wrapper { display: block; }
+        #webcam-widget.active #webcam-placeholder { display: none; }
         #webcam-placeholder { display: flex; flex-direction: column; align-items: center; gap: 10px; font-size: 1.2rem; color: rgba(255, 255, 255, 0.7); text-align: center; padding: 10px; }
-        #webcam-placeholder i { font-size: 3rem; }
         #webcam-controls { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; background-color: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 8px; opacity: 0; transition: opacity 0.3s ease; z-index: 12; }
         #webcam-widget:hover #webcam-controls { opacity: 1; }
         #webcam-source-select { background-color: #333; color: white; border: 1px solid #555; border-radius: 5px; padding: 3px; max-width: 150px; }
         #webcam-stop-btn { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; padding: 0; line-height: 1; display: flex; align-items: center; }
+
+        /* NEW: Webcam Toggle Button */
+        #webcam-toggle-btn {
+            top: 80%;
+            left: 130px; /* Initial position next to settings icon */
+            background-color: rgba(80, 80, 80, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 50%;
+        }
+        #webcam-toggle-btn i {
+            font-size: 28px;
+            color: white;
+        }
 
         #lock-screen.light-theme #music-artist { color: #555; }
         #settings-btn { top: 80%; left: 50px; }
@@ -204,14 +209,20 @@
             <div id="remove-gif-btn">×</div>
         </div>
 
-        <!-- MODIFIED Webcam Widget HTML -->
-        <div id="webcam-widget" class="draggable-item widget" title="Double-click to refresh sources | Use dropdown to switch">
-            <video id="webcam-video" playsinline muted></video>
+        <div id="webcam-widget" class="draggable-item widget" title="Dbl-click feed to toggle mirror | Dbl-click empty to refresh">
+            <div class="webcam-video-wrapper">
+                <video id="webcam-video" playsinline muted></video>
+            </div>
             <div id="webcam-placeholder"><i class="fa-solid fa-video-slash"></i><span>Camera Inactive</span></div>
             <div id="webcam-controls">
                 <select id="webcam-source-select"><option>No Cams</option></select>
                 <button id="webcam-stop-btn" title="Stop Camera"><i class="fa-solid fa-power-off"></i></button>
             </div>
+        </div>
+
+        <!-- NEW: Webcam Toggle Button -->
+        <div id="webcam-toggle-btn" class="draggable-item app-icon hidden" title="Toggle Rear Seat Cam">
+            <i class="fa-solid fa-video-slash"></i>
         </div>
 
         <div id="settings-btn" class="draggable-item app-icon" title="Open settings menu"><svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="7.5" fill="rgba(80, 80, 80, 0.6)"/><circle cx="8" cy="8" r="4" fill="none" stroke="var(--icon-stroke-color)" stroke-width="1.5"/></svg></div>
@@ -722,7 +733,7 @@
                     window.addGif = addGif;
                     renderCurrentGif();
 
-                    // MODIFIED Webcam Widget Logic
+                    // Webcam Widget Logic
                     const webcamPlayer = {
                         stream: null,
                         elements: {
@@ -731,13 +742,19 @@
                             select: document.getElementById('webcam-source-select'),
                             stopBtn: document.getElementById('webcam-stop-btn'),
                             placeholder: document.getElementById('webcam-placeholder'),
+                            toggleIcon: document.querySelector('#webcam-toggle-btn i'),
                         },
                         init() {
                             this.elements.select.addEventListener('change', () => this.start());
                             this.elements.stopBtn.addEventListener('click', () => this.stop());
                             this.elements.widget.addEventListener('dblclick', (e) => {
                                 if (e.target.closest('#webcam-controls')) return;
-                                this.populateDevices(false);
+
+                                if (this.stream) { // If video is active, toggle mirror
+                                    this.elements.widget.querySelector('.webcam-video-wrapper').classList.toggle('normal-view');
+                                } else { // If video is inactive, refresh devices
+                                    this.populateDevices(false);
+                                }
                             });
 
                             if (!this.elements.widget.classList.contains('hidden')) {
@@ -780,9 +797,9 @@
                         async start() {
                             if (this.stream) {
                                 if (this.stream.getVideoTracks()[0].getSettings().deviceId === this.elements.select.value) {
-                                    return;
+                                    return; // Already running this device
                                 }
-                                this.stop(true);
+                                this.stop(true); // Stop before starting a new one
                             }
 
                             const deviceId = this.elements.select.value;
@@ -799,6 +816,8 @@
                                 this.elements.video.onloadedmetadata = () => {
                                     this.elements.video.play();
                                     this.elements.widget.classList.add('active');
+                                    this.elements.widget.querySelector('.webcam-video-wrapper').classList.remove('normal-view'); // Default to mirrored
+                                    if (this.elements.toggleIcon) this.elements.toggleIcon.className = 'fa-solid fa-video';
                                 };
                                 this.populateDevices(false);
                             } catch (err) {
@@ -815,6 +834,7 @@
                             this.stream = null;
                             this.elements.video.srcObject = null;
                             this.elements.widget.classList.remove('active');
+                            if (this.elements.toggleIcon) this.elements.toggleIcon.className = 'fa-solid fa-video-slash';
                         }
                     };
                     window.webcamPlayer = webcamPlayer;
@@ -822,7 +842,8 @@
                 })();
                 
                 (function setupBaseFeatures() {
-                    const DRAGGABLE_ELEMENT_IDS = ['clock', 'youtube-music-btn', 'youtube-btn', 'stock-widget', 'settings-btn', 'fun-stock-name-display', 'note-widget', 'music-widget', 'gif-widget', 'webcam-widget'];
+                    const webcamToggleBtn = document.getElementById('webcam-toggle-btn');
+                    const DRAGGABLE_ELEMENT_IDS = ['clock', 'youtube-music-btn', 'youtube-btn', 'stock-widget', 'settings-btn', 'fun-stock-name-display', 'note-widget', 'music-widget', 'gif-widget', 'webcam-widget', 'webcam-toggle-btn'];
                     const WIDGETS = {
                         stock: { el: document.getElementById('stock-widget'), toggle: document.getElementById('toggle-stock-widget'), default: true },
                         note: { el: document.getElementById('note-widget'), toggle: document.getElementById('toggle-note-widget'), default: false },
@@ -840,12 +861,17 @@
                             widget.el.classList.toggle('hidden', !isVisible);
                             widget.toggle.checked = isVisible;
 
+                            if (key === 'webcam') {
+                                webcamToggleBtn.classList.toggle('hidden', !isVisible);
+                            }
+
                             widget.toggle.addEventListener('change', () => {
                                 const isChecked = widget.toggle.checked;
                                 widget.el.classList.toggle('hidden', !isChecked);
                                 localStorage.setItem(`widget_${key}_visible`, isChecked);
 
                                 if (key === 'webcam') {
+                                    webcamToggleBtn.classList.toggle('hidden', !isChecked);
                                     if (isChecked) {
                                         window.webcamPlayer.populateDevices(true);
                                     } else {
@@ -856,6 +882,15 @@
                         }
                     }
                     initializeWidgetToggles();
+
+                    webcamToggleBtn.addEventListener('click', (e) => {
+                        if (e.target.hasMoved) return;
+                        if (window.webcamPlayer.stream) {
+                            window.webcamPlayer.stop();
+                        } else {
+                            window.webcamPlayer.start();
+                        }
+                    });
 
                     const timeElems = { h: document.getElementById('hours'), m: document.getElementById('minutes'), d: document.getElementById('date') };
                     const weatherElems = { t: document.getElementById('temperature'), i: document.getElementById('weather-icon') };
@@ -1046,7 +1081,7 @@
                     window.radioPlayer.reset();
                     window.webcamPlayer.stop();
                     document.getElementById('gif-display').src = '';
-                    ['clock', 'youtube-music-btn', 'youtube-btn', 'stock-widget', 'settings-btn', 'fun-stock-name-display', 'note-widget', 'music-widget', 'gif-widget', 'webcam-widget'].forEach(id => {
+                    ['clock', 'youtube-music-btn', 'youtube-btn', 'stock-widget', 'settings-btn', 'fun-stock-name-display', 'note-widget', 'music-widget', 'gif-widget', 'webcam-widget', 'webcam-toggle-btn'].forEach(id => {
                         const el = document.getElementById(id);
                         if (el) el.style.cssText = '';
                     });
