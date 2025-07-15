@@ -67,13 +67,15 @@
         #gif-widget.has-gif:hover #remove-gif-btn { display: flex; }
         
         /* Webcam Widget CSS */
-        #webcam-widget { top: 20%; left: 20%; width: 320px; height: 240px; padding: 0; resize: both; overflow: hidden; display: flex; align-items: center; justify-content: center; background-color: #000; border: 2px solid var(--widget-bg); }
-        .webcam-video-wrapper { display: none; width: 100%; height: 100%; transform: scaleX(-1); /* Default to mirrored */ touch-action: none; /* For Pointer Events */ cursor: grab; }
+        #webcam-widget { top: 20%; left: 20%; width: 320px; height: 240px; padding: 0; resize: both; overflow: hidden; display: flex; align-items: center; justify-content: center; background-color: #000; border: 2px solid var(--widget-bg); transition: box-shadow 0.3s, border-color 0.3s; }
+        .webcam-video-wrapper { display: none; width: 100%; height: 100%; transform: scaleX(-1); /* Default to mirrored */ touch-action: none; /* For Pointer Events */ cursor: pointer; }
         .webcam-video-wrapper.panning { cursor: grabbing; }
         .webcam-video-wrapper.normal-view { transform: scaleX(1); /* Class to un-mirror */ }
         #webcam-video { width: 100%; height: 100%; object-fit: cover; filter: grayscale(100%); transition: transform 0.1s ease-out; /* Smooth pan/zoom */ transform-origin: center center; }
         #webcam-widget.active .webcam-video-wrapper { display: block; }
         #webcam-widget.active #webcam-placeholder { display: none; }
+        #webcam-widget.webcam-pan-zoom-active { box-shadow: 0 0 15px rgba(10, 132, 255, 0.7); border-color: #0a84ff; }
+        #webcam-widget.webcam-pan-zoom-active .webcam-video-wrapper { cursor: grab; }
         #webcam-placeholder { display: flex; flex-direction: column; align-items: center; gap: 10px; font-size: 1.2rem; color: rgba(255, 255, 255, 0.7); text-align: center; padding: 10px; }
         #webcam-controls { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; background-color: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 8px; opacity: 0; transition: opacity 0.3s ease; z-index: 12; }
         #webcam-widget:hover #webcam-controls { opacity: 1; }
@@ -210,7 +212,7 @@
             <div id="remove-gif-btn">×</div>
         </div>
 
-        <div id="webcam-widget" class="draggable-item widget" title="Dbl-click feed to toggle mirror | Dbl-click empty to refresh">
+        <div id="webcam-widget" class="draggable-item widget" title="Click feed to mirror | Dbl-click feed for pan/zoom">
             <div class="webcam-video-wrapper">
                 <video id="webcam-video" playsinline muted></video>
             </div>
@@ -303,6 +305,8 @@
             let stockFlashIndex = 0;
             let stockNameFadeOutTimer = null;
             let stockWidgetClickTimer = null;
+            // NEW: State variable for webcam pan/zoom mode, attached to window for global access
+            window.isWebcamPanZoomMode = false;
 
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.has('upload') && urlParams.has('session')) {
@@ -739,6 +743,7 @@
                         stream: null,
                         elements: {
                             widget: document.getElementById('webcam-widget'),
+                            videoWrapper: document.querySelector('.webcam-video-wrapper'),
                             video: document.getElementById('webcam-video'),
                             select: document.getElementById('webcam-source-select'),
                             stopBtn: document.getElementById('webcam-stop-btn'),
@@ -749,16 +754,7 @@
                             this.elements.widget.style.display = 'none'; // Hide initially
                             this.elements.select.addEventListener('change', () => this.start());
                             this.elements.stopBtn.addEventListener('click', () => this.stop());
-                            this.elements.widget.addEventListener('dblclick', (e) => {
-                                if (e.target.closest('#webcam-controls') || e.target.closest('.webcam-video-wrapper')) return;
-
-                                if (this.stream) { // If video is active, toggle mirror
-                                    this.elements.widget.querySelector('.webcam-video-wrapper').classList.toggle('normal-view');
-                                } else { // If video is inactive, refresh devices
-                                    this.populateDevices(false);
-                                }
-                            });
-
+                            
                             if (!this.elements.widget.classList.contains('hidden')) {
                                 this.populateDevices();
                             }
@@ -805,13 +801,8 @@
                             }
 
                             this.elements.widget.style.display = 'flex';
-
                             const deviceId = this.elements.select.value;
-                            if (!deviceId) {
-                                this.stop();
-                                return;
-                            }
-
+                            if (!deviceId) { this.stop(); return; }
                             const constraints = { video: { deviceId: { exact: deviceId } } };
 
                             try {
@@ -820,7 +811,6 @@
                                 this.elements.video.onloadedmetadata = () => {
                                     this.elements.video.play();
                                     this.elements.widget.classList.add('active');
-                                    this.elements.widget.querySelector('.webcam-video-wrapper').classList.remove('normal-view'); // Default to mirrored
                                     if (this.elements.toggleIcon) this.elements.toggleIcon.className = 'fa-solid fa-video';
                                 };
                                 this.populateDevices(false);
@@ -847,19 +837,18 @@
                     window.webcamPlayer = webcamPlayer;
                     webcamPlayer.init();
                     
-                    // Webcam Pan and Zoom Logic
-                    const videoWrapper = document.querySelector('.webcam-video-wrapper');
-                    const videoEl = document.getElementById('webcam-video');
+                    // Webcam Interaction Logic (Mirror, Pan, Zoom)
+                    const videoWrapper = webcamPlayer.elements.videoWrapper;
+                    const videoEl = webcamPlayer.elements.video;
                     const get_touch_dist = (touches) => Math.hypot(touches[0].clientX - touches[1].clientX, touches[0].clientY - touches[1].clientY);
-                    const get_touch_center = (touches) => ({ x: (touches[0].clientX + touches[1].clientX) / 2, y: (touches[0].clientY + touches[1].clientY) / 2 });
                     
                     let webcam_transform = { scale: 1, panX: 0, panY: 0 };
                     let webcam_panning = false;
                     let webcam_pinching = false;
                     let webcam_start_pos = { x: 0, y: 0 };
                     let webcam_initial_pinch_dist = 0;
-                    let webcam_tap_timer = null;
-
+                    let webcamClickTimer = null;
+                    
                     function applyWebcamTransform() {
                         videoEl.style.transform = `translate(${webcam_transform.panX}px, ${webcam_transform.panY}px) scale(${webcam_transform.scale})`;
                     }
@@ -871,16 +860,35 @@
 
                     webcamPlayer.elements.stopBtn.addEventListener('click', resetWebcamTransform);
                     document.getElementById('webcam-toggle-btn').addEventListener('click', () => {
-                        if (webcamPlayer.stream) { // it's about to be stopped
-                            resetWebcamTransform();
+                        if (webcamPlayer.stream) { resetWebcamTransform(); }
+                    });
+
+                    // Handle single click (mirror) and double click (toggle pan/zoom mode)
+                    videoWrapper.addEventListener('click', (e) => {
+                        if (window.isWebcamPanZoomMode) return; // In pan/zoom mode, single click does nothing
+                        
+                        clearTimeout(webcamClickTimer);
+                        webcamClickTimer = setTimeout(() => {
+                           videoWrapper.classList.toggle('normal-view');
+                        }, 250);
+                    });
+
+                    videoWrapper.addEventListener('dblclick', (e) => {
+                        clearTimeout(webcamClickTimer);
+                        window.isWebcamPanZoomMode = !window.isWebcamPanZoomMode;
+                        
+                        const widget = document.getElementById('webcam-widget');
+                        widget.classList.toggle('webcam-pan-zoom-active', window.isWebcamPanZoomMode);
+
+                        if (!window.isWebcamPanZoomMode) {
+                            resetWebcamTransform(); // Reset view when exiting mode
                         }
                     });
 
+                    // Handle touch gestures ONLY when in pan/zoom mode
                     videoWrapper.addEventListener('touchstart', (e) => {
-                        if (webcam_transform.scale <= 1) {
-                            return; // Not zoomed, let event bubble up to drag the widget
-                        }
-                        e.stopPropagation(); // Is zoomed, so stop widget drag and handle pan/zoom
+                        if (!window.isWebcamPanZoomMode) return;
+                        e.stopPropagation();
                         
                         if (e.touches.length === 1) {
                             webcam_panning = true;
@@ -888,16 +896,13 @@
                             webcam_start_pos = { x: e.touches[0].clientX - webcam_transform.panX, y: e.touches[0].clientY - webcam_transform.panY };
                         } else if (e.touches.length === 2) {
                             webcam_panning = false;
-                            videoWrapper.classList.remove('panning');
                             webcam_pinching = true;
                             webcam_initial_pinch_dist = get_touch_dist(e.touches);
                         }
                     }, { passive: false });
 
                     videoWrapper.addEventListener('touchmove', (e) => {
-                        clearTimeout(webcam_tap_timer);
-                        webcam_tap_timer = null;
-
+                        if (!window.isWebcamPanZoomMode) return;
                         if (!webcam_panning && !webcam_pinching) return;
                         e.preventDefault();
                         e.stopPropagation();
@@ -905,20 +910,15 @@
                         if (webcam_pinching && e.touches.length === 2) {
                             const new_dist = get_touch_dist(e.touches);
                             const scale_ratio = new_dist / webcam_initial_pinch_dist;
-                            let new_scale = webcam_transform.scale * scale_ratio;
-                            new_scale = Math.max(1.0, new_scale);
-                            const rect = videoWrapper.getBoundingClientRect();
-                            const center = get_touch_center(e.touches);
-                            const videoX = (center.x - rect.left - webcam_transform.panX) / webcam_transform.scale;
-                            const videoY = (center.y - rect.top - webcam_transform.panY) / webcam_transform.scale;
-                            webcam_transform.panX = center.x - rect.left - videoX * new_scale;
-                            webcam_transform.panY = center.y - rect.top - videoY * new_scale;
+                            const new_scale = Math.max(1.0, webcam_transform.scale * scale_ratio);
+                            
                             webcam_transform.scale = new_scale;
                             webcam_initial_pinch_dist = new_dist;
                         } else if (webcam_panning && e.touches.length === 1) {
                             webcam_transform.panX = e.touches[0].clientX - webcam_start_pos.x;
                             webcam_transform.panY = e.touches[0].clientY - webcam_start_pos.y;
                         }
+                        
                         const rect = videoWrapper.getBoundingClientRect();
                         const max_panX = (rect.width * webcam_transform.scale - rect.width) / 2;
                         const max_panY = (rect.height * webcam_transform.scale - rect.height) / 2;
@@ -929,26 +929,15 @@
                     }, { passive: false });
                     
                     videoWrapper.addEventListener('touchend', (e) => {
-                        if (webcam_panning || webcam_pinching) {
-                             e.stopPropagation();
-                        }
-
+                        if (!window.isWebcamPanZoomMode) return;
+                        if (webcam_panning || webcam_pinching) e.stopPropagation();
                         if (e.touches.length < 2) webcam_pinching = false;
                         if (e.touches.length < 1) {
                             webcam_panning = false;
                             videoWrapper.classList.remove('panning');
                         }
-
-                        if (!e.target.hasMoved && webcam_transform.scale > 1) {
-                             if (webcam_tap_timer) {
-                                clearTimeout(webcam_tap_timer);
-                                webcam_tap_timer = null;
-                                resetWebcamTransform();
-                            } else {
-                                webcam_tap_timer = setTimeout(() => { webcam_tap_timer = null; }, 300);
-                            }
-                        }
                     });
+
                 })();
                 
                 (function setupBaseFeatures() {
@@ -1078,6 +1067,10 @@
                             document.removeEventListener('mousemove', mv); document.removeEventListener('touchmove', mv);
                         };
                         const sD_longPress = (e) => {
+                             // MODIFIED: Check for pan/zoom mode and prevent widget drag
+                            if (el.id === 'webcam-widget' && window.isWebcamPanZoomMode) {
+                                return;
+                            }
                             if (el.isEditing) return;
                             if (e.target.closest('#music-controls, #remove-gif-btn, #webcam-controls, #note-settings-btn')) return;
                             if (e.touches && e.touches.length === 2 && el.id === 'clock') { isPinching = true; isD = false; initialPinchDist = getDist(e.touches); initialScale = clockScale; return; }
@@ -1152,7 +1145,7 @@
                 lockScreen.addEventListener('dblclick', (e) => { if (e.target.closest('.draggable-item')) return; if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); });
                 
                 let isDraggingWp = false, sPanX, sPanY, sBgX, sBgY;
-                const panMove = (e) => { if (!isDraggingWp) return; hasMovedWp = true; e.preventDefault(); const cX = e.touches ? e.touches[0].clientX : e.clientX; const cY = e.touches ? e.touches[0].clientY : e.clientY; const dX = cX - sPanX, dY = cY - sPanY; let nBgX = sBgX + dX, nBgY = sBgY + dY; const sW = lockScreen.clientWidth, sH = lockScreen.clientHeight; const iW = currentWallpaperImg.naturalWidth, iH = currentWallpaperImg.naturalHeight; const sR = sW / sH, iR = iW / iH; let scW, scH; if (iR > sR) { scH = sH; scW = sH * iR; } else { scW = sW; scH = sW / iR; } const minX = sW - scW, minY = sH - scH; nBgX = Math.max(minX, Math.min(0, nBgX)); nBgY = Math.max(minY, Math.min(0, nBgY)); lockScreen.style.backgroundPosition = `${nBgX}px ${nBgY}px`; };
+                const panMove = (e) => { if (!isDraggingWp) return; hasMovedWp = true; e.preventDefault(); const cX = e.touches ? e.touches[0].clientX : e.clientX; const cY = e.touches ? e.touches[0].clientY : e.clientY; const dX = cX - sPanX, dY = cY - sPanY; let nBgX = sBgX + dY, nBgY = sBgY + dY; const sW = lockScreen.clientWidth, sH = lockScreen.clientHeight; const iW = currentWallpaperImg.naturalWidth, iH = currentWallpaperImg.naturalHeight; const sR = sW / sH, iR = iW / iH; let scW, scH; if (iR > sR) { scH = sH; scW = sH * iR; } else { scW = sW; scH = sW / iR; } const minX = sW - scW, minY = sH - scH; nBgX = Math.max(minX, Math.min(0, nBgX)); nBgY = Math.max(minY, Math.min(0, nBgY)); lockScreen.style.backgroundPosition = `${nBgX}px ${nBgY}px`; };
                 const interactionEnd = () => { clearTimeout(pressHoldTimer); if (isPanningMode) { isDraggingWp = false; document.removeEventListener('mousemove', panMove); document.removeEventListener('touchmove', panMove); } document.removeEventListener('mouseup', interactionEnd); document.removeEventListener('touchend', interactionEnd); document.removeEventListener('mousemove', clearHoldTimer); };
                 const clearHoldTimer = () => { clearTimeout(pressHoldTimer); };
                 const interactionStart = (e) => { if (e.target.closest('.draggable-item')) return; const sW = lockScreen.clientWidth, sH = lockScreen.clientHeight, iW = currentWallpaperImg.naturalWidth, iH = currentWallpaperImg.naturalHeight; if (iW <= sW && iH <= sH && !isPanningMode) return; hasMovedWp = false; document.addEventListener('mouseup', interactionEnd); document.addEventListener('touchend', interactionEnd); clearTimeout(pressHoldTimer); pressHoldTimer = setTimeout(() => { isPanningMode = true; isDraggingWp = true; lockScreen.classList.add('panning-active'); const bgPos = window.getComputedStyle(lockScreen).backgroundPosition.split(' '); sBgX = parseFloat(bgPos[0]); sBgY = parseFloat(bgPos[1]); sPanX = e.touches ? e.touches[0].clientX : e.clientX; sPanY = e.touches ? e.touches[0].clientY : e.clientY; document.addEventListener('mousemove', panMove); document.addEventListener('touchmove', panMove); }, 500); document.addEventListener('mousemove', clearHoldTimer, { once: true }); };
