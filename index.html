@@ -10,8 +10,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <style>
+
         @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@700&family=Roboto+Mono:wght@500&family=Roboto:wght@400;500&family=Playfair+Display:wght@700&family=Source+Code+Pro:wght@700&family=Inter:wght@400;500&family=Lora:wght@400;500&display=swap');
-        :root {
+        :root {{
             --widget-bg: rgba(0, 0, 0, 0.2);
             --widget-bg-light: rgba(255, 255, 255, 0.2);
             --text-color: white;
@@ -371,7 +372,8 @@
 
                 closeSettingsBtn.addEventListener('click', () => settingsMenu.classList.remove('visible'));
                 settingsMenu.addEventListener('click', (e) => { if (e.target === settingsMenu) settingsMenu.classList.remove('visible'); });
-
+                
+                // --- Re-added the original API Key as requested ---
                 const FINNHUB_API_KEY = 'd1obuihr01qtrav0d5sgd1obuihr01qtrav0d5t0';
                 
                 const stockWidget = document.getElementById('stock-widget');
@@ -611,10 +613,14 @@
                             this.audio.src = station.streamUrl;
                             this.audio.play().catch(e => console.error("Audio play failed:", e));
 
+                            // Set MediaMetadata with wallpaper as artwork
                             if ('mediaSession' in navigator) {
                                 navigator.mediaSession.metadata = new MediaMetadata({
                                     title: station.name,
                                     artist: station.genre,
+                                    artwork: [
+                                        { src: currentWallpaperImg.src }
+                                    ]
                                 });
                             }
                         },
@@ -1136,9 +1142,29 @@
                     checkStockFlashTrigger(); setInterval(checkStockFlashTrigger, 60 * 1000);
                 })();
                 
+                function updateMediaSessionArt() {
+                    if ('mediaSession' in navigator && navigator.mediaSession.metadata) {
+                        const oldMetadata = navigator.mediaSession.metadata;
+                        navigator.mediaSession.metadata = new MediaMetadata({
+                            title: oldMetadata.title,
+                            artist: oldMetadata.artist,
+                            album: oldMetadata.album,
+                            artwork: [
+                                { src: currentWallpaperImg.src }
+                            ]
+                        });
+                    }
+                }
+                
                 const getWps = () => JSON.parse(localStorage.getItem('lockscreenWallpapers_v2')) || [initialWallpaper];
                 const saveWps = (wps) => localStorage.setItem('lockscreenWallpapers_v2', JSON.stringify(wps));
-                const setWp = (wpObj) => { exitPanningMode(); lockScreen.style.backgroundImage = `url('${wpObj.url}')`; lockScreen.style.backgroundPosition = wpObj.position || 'center center'; currentWallpaperImg.src = wpObj.url; };
+                const setWp = (wpObj) => { 
+                    exitPanningMode(); 
+                    lockScreen.style.backgroundImage = `url('${wpObj.url}')`; 
+                    lockScreen.style.backgroundPosition = wpObj.position || 'center center'; 
+                    currentWallpaperImg.src = wpObj.url;
+                    updateMediaSessionArt();
+                };
                 const renderWpChoices = () => { const cont = document.getElementById('wallpaper-choices'); cont.innerHTML = ''; getWps().forEach(wp => { const thumb = document.createElement('div'); thumb.className = 'wallpaper-thumbnail'; thumb.style.backgroundImage = `url('${wp.url}')`; const rmvBtn = document.createElement('span'); rmvBtn.className = 'remove-thumb-btn'; rmvBtn.innerHTML = '×'; rmvBtn.title = 'Remove wallpaper'; rmvBtn.addEventListener('click', (e) => { e.stopPropagation(); const newWps = getWps().filter(w => w.url !== wp.url); saveWps(newWps); renderWpChoices(); }); thumb.appendChild(rmvBtn); thumb.addEventListener('click', () => { setWp(wp); localStorage.setItem('lockscreenLastSelectedWp', wp.url); settingsMenu.classList.remove('visible'); }); cont.appendChild(thumb); }); };
                 document.getElementById('wallpaper-url-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') { const url = e.target.value.trim(); if(url.toLowerCase().endsWith('.gif')) { alert('Please use the GIF widget to add GIFs.'); e.target.value = ''; return; } if (url.match(/\.(jpeg|jpg|gif|png|webp)$/i)) { const wps = getWps(); if (!wps.some(w => w.url === url)) { const newWp = { url: url, position: 'center center' }; wps.push(newWp); saveWps(wps); setWp(newWp); localStorage.setItem('lockscreenLastSelectedWp', newWp.url); renderWpChoices(); } e.target.value = ''; settingsMenu.classList.remove('visible'); } else { alert('Invalid URL.'); } } });
                 function exitPanningMode() { if (!isPanningMode) return; isPanningMode = false; lockScreen.classList.remove('panning-active'); const url = currentWallpaperImg.src; const wps = getWps(); const idx = wps.findIndex(w => w.url === url); if (idx > -1) { wps[idx].position = lockScreen.style.backgroundPosition; saveWps(wps); } }
@@ -1274,5 +1300,3 @@
     </script>
 </body>
 </html>
-```
-384.8s
