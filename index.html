@@ -43,7 +43,7 @@
         #note-widget.edit-mode { cursor: default; box-shadow: 0 0 15px rgba(10, 132, 255, 0.7); }
         #note-display, #note-textarea { width: 100%; height: 100%; background: transparent; border: none; color: var(--text-color); font-family: 'Roboto', sans-serif; font-size: 1rem; padding: 10px; resize: none; outline: none; text-align: center; }
         #note-display { white-space: pre-wrap; word-wrap: break-word; user-select: none; }
-        #note-textarea { display: none; }
+        #note-textarea { display: none; overflow-y: hidden; /* MODIFIED: Hide scrollbar during resize */ }
         #note-widget.edit-mode #note-display { display: none; }
         #note-widget.edit-mode #note-textarea { display: block; }
         #note-settings-btn { position: absolute; top: 8px; right: 8px; width: 28px; height: 28px; background-color: rgba(0,0,0,0.5); color: white; border-radius: 50%; display: none; justify-content: center; align-items: center; font-size: 16px; cursor: pointer; z-index: 12; }
@@ -496,10 +496,20 @@
                     const noteFontSelect = document.getElementById('note-font-select');
                     const noteFontSizeInput = document.getElementById('note-font-size-input');
 
+                    // MODIFIED: Function to auto-resize the note textarea
+                    const autoResizeNote = () => {
+                        // Use a small timeout to ensure DOM is ready for scrollHeight calculation
+                        setTimeout(() => {
+                            noteTextarea.style.height = 'auto'; // Reset height to recalculate
+                            noteTextarea.style.height = `${noteTextarea.scrollHeight}px`; // Set to content height
+                        }, 0);
+                    };
+
                     const enterNoteEditMode = () => {
                         noteWidget.isEditing = true;
                         noteWidget.classList.add('edit-mode');
                         noteTextarea.focus();
+                        autoResizeNote(); // Resize on entering edit mode too
                         setTimeout(() => {
                             document.addEventListener('click', exitNoteEditModeOnClickOutside, { once: true });
                         }, 0);
@@ -530,15 +540,18 @@
                         noteDisplay.style.fontSize = `${fontSize}px`;
                         noteFontSelect.value = fontFamily;
                         noteFontSizeInput.value = fontSize;
+                        autoResizeNote(); // Apply resize when style changes
                     };
 
                     const savedText = localStorage.getItem('lockscreenNoteContent') || '';
                     noteTextarea.value = savedText;
                     noteDisplay.innerText = savedText;
                     
+                    // MODIFIED: Call auto-resize on input
                     noteTextarea.addEventListener('input', () => { 
                         localStorage.setItem('lockscreenNoteContent', noteTextarea.value);
                         noteDisplay.innerText = noteTextarea.value;
+                        autoResizeNote();
                     });
                     
                     noteWidget.addEventListener('dblclick', (e) => {
@@ -562,7 +575,8 @@
                             applyNoteStyle();
                         }
                     });
-                    applyNoteStyle();
+                    
+                    applyNoteStyle(); // Initial call to set style and size
 
                     // Music Widget
                     const radioPlayer = {
@@ -574,7 +588,7 @@
                             { name: 'SomaFM: Vaporwaves', genre: 'Hypnagogic Retro', streamUrl: 'https://ice1.somafm.com/vaporwaves-128-mp3' }
                         ],
                         currentStationIndex: -1,
-                        currentArtworkUrl: '', // To store the wallpaper art for the Media Session
+                        currentArtworkUrl: '',
                         audio: document.getElementById('audio-player'),
                         elements: {
                             widget: document.getElementById('music-widget'),
@@ -1016,7 +1030,7 @@
                         gif: { el: document.getElementById('gif-widget'), toggle: document.getElementById('toggle-gif-widget'), default: false },
                         webcam: { el: document.getElementById('webcam-widget'), toggle: document.getElementById('toggle-webcam-widget'), default: false },
                     };
-                    let clockClickTimer = null; // Timer for clock double-press
+                    let clockClickTimer = null;
                     
                     function initializeWidgetToggles() {
                         for(const key in WIDGETS) {
@@ -1097,7 +1111,10 @@
                                 const pos = p[id];
                                 if (e && pos.t && pos.l) {
                                     e.style.top = pos.t; e.style.left = pos.l;
-                                    e.style.transform = (id === 'clock' || id === 'stock-widget') ? 'none' : e.style.transform;
+                                    // MODIFIED: Only clear transform for stock widget to allow dragging to far right
+                                    if (id === 'stock-widget') e.style.transform = 'none';
+                                    else if (id !== 'clock') e.style.transform = 'none';
+                                    
                                     if (id === 'clock' && pos.s) applyClockScale(pos.s);
                                     if (id === 'note-widget' || id === 'gif-widget' || id === 'webcam-widget') { e.style.width = pos.w || e.style.width; e.style.height = pos.h || e.style.height; }
                                 }
@@ -1123,13 +1140,13 @@
                             const sR = lockScreen.getBoundingClientRect(), eR = el.getBoundingClientRect();
                             nX = Math.max(0, Math.min(nX, sR.width - eR.width)); nY = Math.max(0, Math.min(nY, sR.height - eR.height));
                             el.style.left = `${nX}px`; el.style.top = `${nY}px`;
-                            if(['clock', 'stock-widget'].indexOf(el.id) === -1) el.style.transform = 'none';
+                            // MODIFIED: Clear transform on any draggable item except clock to fix positioning
+                            if(el.id !== 'clock') el.style.transform = 'none';
                         };
                         const stD = (e) => {
                             if (!isD && !isPinching) return;
                             e.target.hasMoved = hasMoved;
 
-                            // MODIFIED: Double-press logic for clock
                             if (el.id === 'clock' && !hasMoved) {
                                 if (clockClickTimer) {
                                     clearTimeout(clockClickTimer);
@@ -1137,9 +1154,7 @@
                                     showWallpaperSettings();
                                     settingsMenu.classList.add('visible');
                                 } else {
-                                    clockClickTimer = setTimeout(() => {
-                                        clockClickTimer = null;
-                                    }, 300); // 300ms window for double press
+                                    clockClickTimer = setTimeout(() => { clockClickTimer = null; }, 300);
                                 }
                             }
                             
@@ -1212,7 +1227,7 @@
                 function generateSquareArt(image, callback) {
                     const canvas = document.createElement('canvas');
                     const ctx = canvas.getContext('2d');
-                    const size = 512; // Standard size for media art
+                    const size = 512;
                     canvas.width = canvas.height = size;
                     
                     const srcWidth = image.naturalWidth;
@@ -1221,10 +1236,10 @@
 
                     let sx = 0, sy = 0, sWidth = srcWidth, sHeight = srcHeight;
                     
-                    if (srcRatio > 1) { // Wider than tall
+                    if (srcRatio > 1) { 
                         sWidth = srcHeight;
                         sx = (srcWidth - srcHeight) / 2;
-                    } else { // Taller than wide
+                    } else {
                         sHeight = srcWidth;
                         sy = (srcHeight - srcWidth) / 2;
                     }
