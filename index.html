@@ -179,7 +179,7 @@
     <div id="lock-screen">
         <div id="status-bar"><div id="weather-info"><span id="date"></span> <i id="weather-icon" class="fa-solid fa-cloud-sun"></i> <span id="temperature">...</span></div></div>
         <div id="fullscreen-hint">Double press wallpaper for fullscreen</div>
-        <div id="clock" class="draggable-item" title="Long-press for wallpapers"><div id="hours">00</div><div id="minutes">00</div></div>
+        <div id="clock" class="draggable-item" title="Double-press for wallpapers"><div id="hours">00</div><div id="minutes">00</div></div>
         <div id="youtube-music-btn" class="draggable-item app-icon"><a href="https://music.youtube.com/" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="50" fill="#FF0000"/><circle cx="50" cy="50" r="23" fill="none" stroke="white" stroke-width="4"/><polygon points="43,38 62,50 43,62" fill="white"/></svg></a></div>
         <div id="youtube-btn" class="draggable-item app-icon"><a href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="50" fill="#FF0000"/><path d="M 35,29 A 10,10 0 0 0 25,39 V 61 A 10,10 0 0 0 35,71 H 65 A 10,10 0 0 0 75,61 V 39 A 10,10 0 0 0 65,29 Z" fill="white"/><polygon points="45,42 62,50 45,58" fill="#FF0000"/></svg></a></div>
         
@@ -600,8 +600,6 @@
                             this.elements.art.innerHTML = '<i class="fa-solid fa-headphones"></i>';
                             this.setupMediaSession();
                         },
-                        // MODIFIED: This function now ONLY updates the Media Session API, not the widget display.
-                        // The widget display is handled by init() and reset() to always show an icon.
                         updateAlbumArt(artUrl) {
                             if (artUrl) this.currentArtworkUrl = artUrl;
                             
@@ -628,7 +626,6 @@
                             this.audio.src = station.streamUrl;
                             this.audio.play().catch(e => console.error("Audio play failed:", e));
                             
-                            // Update the media session with the new station info and existing art
                             this.updateAlbumArt(); 
                         },
                         openRadioMenu() {
@@ -1019,6 +1016,7 @@
                         gif: { el: document.getElementById('gif-widget'), toggle: document.getElementById('toggle-gif-widget'), default: false },
                         webcam: { el: document.getElementById('webcam-widget'), toggle: document.getElementById('toggle-webcam-widget'), default: false },
                     };
+                    let clockClickTimer = null; // Timer for clock double-press
                     
                     function initializeWidgetToggles() {
                         for(const key in WIDGETS) {
@@ -1108,11 +1106,10 @@
                     };
                     
                     const makeDraggable = (el) => {
-                        let oX, oY, isD, hasMoved, clockLongPressTimer;
+                        let oX, oY, isD, hasMoved;
                         let isPinching = false, initialPinchDist, initialScale;
                         const getDist = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
                         const mv = (e) => {
-                            clearTimeout(clockLongPressTimer);
                             if (el.isEditing) return;
                             if (el.id === 'clock' && isPinching && e.touches && e.touches.length === 2) {
                                 e.preventDefault(); const oldWidth = el.offsetWidth, oldHeight = el.offsetHeight, oldLeft = el.offsetLeft, oldTop = el.offsetTop;
@@ -1129,29 +1126,30 @@
                             if(['clock', 'stock-widget'].indexOf(el.id) === -1) el.style.transform = 'none';
                         };
                         const stD = (e) => {
-                            clearTimeout(clockLongPressTimer);
                             if (!isD && !isPinching) return;
                             e.target.hasMoved = hasMoved;
+
+                            // MODIFIED: Double-press logic for clock
+                            if (el.id === 'clock' && !hasMoved) {
+                                if (clockClickTimer) {
+                                    clearTimeout(clockClickTimer);
+                                    clockClickTimer = null;
+                                    showWallpaperSettings();
+                                    settingsMenu.classList.add('visible');
+                                } else {
+                                    clockClickTimer = setTimeout(() => {
+                                        clockClickTimer = null;
+                                    }, 300); // 300ms window for double press
+                                }
+                            }
+                            
                             if (el.id === 'fun-stock-name-display' && el.classList.contains('visible')) { stockNameFadeOutTimer = setTimeout(() => { el.classList.remove('visible'); }, 3000); }
                             isD = false; isPinching = false;
                             if (hasMoved) savePos();
                             document.removeEventListener('mousemove', mv); document.removeEventListener('touchmove', mv);
                         };
-                        const sD_longPress = (e) => {
-                            // MODIFIED: Start a timer on clock press to open wallpaper menu
-                            if (el.id === 'clock' && (!e.touches || e.touches.length < 2)) {
-                                clockLongPressTimer = setTimeout(() => {
-                                    isD = false; // Prevent drag from starting after menu opens
-                                    document.removeEventListener('mousemove', mv);
-                                    document.removeEventListener('touchmove', mv);
-                                    showWallpaperSettings();
-                                    settingsMenu.classList.add('visible');
-                                }, 800);
-                            }
-
-                            if (el.id === 'webcam-widget' && window.isWebcamPanZoomMode) {
-                                return;
-                            }
+                        const sD_press = (e) => {
+                            if (el.id === 'webcam-widget' && window.isWebcamPanZoomMode) return;
                             if (el.isEditing) return;
                             if (e.target.closest('#music-controls, #remove-gif-btn, #webcam-controls, #note-settings-btn')) return;
                             if (e.touches && e.touches.length === 2 && el.id === 'clock') { isPinching = true; isD = false; initialPinchDist = getDist(e.touches); initialScale = clockScale; return; }
@@ -1165,8 +1163,8 @@
                             document.addEventListener('mouseup', stD, { once: true });
                             document.addEventListener('touchend', stD, { once: true });
                         };
-                        el.addEventListener('mousedown', sD_longPress);
-                        el.addEventListener('touchstart', sD_longPress, { passive: false });
+                        el.addEventListener('mousedown', sD_press);
+                        el.addEventListener('touchstart', sD_press, { passive: false });
                         const lnk = el.querySelector('a'); if (lnk) { lnk.addEventListener('click', (e) => { if (hasMoved) e.preventDefault(); }); }
                         if(el.id === 'settings-btn') { el.addEventListener('click', (e) => { if (!hasMoved) { showWallpaperSettings(); settingsMenu.classList.add('visible'); } }); }
                     };
@@ -1211,7 +1209,6 @@
                     checkStockFlashTrigger(); setInterval(checkStockFlashTrigger, 60 * 1000);
                 })();
                 
-                // NEW: Function to generate a square, cropped version of the wallpaper for media art
                 function generateSquareArt(image, callback) {
                     const canvas = document.createElement('canvas');
                     const ctx = canvas.getContext('2d');
@@ -1244,10 +1241,8 @@
                     lockScreen.style.backgroundPosition = wpObj.position || 'center center';
                     currentWallpaperImg.src = wpObj.url;
                     
-                    // MODIFIED: Update media session art when wallpaper image loads
                     currentWallpaperImg.onload = () => {
                         generateSquareArt(currentWallpaperImg, (artUrl) => {
-                            // This sends the new art to the radio player, which will update the Media Session API
                             window.radioPlayer.updateAlbumArt(artUrl);
                         });
                     };
