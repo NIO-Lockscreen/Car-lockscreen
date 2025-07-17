@@ -10,9 +10,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <style>
-
         @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@700&family=Roboto+Mono:wght@500&family=Roboto:wght@400;500&family=Playfair+Display:wght@700&family=Source+Code+Pro:wght@700&family=Inter:wght@400;500&family=Lora:wght@400;500&display=swap');
-        :root {{
+        :root {
             --widget-bg: rgba(0, 0, 0, 0.2);
             --widget-bg-light: rgba(255, 255, 255, 0.2);
             --text-color: white;
@@ -72,7 +71,7 @@
         .webcam-video-wrapper { display: none; width: 100%; height: 100%; transform: scaleX(-1); /* Default to mirrored */ touch-action: none; /* For Pointer Events */ cursor: pointer; }
         .webcam-video-wrapper.panning { cursor: grabbing; }
         .webcam-video-wrapper.normal-view { transform: scaleX(1); /* Class to un-mirror */ }
-        #webcam-video { width: 100%; height: 100%; object-fit: cover; filter: grayscale(100%); transition: transform 0.1s ease-out; /* Smooth pan/zoom */ transform-origin: center center; }
+        #webcam-canvas { width: 100%; height: 100%; filter: grayscale(100%); transition: transform 0.1s ease-out; /* Smooth pan/zoom */ transform-origin: center center; }
         #webcam-widget.active .webcam-video-wrapper { display: block; }
         #webcam-widget.active #webcam-placeholder { display: none; }
         #webcam-widget.webcam-pan-zoom-active { box-shadow: 0 0 15px rgba(10, 132, 255, 0.7); border-color: #0a84ff; }
@@ -215,7 +214,9 @@
 
         <div id="webcam-widget" class="draggable-item widget" title="Click feed to mirror | Dbl-click feed for pan/zoom">
             <div class="webcam-video-wrapper">
-                <video id="webcam-video" playsinline muted></video>
+                <!-- MODIFIED: Replaced video with canvas and a hidden video source -->
+                <canvas id="webcam-canvas"></canvas>
+                <video id="webcam-video-source" playsinline muted style="display: none;"></video>
             </div>
             <div id="webcam-placeholder"><i class="fa-solid fa-video-slash"></i><span>Camera Inactive</span></div>
             <div id="webcam-controls">
@@ -372,8 +373,7 @@
 
                 closeSettingsBtn.addEventListener('click', () => settingsMenu.classList.remove('visible'));
                 settingsMenu.addEventListener('click', (e) => { if (e.target === settingsMenu) settingsMenu.classList.remove('visible'); });
-                
-                // --- Re-added the original API Key as requested ---
+
                 const FINNHUB_API_KEY = 'd1obuihr01qtrav0d5sgd1obuihr01qtrav0d5t0';
                 
                 const stockWidget = document.getElementById('stock-widget');
@@ -613,14 +613,10 @@
                             this.audio.src = station.streamUrl;
                             this.audio.play().catch(e => console.error("Audio play failed:", e));
 
-                            // Set MediaMetadata with wallpaper as artwork
                             if ('mediaSession' in navigator) {
                                 navigator.mediaSession.metadata = new MediaMetadata({
                                     title: station.name,
                                     artist: station.genre,
-                                    artwork: [
-                                        { src: currentWallpaperImg.src }
-                                    ]
                                 });
                             }
                         },
@@ -746,10 +742,13 @@
                     // Webcam Widget Logic
                     const webcamPlayer = {
                         stream: null,
+                        animationFrameId: null, // MODIFIED: To control drawing loop
                         elements: {
                             widget: document.getElementById('webcam-widget'),
                             videoWrapper: document.querySelector('.webcam-video-wrapper'),
-                            video: document.getElementById('webcam-video'),
+                            video: document.getElementById('webcam-video-source'), // MODIFIED: Hidden video element
+                            canvas: document.getElementById('webcam-canvas'),        // MODIFIED: Visible canvas element
+                            canvasContext: null,                                   // MODIFIED: Canvas 2D context
                             select: document.getElementById('webcam-source-select'),
                             stopBtn: document.getElementById('webcam-stop-btn'),
                             placeholder: document.getElementById('webcam-placeholder'),
@@ -757,12 +756,57 @@
                         },
                         init() {
                             this.elements.widget.style.display = 'none'; // Hide initially
+                            this.elements.canvasContext = this.elements.canvas.getContext('2d'); // MODIFIED: Get context
                             this.elements.select.addEventListener('change', () => this.start());
                             this.elements.stopBtn.addEventListener('click', () => this.stop());
                             
                             if (!this.elements.widget.classList.contains('hidden')) {
                                 this.populateDevices();
                             }
+                        },
+                        drawToCanvas() {
+                            if (!this.stream || !this.stream.active) {
+                                return; // Stop the loop if stream is gone
+                            }
+                            const video = this.elements.video;
+                            const canvas = this.elements.canvas;
+                            const ctx = this.elements.canvasContext;
+                            // Ensure canvas has the correct dimensions from its container
+                            if (canvas.width !== canvas.clientWidth || canvas.height !== canvas.clientHeight) {
+                                canvas.width = canvas.clientWidth;
+                                canvas.height = canvas.clientHeight;
+                            }
+                            // Don't draw if widget/video not ready
+                            if (canvas.width === 0 || canvas.height === 0 || video.videoWidth === 0) {
+                                 this.animationFrameId = requestAnimationFrame(() => this.drawToCanvas());
+                                 return;
+                            }
+                            // Replicate 'object-fit: cover'
+                            const vWidth = video.videoWidth;
+                            const vHeight = video.videoHeight;
+                            const cWidth = canvas.width;
+                            const cHeight = canvas.height;
+                            const vRatio = vWidth / vHeight;
+                            const cRatio = cWidth / cHeight;
+                            let sx, sy, sWidth, sHeight;
+
+                            if (vRatio > cRatio) { // Source is wider, so crop the sides
+                                sHeight = vHeight;
+                                sWidth = vHeight * cRatio;
+                                sx = (vWidth - sWidth) / 2;
+                                sy = 0;
+                            } else { // Source is taller, so crop the top/bottom
+                                sWidth = vWidth;
+                                sHeight = vWidth / cRatio;
+                                sy = (vHeight - sHeight) / 2;
+                                sx = 0;
+                            }
+                            
+                            ctx.clearRect(0, 0, cWidth, cHeight); // Clear previous frame
+                            ctx.drawImage(video, sx, sy, sWidth, sHeight, 0, 0, cWidth, cHeight); // Draw new frame
+                            
+                            // Continue the loop
+                            this.animationFrameId = requestAnimationFrame(() => this.drawToCanvas());
                         },
                         async populateDevices(shouldAutoload = false) {
                             try {
@@ -817,6 +861,7 @@
                                     this.elements.video.play();
                                     this.elements.widget.classList.add('active');
                                     if (this.elements.toggleIcon) this.elements.toggleIcon.className = 'fa-solid fa-video';
+                                    this.drawToCanvas(); // MODIFIED: Start the drawing loop
                                 };
                                 this.populateDevices(false);
                             } catch (err) {
@@ -827,11 +872,18 @@
                             }
                         },
                         stop(isRestarting = false) {
+                            if (this.animationFrameId) { // MODIFIED: Stop drawing loop
+                                cancelAnimationFrame(this.animationFrameId);
+                                this.animationFrameId = null;
+                            }
                             if (this.stream) {
                                 this.stream.getTracks().forEach(track => track.stop());
                             }
                             this.stream = null;
                             this.elements.video.srcObject = null;
+                            if (this.elements.canvasContext) { // MODIFIED: Clear canvas
+                                this.elements.canvasContext.clearRect(0, 0, this.elements.canvas.width, this.elements.canvas.height);
+                            }
                             this.elements.widget.classList.remove('active');
                             if (this.elements.toggleIcon) this.elements.toggleIcon.className = 'fa-solid fa-video-slash';
                             if (!isRestarting) {
@@ -844,7 +896,7 @@
                     
                     // Webcam Interaction Logic (Mirror, Pan, Zoom) - REWRITTEN FOR ROBUSTNESS
                     const videoWrapper = webcamPlayer.elements.videoWrapper;
-                    const videoEl = webcamPlayer.elements.video;
+                    const canvasEl = webcamPlayer.elements.canvas; // MODIFIED: Target the canvas for transforms
                     const get_touch_dist = (touches) => Math.hypot(touches[0].clientX - touches[1].clientX, touches[0].clientY - touches[1].clientY);
                     
                     let webcam_transform = { scale: 1, panX: 0, panY: 0 };
@@ -855,7 +907,7 @@
                     let webcamGlowTimeout = null;
 
                     function applyWebcamTransform() {
-                        videoEl.style.transform = `translate(${webcam_transform.panX}px, ${webcam_transform.panY}px) scale(${webcam_transform.scale})`;
+                        canvasEl.style.transform = `translate(${webcam_transform.panX}px, ${webcam_transform.panY}px) scale(${webcam_transform.scale})`;
                     }
 
                     function resetWebcamTransform() {
@@ -1142,29 +1194,9 @@
                     checkStockFlashTrigger(); setInterval(checkStockFlashTrigger, 60 * 1000);
                 })();
                 
-                function updateMediaSessionArt() {
-                    if ('mediaSession' in navigator && navigator.mediaSession.metadata) {
-                        const oldMetadata = navigator.mediaSession.metadata;
-                        navigator.mediaSession.metadata = new MediaMetadata({
-                            title: oldMetadata.title,
-                            artist: oldMetadata.artist,
-                            album: oldMetadata.album,
-                            artwork: [
-                                { src: currentWallpaperImg.src }
-                            ]
-                        });
-                    }
-                }
-                
                 const getWps = () => JSON.parse(localStorage.getItem('lockscreenWallpapers_v2')) || [initialWallpaper];
                 const saveWps = (wps) => localStorage.setItem('lockscreenWallpapers_v2', JSON.stringify(wps));
-                const setWp = (wpObj) => { 
-                    exitPanningMode(); 
-                    lockScreen.style.backgroundImage = `url('${wpObj.url}')`; 
-                    lockScreen.style.backgroundPosition = wpObj.position || 'center center'; 
-                    currentWallpaperImg.src = wpObj.url;
-                    updateMediaSessionArt();
-                };
+                const setWp = (wpObj) => { exitPanningMode(); lockScreen.style.backgroundImage = `url('${wpObj.url}')`; lockScreen.style.backgroundPosition = wpObj.position || 'center center'; currentWallpaperImg.src = wpObj.url; };
                 const renderWpChoices = () => { const cont = document.getElementById('wallpaper-choices'); cont.innerHTML = ''; getWps().forEach(wp => { const thumb = document.createElement('div'); thumb.className = 'wallpaper-thumbnail'; thumb.style.backgroundImage = `url('${wp.url}')`; const rmvBtn = document.createElement('span'); rmvBtn.className = 'remove-thumb-btn'; rmvBtn.innerHTML = '×'; rmvBtn.title = 'Remove wallpaper'; rmvBtn.addEventListener('click', (e) => { e.stopPropagation(); const newWps = getWps().filter(w => w.url !== wp.url); saveWps(newWps); renderWpChoices(); }); thumb.appendChild(rmvBtn); thumb.addEventListener('click', () => { setWp(wp); localStorage.setItem('lockscreenLastSelectedWp', wp.url); settingsMenu.classList.remove('visible'); }); cont.appendChild(thumb); }); };
                 document.getElementById('wallpaper-url-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') { const url = e.target.value.trim(); if(url.toLowerCase().endsWith('.gif')) { alert('Please use the GIF widget to add GIFs.'); e.target.value = ''; return; } if (url.match(/\.(jpeg|jpg|gif|png|webp)$/i)) { const wps = getWps(); if (!wps.some(w => w.url === url)) { const newWp = { url: url, position: 'center center' }; wps.push(newWp); saveWps(wps); setWp(newWp); localStorage.setItem('lockscreenLastSelectedWp', newWp.url); renderWpChoices(); } e.target.value = ''; settingsMenu.classList.remove('visible'); } else { alert('Invalid URL.'); } } });
                 function exitPanningMode() { if (!isPanningMode) return; isPanningMode = false; lockScreen.classList.remove('panning-active'); const url = currentWallpaperImg.src; const wps = getWps(); const idx = wps.findIndex(w => w.url === url); if (idx > -1) { wps[idx].position = lockScreen.style.backgroundPosition; saveWps(wps); } }
