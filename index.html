@@ -10,8 +10,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <style>
+
         @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@700&family=Roboto+Mono:wght@500&family=Roboto:wght@400;500&family=Playfair+Display:wght@700&family=Source+Code+Pro:wght@700&family=Inter:wght@400;500&family=Lora:wght@400;500&display=swap');
-        :root {
+        :root {{
             --widget-bg: rgba(0, 0, 0, 0.2);
             --widget-bg-light: rgba(255, 255, 255, 0.2);
             --text-color: white;
@@ -67,12 +68,15 @@
         #gif-widget.has-gif:hover #remove-gif-btn { display: flex; }
         
         /* Webcam Widget CSS */
-        #webcam-widget { top: 20%; left: 20%; width: 320px; height: 240px; padding: 0; resize: both; overflow: hidden; display: flex; align-items: center; justify-content: center; background-color: #000; border: 2px solid var(--widget-bg); }
-        .webcam-video-wrapper { display: none; width: 100%; height: 100%; transform: scaleX(-1); /* Default to mirrored */ }
+        #webcam-widget { top: 20%; left: 20%; width: 320px; height: 240px; padding: 0; resize: both; overflow: hidden; display: flex; align-items: center; justify-content: center; background-color: #000; border: 2px solid var(--widget-bg); transition: box-shadow 0.3s, border-color 0.3s; }
+        .webcam-video-wrapper { display: none; width: 100%; height: 100%; transform: scaleX(-1); /* Default to mirrored */ touch-action: none; /* For Pointer Events */ cursor: pointer; }
+        .webcam-video-wrapper.panning { cursor: grabbing; }
         .webcam-video-wrapper.normal-view { transform: scaleX(1); /* Class to un-mirror */ }
-        #webcam-video { width: 100%; height: 100%; object-fit: cover; filter: grayscale(100%); }
+        #webcam-video { width: 100%; height: 100%; object-fit: cover; filter: grayscale(100%); transition: transform 0.1s ease-out; /* Smooth pan/zoom */ transform-origin: center center; }
         #webcam-widget.active .webcam-video-wrapper { display: block; }
         #webcam-widget.active #webcam-placeholder { display: none; }
+        #webcam-widget.webcam-pan-zoom-active { box-shadow: 0 0 15px rgba(10, 132, 255, 0.7); border-color: #0a84ff; }
+        #webcam-widget.webcam-pan-zoom-active .webcam-video-wrapper { cursor: grab; }
         #webcam-placeholder { display: flex; flex-direction: column; align-items: center; gap: 10px; font-size: 1.2rem; color: rgba(255, 255, 255, 0.7); text-align: center; padding: 10px; }
         #webcam-controls { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; background-color: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 8px; opacity: 0; transition: opacity 0.3s ease; z-index: 12; }
         #webcam-widget:hover #webcam-controls { opacity: 1; }
@@ -209,7 +213,7 @@
             <div id="remove-gif-btn">×</div>
         </div>
 
-        <div id="webcam-widget" class="draggable-item widget" title="Dbl-click feed to toggle mirror | Dbl-click empty to refresh">
+        <div id="webcam-widget" class="draggable-item widget" title="Click feed to mirror | Dbl-click feed for pan/zoom">
             <div class="webcam-video-wrapper">
                 <video id="webcam-video" playsinline muted></video>
             </div>
@@ -302,6 +306,7 @@
             let stockFlashIndex = 0;
             let stockNameFadeOutTimer = null;
             let stockWidgetClickTimer = null;
+            window.isWebcamPanZoomMode = false;
 
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.has('upload') && urlParams.has('session')) {
@@ -367,7 +372,8 @@
 
                 closeSettingsBtn.addEventListener('click', () => settingsMenu.classList.remove('visible'));
                 settingsMenu.addEventListener('click', (e) => { if (e.target === settingsMenu) settingsMenu.classList.remove('visible'); });
-
+                
+                // --- Re-added the original API Key as requested ---
                 const FINNHUB_API_KEY = 'd1obuihr01qtrav0d5sgd1obuihr01qtrav0d5t0';
                 
                 const stockWidget = document.getElementById('stock-widget');
@@ -607,10 +613,14 @@
                             this.audio.src = station.streamUrl;
                             this.audio.play().catch(e => console.error("Audio play failed:", e));
 
+                            // Set MediaMetadata with wallpaper as artwork
                             if ('mediaSession' in navigator) {
                                 navigator.mediaSession.metadata = new MediaMetadata({
                                     title: station.name,
                                     artist: station.genre,
+                                    artwork: [
+                                        { src: currentWallpaperImg.src }
+                                    ]
                                 });
                             }
                         },
@@ -738,6 +748,7 @@
                         stream: null,
                         elements: {
                             widget: document.getElementById('webcam-widget'),
+                            videoWrapper: document.querySelector('.webcam-video-wrapper'),
                             video: document.getElementById('webcam-video'),
                             select: document.getElementById('webcam-source-select'),
                             stopBtn: document.getElementById('webcam-stop-btn'),
@@ -745,20 +756,12 @@
                             toggleIcon: document.querySelector('#webcam-toggle-btn i'),
                         },
                         init() {
+                            this.elements.widget.style.display = 'none'; // Hide initially
                             this.elements.select.addEventListener('change', () => this.start());
                             this.elements.stopBtn.addEventListener('click', () => this.stop());
-                            this.elements.widget.addEventListener('dblclick', (e) => {
-                                if (e.target.closest('#webcam-controls')) return;
-
-                                if (this.stream) { // If video is active, toggle mirror
-                                    this.elements.widget.querySelector('.webcam-video-wrapper').classList.toggle('normal-view');
-                                } else { // If video is inactive, refresh devices
-                                    this.populateDevices(false);
-                                }
-                            });
-
+                            
                             if (!this.elements.widget.classList.contains('hidden')) {
-                                this.populateDevices(true);
+                                this.populateDevices();
                             }
                         },
                         async populateDevices(shouldAutoload = false) {
@@ -802,12 +805,9 @@
                                 this.stop(true); // Stop before starting a new one
                             }
 
+                            this.elements.widget.style.display = 'flex';
                             const deviceId = this.elements.select.value;
-                            if (!deviceId) {
-                                this.stop();
-                                return;
-                            }
-
+                            if (!deviceId) { this.stop(); return; }
                             const constraints = { video: { deviceId: { exact: deviceId } } };
 
                             try {
@@ -816,7 +816,6 @@
                                 this.elements.video.onloadedmetadata = () => {
                                     this.elements.video.play();
                                     this.elements.widget.classList.add('active');
-                                    this.elements.widget.querySelector('.webcam-video-wrapper').classList.remove('normal-view'); // Default to mirrored
                                     if (this.elements.toggleIcon) this.elements.toggleIcon.className = 'fa-solid fa-video';
                                 };
                                 this.populateDevices(false);
@@ -835,10 +834,123 @@
                             this.elements.video.srcObject = null;
                             this.elements.widget.classList.remove('active');
                             if (this.elements.toggleIcon) this.elements.toggleIcon.className = 'fa-solid fa-video-slash';
+                            if (!isRestarting) {
+                                this.elements.widget.style.display = 'none';
+                            }
                         }
                     };
                     window.webcamPlayer = webcamPlayer;
                     webcamPlayer.init();
+                    
+                    // Webcam Interaction Logic (Mirror, Pan, Zoom) - REWRITTEN FOR ROBUSTNESS
+                    const videoWrapper = webcamPlayer.elements.videoWrapper;
+                    const videoEl = webcamPlayer.elements.video;
+                    const get_touch_dist = (touches) => Math.hypot(touches[0].clientX - touches[1].clientX, touches[0].clientY - touches[1].clientY);
+                    
+                    let webcam_transform = { scale: 1, panX: 0, panY: 0 };
+                    let webcam_start_transform = null; // Stores transform at the start of a gesture
+                    let webcam_start_touch = null; // Stores {x, y} for one-finger pan
+                    let webcam_initial_pinch_dist = 0; // Stores initial distance for two-finger pinch
+                    let webcamClickTimer = null;
+                    let webcamGlowTimeout = null;
+
+                    function applyWebcamTransform() {
+                        videoEl.style.transform = `translate(${webcam_transform.panX}px, ${webcam_transform.panY}px) scale(${webcam_transform.scale})`;
+                    }
+
+                    function resetWebcamTransform() {
+                        webcam_transform = { scale: 1, panX: 0, panY: 0 };
+                        applyWebcamTransform();
+                    }
+                    
+                    function resetGlowTimeout() {
+                        clearTimeout(webcamGlowTimeout);
+                        webcamGlowTimeout = setTimeout(() => {
+                           document.getElementById('webcam-widget').classList.remove('webcam-pan-zoom-active');
+                        }, 10000);
+                    }
+
+                    webcamPlayer.elements.stopBtn.addEventListener('click', resetWebcamTransform);
+                    document.getElementById('webcam-toggle-btn').addEventListener('click', () => {
+                        if (webcamPlayer.stream) { resetWebcamTransform(); }
+                    });
+
+                    videoWrapper.addEventListener('click', () => {
+                        if (window.isWebcamPanZoomMode) return;
+                        clearTimeout(webcamClickTimer);
+                        webcamClickTimer = setTimeout(() => videoWrapper.classList.toggle('normal-view'), 250);
+                    });
+
+                    videoWrapper.addEventListener('dblclick', () => {
+                        clearTimeout(webcamClickTimer);
+                        window.isWebcamPanZoomMode = !window.isWebcamPanZoomMode;
+                        const widget = document.getElementById('webcam-widget');
+                        widget.classList.toggle('webcam-pan-zoom-active', window.isWebcamPanZoomMode);
+                        
+                        if (window.isWebcamPanZoomMode) {
+                            resetGlowTimeout();
+                        } else {
+                            clearTimeout(webcamGlowTimeout);
+                            resetWebcamTransform();
+                        }
+                    });
+
+                    videoWrapper.addEventListener('touchstart', (e) => {
+                        if (!window.isWebcamPanZoomMode) return;
+                        e.stopPropagation();
+                        
+                        document.getElementById('webcam-widget').classList.add('webcam-pan-zoom-active');
+                        resetGlowTimeout();
+
+                        webcam_start_transform = { ...webcam_transform };
+                        if (e.touches.length === 1) {
+                            webcam_start_touch = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                        } else if (e.touches.length === 2) {
+                            webcam_initial_pinch_dist = get_touch_dist(e.touches);
+                        }
+                    }, { passive: false });
+
+                    videoWrapper.addEventListener('touchmove', (e) => {
+                        if (!window.isWebcamPanZoomMode || !webcam_start_transform) return;
+                        e.preventDefault();
+                        e.stopPropagation();
+                        resetGlowTimeout();
+
+                        // Pinch-to-zoom logic
+                        if (e.touches.length === 2) {
+                            const new_dist = get_touch_dist(e.touches);
+                            const scale_ratio = new_dist / webcam_initial_pinch_dist;
+                            webcam_transform.scale = Math.max(1.0, webcam_start_transform.scale * scale_ratio);
+                        } 
+                        // Panning logic
+                        else if (e.touches.length === 1 && webcam_start_touch) {
+                            const deltaX = e.touches[0].clientX - webcam_start_touch.x;
+                            const deltaY = e.touches[0].clientY - webcam_start_touch.y;
+                            const isMirrored = !videoWrapper.classList.contains('normal-view');
+                            const panDirection = isMirrored ? -1 : 1;
+
+                            webcam_transform.panX = webcam_start_transform.panX + (deltaX * panDirection);
+                            webcam_transform.panY = webcam_start_transform.panY + deltaY;
+                        }
+                        
+                        // Constrain panning to the bounds of the scaled image
+                        const rect = videoWrapper.getBoundingClientRect();
+                        const max_panX = (rect.width * webcam_transform.scale - rect.width) / 2;
+                        const max_panY = (rect.height * webcam_transform.scale - rect.height) / 2;
+                        webcam_transform.panX = Math.max(-max_panX, Math.min(max_panX, webcam_transform.panX));
+                        webcam_transform.panY = Math.max(-max_panY, Math.min(max_panY, webcam_transform.panY));
+                        
+                        applyWebcamTransform();
+                    }, { passive: false });
+                    
+                    videoWrapper.addEventListener('touchend', (e) => {
+                        if (!window.isWebcamPanZoomMode) return;
+                        // Reset starting points for the next gesture
+                        webcam_start_transform = null;
+                        webcam_start_touch = null;
+                        webcam_initial_pinch_dist = 0;
+                    });
+
                 })();
                 
                 (function setupBaseFeatures() {
@@ -863,6 +975,9 @@
 
                             if (key === 'webcam') {
                                 webcamToggleBtn.classList.toggle('hidden', !isVisible);
+                                if (isVisible && document.getElementById('toggle-webcam-widget').checked) {
+                                    window.webcamPlayer.populateDevices();
+                                }
                             }
 
                             widget.toggle.addEventListener('change', () => {
@@ -873,7 +988,7 @@
                                 if (key === 'webcam') {
                                     webcamToggleBtn.classList.toggle('hidden', !isChecked);
                                     if (isChecked) {
-                                        window.webcamPlayer.populateDevices(true);
+                                        window.webcamPlayer.populateDevices();
                                     } else {
                                         window.webcamPlayer.stop();
                                     }
@@ -965,6 +1080,9 @@
                             document.removeEventListener('mousemove', mv); document.removeEventListener('touchmove', mv);
                         };
                         const sD_longPress = (e) => {
+                            if (el.id === 'webcam-widget' && window.isWebcamPanZoomMode) {
+                                return;
+                            }
                             if (el.isEditing) return;
                             if (e.target.closest('#music-controls, #remove-gif-btn, #webcam-controls, #note-settings-btn')) return;
                             if (e.touches && e.touches.length === 2 && el.id === 'clock') { isPinching = true; isD = false; initialPinchDist = getDist(e.touches); initialScale = clockScale; return; }
@@ -1024,9 +1142,29 @@
                     checkStockFlashTrigger(); setInterval(checkStockFlashTrigger, 60 * 1000);
                 })();
                 
+                function updateMediaSessionArt() {
+                    if ('mediaSession' in navigator && navigator.mediaSession.metadata) {
+                        const oldMetadata = navigator.mediaSession.metadata;
+                        navigator.mediaSession.metadata = new MediaMetadata({
+                            title: oldMetadata.title,
+                            artist: oldMetadata.artist,
+                            album: oldMetadata.album,
+                            artwork: [
+                                { src: currentWallpaperImg.src }
+                            ]
+                        });
+                    }
+                }
+                
                 const getWps = () => JSON.parse(localStorage.getItem('lockscreenWallpapers_v2')) || [initialWallpaper];
                 const saveWps = (wps) => localStorage.setItem('lockscreenWallpapers_v2', JSON.stringify(wps));
-                const setWp = (wpObj) => { exitPanningMode(); lockScreen.style.backgroundImage = `url('${wpObj.url}')`; lockScreen.style.backgroundPosition = wpObj.position || 'center center'; currentWallpaperImg.src = wpObj.url; };
+                const setWp = (wpObj) => { 
+                    exitPanningMode(); 
+                    lockScreen.style.backgroundImage = `url('${wpObj.url}')`; 
+                    lockScreen.style.backgroundPosition = wpObj.position || 'center center'; 
+                    currentWallpaperImg.src = wpObj.url;
+                    updateMediaSessionArt();
+                };
                 const renderWpChoices = () => { const cont = document.getElementById('wallpaper-choices'); cont.innerHTML = ''; getWps().forEach(wp => { const thumb = document.createElement('div'); thumb.className = 'wallpaper-thumbnail'; thumb.style.backgroundImage = `url('${wp.url}')`; const rmvBtn = document.createElement('span'); rmvBtn.className = 'remove-thumb-btn'; rmvBtn.innerHTML = '×'; rmvBtn.title = 'Remove wallpaper'; rmvBtn.addEventListener('click', (e) => { e.stopPropagation(); const newWps = getWps().filter(w => w.url !== wp.url); saveWps(newWps); renderWpChoices(); }); thumb.appendChild(rmvBtn); thumb.addEventListener('click', () => { setWp(wp); localStorage.setItem('lockscreenLastSelectedWp', wp.url); settingsMenu.classList.remove('visible'); }); cont.appendChild(thumb); }); };
                 document.getElementById('wallpaper-url-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') { const url = e.target.value.trim(); if(url.toLowerCase().endsWith('.gif')) { alert('Please use the GIF widget to add GIFs.'); e.target.value = ''; return; } if (url.match(/\.(jpeg|jpg|gif|png|webp)$/i)) { const wps = getWps(); if (!wps.some(w => w.url === url)) { const newWp = { url: url, position: 'center center' }; wps.push(newWp); saveWps(wps); setWp(newWp); localStorage.setItem('lockscreenLastSelectedWp', newWp.url); renderWpChoices(); } e.target.value = ''; settingsMenu.classList.remove('visible'); } else { alert('Invalid URL.'); } } });
                 function exitPanningMode() { if (!isPanningMode) return; isPanningMode = false; lockScreen.classList.remove('panning-active'); const url = currentWallpaperImg.src; const wps = getWps(); const idx = wps.findIndex(w => w.url === url); if (idx > -1) { wps[idx].position = lockScreen.style.backgroundPosition; saveWps(wps); } }
