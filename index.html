@@ -902,22 +902,74 @@
                             if (this.elements.toggleIcon) this.elements.toggleIcon.className = 'fa-solid fa-video-slash';
                             if (!isRestarting) this.elements.widget.style.display = 'none';
                         },
-                        savePanZoomState() { localStorage.setItem('webcamPanZoomState', JSON.stringify(webcam_transform)); },
-                        loadPanZoomState() {
-                            const state = localStorage.getItem('webcamPanZoomState');
-                            if (state) {
-                                try {
-                                    const obj = JSON.parse(state);
-                                    if (typeof obj.scale === 'number' && typeof obj.panX === 'number' && typeof obj.panY === 'number') {
-                                        webcam_transform = obj;
-                                        applyWebcamTransform();
-                                    }
-                                } catch {}
-                            }
+                                            savePanZoomState() { localStorage.setItem('webcamPanZoomState', JSON.stringify(webcam_transform)); },
+                    loadPanZoomState() {
+                        const state = localStorage.getItem('webcamPanZoomState');
+                        if (state) {
+                            try {
+                                const obj = JSON.parse(state);
+                                if (typeof obj.scale === 'number' && typeof obj.panX === 'number' && typeof obj.panY === 'number') {
+                                    webcam_transform = obj;
+                                    applyWebcamTransform();
+                                }
+                            } catch {}
                         }
+                    },
+                    saveAllWebcamState() {
+                        const state = {
+                            position: {
+                                top: webcamWidget.style.top || webcamWidget.offsetTop + 'px',
+                                left: webcamWidget.style.left || webcamWidget.offsetLeft + 'px'
+                            },
+                            size: {
+                                width: webcamWidget.style.width || webcamWidget.offsetWidth + 'px',
+                                height: webcamWidget.style.height || webcamWidget.offsetHeight + 'px'
+                            },
+                            portraitMode: isWebcamPortraitMode,
+                            panZoom: webcam_transform
+                        };
+                        localStorage.setItem('webcamFullState', JSON.stringify(state));
+                    },
+                    loadAllWebcamState() {
+                        const state = localStorage.getItem('webcamFullState');
+                        if (state) {
+                            try {
+                                const obj = JSON.parse(state);
+                                
+                                // Restore position
+                                if (obj.position) {
+                                    webcamWidget.style.top = obj.position.top;
+                                    webcamWidget.style.left = obj.position.left;
+                                }
+                                
+                                // Restore size
+                                if (obj.size) {
+                                    webcamWidget.style.width = obj.size.width;
+                                    webcamWidget.style.height = obj.size.height;
+                                }
+                                
+                                // Restore portrait mode
+                                if (typeof obj.portraitMode === 'boolean') {
+                                    isWebcamPortraitMode = obj.portraitMode;
+                                    if (portraitBtn) {
+                                        portraitBtn.textContent = isWebcamPortraitMode ? 'Full' : '9:16';
+                                    }
+                                }
+                                
+                                // Restore pan/zoom
+                                if (obj.panZoom && typeof obj.panZoom.scale === 'number') {
+                                    webcam_transform = obj.panZoom;
+                                    applyWebcamTransform();
+                                }
+                            } catch {}
+                        }
+                    }
                     };
                     window.webcamPlayer = webcamPlayer;
                     webcamPlayer.init();
+                    
+                    // Load saved state when page loads
+                    webcamPlayer.loadAllWebcamState();
 
                     function applyWebcamTransform() {
                         canvasEl.style.transform = `translate(${webcam_transform.panX}px, ${webcam_transform.panY}px) scale(${webcam_transform.scale})`;
@@ -990,6 +1042,7 @@
                     });
 
                     let resizeGestureState = {}; // Declare here for use in touchend handler
+                    let webcamLastTap = 0; // For touch double-tap detection
                     
                     webcamWidget.addEventListener('touchend', (e) => {
                         if (e.target.closest('#webcam-controls, #webcam-portrait-btn')) return;
@@ -998,7 +1051,17 @@
                         if (e.touches.length < 2) {
                             resizeGestureState = {};
                         }
-                        // Removed complex double-tap timing - using dblclick instead
+                        
+                        // Improved double-tap for touch - handle both fast and normal taps
+                        if (e.touches.length === 0 && !resizeGestureState.initialDist) {
+                            const now = Date.now();
+                            if (now - webcamLastTap < 300) { // Increased from 200ms to 300ms for better reliability
+                                toggleWebcamPanZoomMode();
+                                webcamLastTap = 0; // Reset to prevent triple tap
+                            } else {
+                                webcamLastTap = now;
+                            }
+                        }
                     });
 
                     portraitBtn.addEventListener('click', (e) => {
@@ -1034,6 +1097,9 @@
                         
                         portraitBtn.textContent = isWebcamPortraitMode ? 'Full' : '9:16';
                         showPortraitBtn(); // Reset the hide timer
+                        
+                        // Save all webcam state after portrait change
+                        webcamPlayer.saveAllWebcamState();
                     });
 
                     // Watch for any manual size changes and correct aspect ratio
@@ -1059,6 +1125,8 @@
                                     // Only adjust if significantly different (avoid infinite loops)
                                     if (Math.abs(currentHeight - correctHeight) > 5) {
                                         webcamWidget.style.height = `${correctHeight}px`;
+                                        // Save state after size correction
+                                        setTimeout(() => webcamPlayer.saveAllWebcamState(), 100);
                                     }
                                 }, 0);
                             }
@@ -1169,6 +1237,8 @@
                                 // Landscape mode: 16:9 ratio (wider)
                                 webcamWidget.style.height = `${Math.round(newWidth * 9 / 16)}px`;
                             }
+                            // Save state after pinch resize
+                            webcamPlayer.saveAllWebcamState();
                         }
                     }, { passive: false });
                     
@@ -1411,7 +1481,13 @@
                             }
                             isD = false; 
                             isPinching = false;
-                            if (hasMoved) savePos();
+                            if (hasMoved) {
+                                savePos();
+                                // Also save webcam-specific state if it was the webcam widget that moved
+                                if (el.id === 'webcam-widget') {
+                                    setTimeout(() => webcamPlayer.saveAllWebcamState(), 50);
+                                }
+                            }
                             document.removeEventListener('mousemove', mv); 
                             document.removeEventListener('touchmove', mv);
                         };
