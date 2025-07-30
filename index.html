@@ -68,6 +68,10 @@
         
         /* Webcam Widget CSS */
         #webcam-widget { top: 20%; left: 20%; width: 320px; height: 240px; padding: 0; resize: both; overflow: hidden; display: flex; align-items: center; justify-content: center; background-color: #000; border: 1px solid var(--widget-bg); transition: box-shadow 0.3s, border-color 0.3s; }
+        .webcam-43-ratio {
+            height: auto !important;
+            aspect-ratio: 4 / 3;
+        }
         .webcam-video-wrapper { display: none; width: 100%; height: 100%; transform: scaleX(-1); /* Default to mirrored */ touch-action: none; /* For Pointer Events */ cursor: pointer; }
         .webcam-video-wrapper.panning { cursor: grabbing; }
         .webcam-video-wrapper.normal-view { transform: scaleX(1); /* Class to un-mirror */ }
@@ -997,8 +1001,10 @@
 
                     // --- Webcam Widget: Improved Pan/Zoom, Drag, Mirror, and Scroll-to-Zoom Logic ---
                     const webcamWidget = document.getElementById('webcam-widget');
-                    function setWebcamDraggable(enabled) {
-                        if (enabled) {
+                    function setWebcamDraggable() {
+                        const webcamWidget = document.getElementById('webcam-widget');
+                        const isDraggable = !window.isWebcamPanZoomMode;
+                        if (isDraggable) {
                             webcamWidget.classList.remove('no-drag');
                             webcamWidget.setAttribute('draggable', 'true');
                         } else {
@@ -1010,17 +1016,18 @@
                     videoWrapper.addEventListener('dblclick', (e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        
+
                         window.isWebcamPanZoomMode = !window.isWebcamPanZoomMode;
+                        document.getElementById('webcam-widget').classList.toggle('webcam-pan-zoom-active', window.isWebcamPanZoomMode);
                         setWebcamDraggable();
                         
                         if (window.isWebcamPanZoomMode) {
                             webcamPlayer.loadPanZoomState();
-                            showWebcam43Btn();
+                            resetGlowTimeout();
                         } else {
-                            webcamPlayer.savePanZoomState();
-                            hideWebcam43Btn();
+                            exitPanZoomMode();
                         }
+                        updateWebcam43BtnVisibility();
                     });
                     // Single click toggles mirroring only if not in pan/zoom mode
                     videoWrapper.addEventListener('click', () => {
@@ -1032,6 +1039,7 @@
                     videoWrapper.addEventListener('wheel', (e) => {
                         if (!window.isWebcamPanZoomMode) return;
                         e.preventDefault();
+                        resetInactivityTimer();
                         let scale = webcam_transform.scale;
                         if (e.deltaY < 0) scale *= 1.08;
                         else scale /= 1.08;
@@ -1057,6 +1065,7 @@
                     videoWrapper.addEventListener('touchstart', (e) => {
                         if (!window.isWebcamPanZoomMode) return;
                         e.stopPropagation();
+                        resetInactivityTimer();
                         
                         document.getElementById('webcam-widget').classList.add('webcam-pan-zoom-active');
                         resetGlowTimeout();
@@ -1073,6 +1082,7 @@
                         if (!window.isWebcamPanZoomMode || !webcam_start_transform) return;
                         e.preventDefault();
                         e.stopPropagation();
+                        resetInactivityTimer();
                         resetGlowTimeout();
 
                         if (e.touches.length === 2) {
@@ -1248,6 +1258,7 @@
                     videoWrapper.addEventListener('wheel', (e) => {
                         if (!window.isWebcamPanZoomMode) return;
                         e.preventDefault();
+                        resetInactivityTimer();
                         let scale = webcam_transform.scale;
                         if (e.deltaY < 0) scale *= 1.08;
                         else scale /= 1.08;
@@ -1685,16 +1696,13 @@
                 let isWebcam43 = false;
                 let webcam43BtnTimer = null;
 
-                // Fix the 4:3 button positioning and resize logic
                 function updateWebcam43BtnPosition() {
                     const webcamWidget = document.getElementById('webcam-widget');
                     const webcam43Btn = document.getElementById('webcam-43-btn');
-                    
                     if (webcamWidget && webcam43Btn) {
                         const rect = webcamWidget.getBoundingClientRect();
                         const left = rect.left + (rect.width / 2) - (webcam43Btn.offsetWidth / 2);
-                        const top = rect.bottom + 10; // 10px below the camera window
-                        
+                        const top = rect.bottom + 10;
                         webcam43Btn.style.left = `${left}px`;
                         webcam43Btn.style.top = `${top}px`;
                     }
@@ -1706,7 +1714,6 @@
                         updateWebcam43BtnPosition();
                         webcam43Btn.style.opacity = '1';
                         webcam43Btn.style.pointerEvents = 'auto';
-                        
                         clearTimeout(webcam43BtnTimer);
                         webcam43BtnTimer = setTimeout(hideWebcam43Btn, 10000);
                     }
@@ -1720,33 +1727,24 @@
                     }
                 }
 
-                // Fix the 4:3 button click handler to properly resize the camera window
+                function updateWebcam43BtnVisibility() {
+                    if (window.isWebcamPanZoomMode) {
+                        showWebcam43Btn();
+                    } else {
+                        hideWebcam43Btn();
+                    }
+                }
+
                 webcam43Btn.addEventListener('click', (e) => {
                     e.stopPropagation();
                     isWebcam43 = !isWebcam43;
+                    const webcamWidget = document.getElementById('webcam-widget');
+                    webcamWidget.classList.toggle('webcam-43-ratio', isWebcam43);
                     webcam43Btn.classList.toggle('active', isWebcam43);
                     webcam43Btn.textContent = isWebcam43 ? 'Full' : '4:3';
-                    
-                    const webcamWidget = document.getElementById('webcam-widget');
-                    if (webcamWidget) {
-                        if (isWebcam43) {
-                            // Set to 4:3 aspect ratio - make it more square
-                            const currentWidth = webcamWidget.offsetWidth;
-                            const newHeight = (currentWidth * 3) / 4; // 4:3 ratio
-                            webcamWidget.style.height = `${newHeight}px`;
-                        } else {
-                            // Return to original size (16:9 or default)
-                            webcamWidget.style.height = '240px'; // Default height
-                        }
-                        
-                        // Update button position after resize
-                        setTimeout(updateWebcam43BtnPosition, 100);
-                    }
-                    
                     showWebcam43Btn();
                 });
 
-                // Update button position when webcam widget moves
                 const webcamWidget = document.getElementById('webcam-widget');
                 if (webcamWidget) {
                     const observer = new MutationObserver(() => {
@@ -1754,7 +1752,7 @@
                             updateWebcam43BtnPosition();
                         }
                     });
-                    observer.observe(webcamWidget, { attributes: true, attributeFilter: ['style'] });
+                    observer.observe(webcamWidget, { attributes: true, attributeFilter: ['style', 'class'] });
                 }
 
                 // Remove all cropping logic from drawToCanvas - just draw the video normally
