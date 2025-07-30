@@ -68,10 +68,6 @@
         
         /* Webcam Widget CSS */
         #webcam-widget { top: 20%; left: 20%; width: 320px; height: 240px; padding: 0; resize: both; overflow: hidden; display: flex; align-items: center; justify-content: center; background-color: #000; border: 1px solid var(--widget-bg); transition: box-shadow 0.3s, border-color 0.3s; }
-        .webcam-43-ratio {
-            height: auto !important;
-            aspect-ratio: 4 / 3;
-        }
         .webcam-video-wrapper { display: none; width: 100%; height: 100%; transform: scaleX(-1); /* Default to mirrored */ touch-action: none; /* For Pointer Events */ cursor: pointer; }
         .webcam-video-wrapper.panning { cursor: grabbing; }
         .webcam-video-wrapper.normal-view { transform: scaleX(1); /* Class to un-mirror */ }
@@ -85,6 +81,39 @@
         #webcam-widget:hover #webcam-controls { opacity: 1; }
         #webcam-source-select { background-color: #333; color: white; border: 1px solid #555; border-radius: 5px; padding: 3px; max-width: 150px; }
         #webcam-stop-btn { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; padding: 0; line-height: 1; display: flex; align-items: center; }
+
+        /* MODIFIED: New styles for the 4:3 aspect ratio button */
+        #webcam-43-btn {
+            position: absolute;
+            bottom: 10px; /* Position under the video feed */
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 15; /* Above video, below other popups */
+            background: rgba(44, 44, 46, 0.8);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 5px 12px;
+            font-family: 'Roboto', sans-serif;
+            font-size: 14px;
+            cursor: pointer;
+            transition: opacity 0.3s, background-color 0.2s;
+            /* Hidden by default */
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* Show the button only when in webcam edit mode */
+        #webcam-widget.webcam-pan-zoom-active #webcam-43-btn {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* Style for the button when toggled on */
+        #webcam-43-btn.active {
+            background-color: #0a84ff;
+            border-color: transparent;
+        }
 
         /* NEW: Webcam Toggle Button */
         #webcam-toggle-btn {
@@ -226,10 +255,10 @@
                 <video id="webcam-video-source" playsinline muted style="display: none;"></video>
             </div>
             <div id="webcam-placeholder"><i class="fa-solid fa-video-slash"></i><span>Camera Inactive</span></div>
+            
+            <!-- MODIFIED: This button is now inside the widget and will be styled with CSS -->
+            <button id="webcam-43-btn">4:3</button>
         </div>
-
-        <!-- Position the 4:3 button under the camera window and fix the resize logic -->
-        <button id="webcam-43-btn" style="position: absolute; opacity: 0; pointer-events: none; transition: opacity 0.5s; z-index: 20; background: rgba(0,0,0,0.7); color: #fff; border: none; border-radius: 8px; padding: 8px 18px; font-size: 1.1em;">4:3</button>
 
         <!-- NEW: Webcam Toggle Button -->
         <div id="webcam-toggle-btn" class="draggable-item app-icon hidden" title="Toggle Rear Seat Cam">
@@ -790,13 +819,13 @@
                         },
                         drawToCanvas() {
                             if (!this.stream || !this.stream.active) {
+                                this.animationFrameId = requestAnimationFrame(() => this.drawToCanvas());
                                 return;
                             }
                             const video = this.elements.video;
                             const canvas = this.elements.canvas;
                             const ctx = this.elements.canvasContext;
-                            
-                            // Only proceed if video has loaded
+
                             if (!video.videoWidth || !video.videoHeight) {
                                 this.animationFrameId = requestAnimationFrame(() => this.drawToCanvas());
                                 return;
@@ -811,51 +840,25 @@
                                 return;
                             }
                             
-                            let vWidth = video.videoWidth;
-                            let vHeight = video.videoHeight;
-                            let sx = 0, sy = 0, sWidth = vWidth, sHeight = vHeight;
-                            
-                            // Default: crop 20% from bottom
-                            sHeight = vHeight * 0.8;
-                            sy = 0;
-                            
-                            // If 4:3 mode is enabled, apply 4:3 crop instead
-                            if (isWebcam43) {
-                                const targetRatio = 4/3;
-                                const videoRatio = vWidth / vHeight;
-                                if (videoRatio > targetRatio) {
-                                    // Video is wider than 4:3, crop sides
-                                    sWidth = vHeight * targetRatio;
-                                    sx = (vWidth - sWidth) / 2;
-                                    sHeight = vHeight;
-                                    sy = 0;
-                                } else {
-                                    // Video is taller than 4:3, crop top/bottom
-                                    sWidth = vWidth;
-                                    sHeight = vWidth / targetRatio;
-                                    sx = 0;
-                                    sy = (vHeight - sHeight) / 2;
-                                }
-                            }
-                            
-                            const vRatio = sWidth / sHeight;
+                            // MODIFIED: Simplified "cover" draw logic. Fills the canvas by cropping the video source.
+                            const vRatio = video.videoWidth / video.videoHeight;
                             const cRatio = canvas.width / canvas.height;
-                            let drawSx, drawSy, drawSWidth, drawSHeight;
+                            let sx, sy, sWidth, sHeight;
 
-                            if (vRatio > cRatio) {
-                                drawSHeight = sHeight;
-                                drawSWidth = sHeight * cRatio;
-                                drawSx = sx + (sWidth - drawSWidth) / 2;
-                                drawSy = sy;
-                            } else {
-                                drawSWidth = sWidth;
-                                drawSHeight = sWidth / cRatio;
-                                drawSx = sx;
-                                drawSy = sy + (sHeight - drawSHeight) / 2;
+                            if (vRatio > cRatio) { // Video is wider than canvas, so crop sides
+                                sHeight = video.videoHeight;
+                                sWidth = video.videoHeight * cRatio;
+                                sx = (video.videoWidth - sWidth) / 2;
+                                sy = 0;
+                            } else { // Video is taller than canvas, so crop top/bottom
+                                sWidth = video.videoWidth;
+                                sHeight = video.videoWidth / cRatio;
+                                sx = 0;
+                                sy = (video.videoHeight - sHeight) / 2;
                             }
                             
                             ctx.clearRect(0, 0, canvas.width, canvas.height);
-                            ctx.drawImage(video, drawSx, drawSy, drawSWidth, drawSHeight, 0, 0, canvas.width, canvas.height);
+                            ctx.drawImage(video, sx, sy, sWidth, sHeight, 0, 0, canvas.width, canvas.height);
                             
                             this.animationFrameId = requestAnimationFrame(() => this.drawToCanvas());
                         },
@@ -1001,10 +1004,8 @@
 
                     // --- Webcam Widget: Improved Pan/Zoom, Drag, Mirror, and Scroll-to-Zoom Logic ---
                     const webcamWidget = document.getElementById('webcam-widget');
-                    function setWebcamDraggable() {
-                        const webcamWidget = document.getElementById('webcam-widget');
-                        const isDraggable = !window.isWebcamPanZoomMode;
-                        if (isDraggable) {
+                    function setWebcamDraggable(enabled) {
+                        if (enabled) {
                             webcamWidget.classList.remove('no-drag');
                             webcamWidget.setAttribute('draggable', 'true');
                         } else {
@@ -1013,21 +1014,27 @@
                         }
                     }
                     // Double-click toggles pan/zoom mode
-                    videoWrapper.addEventListener('dblclick', (e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-
+                    videoWrapper.addEventListener('dblclick', () => {
+                        clearTimeout(webcamClickTimer);
                         window.isWebcamPanZoomMode = !window.isWebcamPanZoomMode;
-                        document.getElementById('webcam-widget').classList.toggle('webcam-pan-zoom-active', window.isWebcamPanZoomMode);
-                        setWebcamDraggable();
-                        
+                        webcamWidget.classList.toggle('webcam-pan-zoom-active', window.isWebcamPanZoomMode);
+                        setWebcamDraggable(!window.isWebcamPanZoomMode);
                         if (window.isWebcamPanZoomMode) {
                             webcamPlayer.loadPanZoomState();
                             resetGlowTimeout();
                         } else {
-                            exitPanZoomMode();
+                            clearTimeout(webcamGlowTimeout);
+                            webcamPlayer.savePanZoomState();
+                            resetWebcamTransform(false);
+                            // MODIFIED: Reset the 4:3 toggle when exiting edit mode
+                            if (is4to3Mode) {
+                                is4to3Mode = false;
+                                webcam43Btn.classList.remove('active');
+                                webcam43Btn.textContent = '4:3';
+                                webcamWidget.style.height = webcamWidget.dataset.originalHeight || '';
+                                delete webcamWidget.dataset.originalHeight;
+                            }
                         }
-                        updateWebcam43BtnVisibility();
                     });
                     // Single click toggles mirroring only if not in pan/zoom mode
                     videoWrapper.addEventListener('click', () => {
@@ -1039,7 +1046,6 @@
                     videoWrapper.addEventListener('wheel', (e) => {
                         if (!window.isWebcamPanZoomMode) return;
                         e.preventDefault();
-                        resetInactivityTimer();
                         let scale = webcam_transform.scale;
                         if (e.deltaY < 0) scale *= 1.08;
                         else scale /= 1.08;
@@ -1065,7 +1071,6 @@
                     videoWrapper.addEventListener('touchstart', (e) => {
                         if (!window.isWebcamPanZoomMode) return;
                         e.stopPropagation();
-                        resetInactivityTimer();
                         
                         document.getElementById('webcam-widget').classList.add('webcam-pan-zoom-active');
                         resetGlowTimeout();
@@ -1082,7 +1087,6 @@
                         if (!window.isWebcamPanZoomMode || !webcam_start_transform) return;
                         e.preventDefault();
                         e.stopPropagation();
-                        resetInactivityTimer();
                         resetGlowTimeout();
 
                         if (e.touches.length === 2) {
@@ -1114,6 +1118,32 @@
                         webcam_start_transform = null;
                         webcam_start_touch = null;
                         webcam_initial_pinch_dist = 0;
+                    });
+                    
+                    // MODIFIED: New integrated logic for the 4:3 aspect ratio toggle button
+                    const webcam43Btn = document.getElementById('webcam-43-btn');
+                    let is4to3Mode = false;
+
+                    webcam43Btn.addEventListener('click', (e) => {
+                        e.stopPropagation(); // Prevent this click from affecting the widget
+                        is4to3Mode = !is4to3Mode;
+
+                        webcam43Btn.classList.toggle('active', is4to3Mode);
+                        webcam43Btn.textContent = is4to3Mode ? 'Full' : '4:3';
+
+                        if (is4to3Mode) {
+                            // Store the current height so we can restore it later
+                            webcamWidget.dataset.originalHeight = getComputedStyle(webcamWidget).height;
+                            
+                            // Calculate and apply the new 4:3 height based on the current width
+                            const currentWidth = webcamWidget.offsetWidth;
+                            const newHeight = (currentWidth * 3) / 4;
+                            webcamWidget.style.height = `${newHeight}px`;
+                        } else {
+                            // Restore the original height and clean up
+                            webcamWidget.style.height = webcamWidget.dataset.originalHeight;
+                            delete webcamWidget.dataset.originalHeight;
+                        }
                     });
 
                     // --- Webcam pan/zoom: mouse-based panning on canvas only, and safe mirroring with drag suppression ---
@@ -1258,7 +1288,6 @@
                     videoWrapper.addEventListener('wheel', (e) => {
                         if (!window.isWebcamPanZoomMode) return;
                         e.preventDefault();
-                        resetInactivityTimer();
                         let scale = webcam_transform.scale;
                         if (e.deltaY < 0) scale *= 1.08;
                         else scale /= 1.08;
@@ -1690,125 +1719,6 @@
                         triggerStockFlashEffect(isUp, isSuper, symbol);
                     }
                 });
-
-                // Add 4:3 button logic after webcamPlayer.init():
-                const webcam43Btn = document.getElementById('webcam-43-btn');
-                let isWebcam43 = false;
-                let webcam43BtnTimer = null;
-
-                function updateWebcam43BtnPosition() {
-                    const webcamWidget = document.getElementById('webcam-widget');
-                    const webcam43Btn = document.getElementById('webcam-43-btn');
-                    if (webcamWidget && webcam43Btn) {
-                        const rect = webcamWidget.getBoundingClientRect();
-                        const left = rect.left + (rect.width / 2) - (webcam43Btn.offsetWidth / 2);
-                        const top = rect.bottom + 10;
-                        webcam43Btn.style.left = `${left}px`;
-                        webcam43Btn.style.top = `${top}px`;
-                    }
-                }
-
-                function showWebcam43Btn() {
-                    const webcam43Btn = document.getElementById('webcam-43-btn');
-                    if (webcam43Btn) {
-                        updateWebcam43BtnPosition();
-                        webcam43Btn.style.opacity = '1';
-                        webcam43Btn.style.pointerEvents = 'auto';
-                        clearTimeout(webcam43BtnTimer);
-                        webcam43BtnTimer = setTimeout(hideWebcam43Btn, 10000);
-                    }
-                }
-
-                function hideWebcam43Btn() {
-                    const webcam43Btn = document.getElementById('webcam-43-btn');
-                    if (webcam43Btn) {
-                        webcam43Btn.style.opacity = '0';
-                        webcam43Btn.style.pointerEvents = 'none';
-                    }
-                }
-
-                function updateWebcam43BtnVisibility() {
-                    if (window.isWebcamPanZoomMode) {
-                        showWebcam43Btn();
-                    } else {
-                        hideWebcam43Btn();
-                    }
-                }
-
-                webcam43Btn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    isWebcam43 = !isWebcam43;
-                    const webcamWidget = document.getElementById('webcam-widget');
-                    webcamWidget.classList.toggle('webcam-43-ratio', isWebcam43);
-                    webcam43Btn.classList.toggle('active', isWebcam43);
-                    webcam43Btn.textContent = isWebcam43 ? 'Full' : '4:3';
-                    showWebcam43Btn();
-                });
-
-                const webcamWidget = document.getElementById('webcam-widget');
-                if (webcamWidget) {
-                    const observer = new MutationObserver(() => {
-                        if (window.isWebcamPanZoomMode) {
-                            updateWebcam43BtnPosition();
-                        }
-                    });
-                    observer.observe(webcamWidget, { attributes: true, attributeFilter: ['style', 'class'] });
-                }
-
-                // Remove all cropping logic from drawToCanvas - just draw the video normally
-                webcamPlayer.drawToCanvas = function() {
-                    if (!this.stream || !this.stream.active) {
-                        return;
-                    }
-                    const video = this.elements.video;
-                    const canvas = this.elements.canvas;
-                    const ctx = this.elements.canvasContext;
-                    
-                    // Only proceed if video has loaded
-                    if (!video.videoWidth || !video.videoHeight) {
-                        this.animationFrameId = requestAnimationFrame(() => this.drawToCanvas());
-                        return;
-                    }
-                    
-                    if (canvas.width !== canvas.clientWidth || canvas.height !== canvas.clientHeight) {
-                        canvas.width = canvas.clientWidth;
-                        canvas.height = canvas.clientHeight;
-                    }
-                    if (canvas.width === 0 || canvas.height === 0) {
-                        this.animationFrameId = requestAnimationFrame(() => this.drawToCanvas());
-                        return;
-                    }
-                    
-                    // Draw video normally - no cropping, let the window aspect ratio handle the display
-                    const vWidth = video.videoWidth;
-                    const vHeight = video.videoHeight;
-                    const cWidth = canvas.width;
-                    const cHeight = canvas.height;
-                    const vRatio = vWidth / vHeight;
-                    const cRatio = cWidth / cHeight;
-                    let sx, sy, sWidth, sHeight;
-
-                    if (vRatio > cRatio) {
-                        sHeight = vHeight;
-                        sWidth = vHeight * cRatio;
-                        sx = (vWidth - sWidth) / 2;
-                        sy = 0;
-                    } else {
-                        sWidth = vWidth;
-                        sHeight = vWidth / cRatio;
-                        sy = (vHeight - sHeight) / 2;
-                        sx = 0;
-                    }
-                    
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    ctx.drawImage(video, sx, sy, sWidth, sHeight, 0, 0, canvas.width, canvas.height);
-                    
-                    this.animationFrameId = requestAnimationFrame(() => this.drawToCanvas());
-                };
-
-                // Add updateWebcam43BtnVisibility() call to the pan/zoom mode toggle
-                // In the videoWrapper dblclick handler, after toggling pan/zoom mode:
-                // ... existing code ...
             }
         });
     </script>
