@@ -213,7 +213,7 @@
             <div id="remove-gif-btn">×</div>
         </div>
 
-        <div id="webcam-widget" class="draggable-item widget" title="Click feed to mirror | Dbl-click feed for pan/zoom">
+        <div id="webcam-widget" class="draggable-item widget" title="Long-press feed to mirror | Dbl-click feed for pan/zoom">
             <div class="webcam-video-wrapper">
                 <canvas id="webcam-canvas"></canvas>
                 <div id="webcam-controls">
@@ -1003,7 +1003,7 @@
                         // Handle double-tap only if no pinch was happening
                         if (e.touches.length === 0 && !resizeGestureState.initialDist) {
                             const now = Date.now();
-                            if (now - webcamLastTap < 350) {
+                            if (now - webcamLastTap < 200) { // Reduced from 350ms to 200ms
                                 toggleWebcamPanZoomMode();
                                 webcamLastTap = 0;
                             } else {
@@ -1056,10 +1056,39 @@
                     let webcamPanMouse = { isDown: false, startX: 0, startY: 0, startPanX: 0, startPanY: 0 };
                     let webcamWidgetDragInProgress = false;
                     
-                    videoWrapper.addEventListener('click', () => {
-                        if (window.isWebcamPanZoomMode || webcamWidgetDragInProgress) return;
-                        videoWrapper.classList.toggle('normal-view');
-                    });
+                    // Long press for mirror toggle (removed single click)
+                    let webcamLongPressTimer = null;
+                    let webcamLongPressStarted = false;
+                    
+                    function startWebcamLongPress(e) {
+                        if (window.isWebcamPanZoomMode || webcamWidgetDragInProgress || webcam_transform.scale > 1) return;
+                        webcamLongPressStarted = true;
+                        webcamLongPressTimer = setTimeout(() => {
+                            if (webcamLongPressStarted) {
+                                videoWrapper.classList.toggle('normal-view');
+                                // Brief visual feedback
+                                videoWrapper.style.filter = 'brightness(1.3)';
+                                setTimeout(() => videoWrapper.style.filter = '', 150);
+                            }
+                        }, 500); // 500ms long press
+                    }
+                    
+                    function cancelWebcamLongPress() {
+                        webcamLongPressStarted = false;
+                        if (webcamLongPressTimer) {
+                            clearTimeout(webcamLongPressTimer);
+                            webcamLongPressTimer = null;
+                        }
+                    }
+                    
+                    videoWrapper.addEventListener('mousedown', startWebcamLongPress);
+                    videoWrapper.addEventListener('mouseup', cancelWebcamLongPress);
+                    videoWrapper.addEventListener('mousemove', cancelWebcamLongPress);
+                    videoWrapper.addEventListener('mouseleave', cancelWebcamLongPress);
+                    videoWrapper.addEventListener('touchstart', startWebcamLongPress);
+                    videoWrapper.addEventListener('touchmove', cancelWebcamLongPress, { passive: true });
+                    videoWrapper.addEventListener('touchend', cancelWebcamLongPress);
+                    videoWrapper.addEventListener('touchcancel', cancelWebcamLongPress);
                     
                     videoWrapper.addEventListener('wheel', (e) => {
                         if (!window.isWebcamPanZoomMode) return;
@@ -1127,6 +1156,7 @@
                     let touchGestureState = {};
                     videoWrapper.addEventListener('touchstart', (e) => {
                         if (!window.isWebcamPanZoomMode) return;
+                        cancelWebcamLongPress(); // Cancel any ongoing long press
                         e.stopPropagation();
                         touchGestureState.startTransform = { ...webcam_transform };
                         if (e.touches.length === 1) {
@@ -1173,6 +1203,7 @@
                     // Mouse panning on videoWrapper instead of canvas
                     videoWrapper.addEventListener('mousedown', (e) => {
                         if (!window.isWebcamPanZoomMode || webcam_transform.scale <= 1) return; // Only when zoomed in
+                        cancelWebcamLongPress(); // Cancel any ongoing long press
                         e.preventDefault();
                         e.stopPropagation();
                         webcamPanMouse = { isDown: true, startX: e.clientX, startY: e.clientY, startPanX: webcam_transform.panX, startPanY: webcam_transform.panY };
