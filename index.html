@@ -67,7 +67,7 @@
         #gif-widget.has-gif:hover #remove-gif-btn { display: flex; }
         
         /* Webcam Widget CSS */
-        #webcam-widget { top: 20%; left: 20%; width: 320px; height: 240px; padding: 0; resize: both; overflow: hidden; display: flex; align-items: center; justify-content: center; background-color: #000; border: 1px solid var(--widget-bg); transition: box-shadow 0.3s, border-color 0.3s; }
+        #webcam-widget { top: 20%; left: 20%; width: 320px; height: 240px; padding: 0; resize: none; overflow: hidden; display: flex; align-items: center; justify-content: center; background-color: #000; border: 1px solid var(--widget-bg); transition: box-shadow 0.3s, border-color 0.3s; }
         .webcam-video-wrapper { display: none; width: 100%; height: 100%; transform: scaleX(-1); /* Default to mirrored */ touch-action: none; /* For Pointer Events */ cursor: pointer; }
         .webcam-video-wrapper.panning { cursor: grabbing; }
         .webcam-video-wrapper.normal-view { transform: scaleX(1); /* Class to un-mirror */ }
@@ -981,7 +981,7 @@
                         updateWebcamCursor();
                     }
 
-                    // --- ATTACH LISTENERS TO THE CORRECT ELEMENT: webcamWidget ---
+                    // --- SIMPLIFIED DOUBLE-CLICK TO ENTER/EXIT MODE ---
                     webcamWidget.addEventListener('dblclick', (e) => {
                         if (e.target.closest('#webcam-controls, #webcam-portrait-btn')) return;
                         e.preventDefault();
@@ -989,7 +989,6 @@
                         toggleWebcamPanZoomMode();
                     });
 
-                    let webcamLastTap = 0;
                     let resizeGestureState = {}; // Declare here for use in touchend handler
                     
                     webcamWidget.addEventListener('touchend', (e) => {
@@ -999,17 +998,7 @@
                         if (e.touches.length < 2) {
                             resizeGestureState = {};
                         }
-                        
-                        // Handle double-tap only if no pinch was happening
-                        if (e.touches.length === 0 && !resizeGestureState.initialDist) {
-                            const now = Date.now();
-                            if (now - webcamLastTap < 200) { // Reduced from 350ms to 200ms
-                                toggleWebcamPanZoomMode();
-                                webcamLastTap = 0;
-                            } else {
-                                webcamLastTap = now;
-                            }
-                        }
+                        // Removed complex double-tap timing - using dblclick instead
                     });
 
                     portraitBtn.addEventListener('click', (e) => {
@@ -1047,7 +1036,34 @@
                         showPortraitBtn(); // Reset the hide timer
                     });
 
-                    const observer = new MutationObserver(updatePortraitBtnPosition);
+                    // Watch for any manual size changes and correct aspect ratio
+                    const observer = new MutationObserver((mutations) => {
+                        updatePortraitBtnPosition();
+                        
+                        // Check if size was changed manually and correct aspect ratio
+                        mutations.forEach(mutation => {
+                            if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                                setTimeout(() => {
+                                    const currentWidth = webcamWidget.offsetWidth;
+                                    const currentHeight = webcamWidget.offsetHeight;
+                                    let correctHeight;
+                                    
+                                    if (isWebcamPortraitMode) {
+                                        // Portrait mode: should be 9:16 ratio (taller)
+                                        correctHeight = Math.round(currentWidth * 16 / 9);
+                                    } else {
+                                        // Landscape mode: should be 16:9 ratio (wider)
+                                        correctHeight = Math.round(currentWidth * 9 / 16);
+                                    }
+                                    
+                                    // Only adjust if significantly different (avoid infinite loops)
+                                    if (Math.abs(currentHeight - correctHeight) > 5) {
+                                        webcamWidget.style.height = `${correctHeight}px`;
+                                    }
+                                }, 0);
+                            }
+                        });
+                    });
                     observer.observe(webcamWidget, { attributes: true, attributeFilter: ['style', 'class'] });
 
                     // The rest of the pan/zoom logic remains the same
