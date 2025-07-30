@@ -67,7 +67,7 @@
         #gif-widget.has-gif:hover #remove-gif-btn { display: flex; }
         
         /* Webcam Widget CSS */
-        #webcam-widget { top: 20%; left: 20%; width: 320px; height: 240px; padding: 0; resize: both; overflow: hidden; display: flex; align-items: center; justify-content: center; background-color: #000; border: 2px solid var(--widget-bg); transition: box-shadow 0.3s, border-color 0.3s; }
+        #webcam-widget { top: 20%; left: 20%; width: 320px; height: 240px; padding: 0; resize: both; overflow: hidden; display: flex; align-items: center; justify-content: center; background-color: #000; border: 1px solid var(--widget-bg); transition: box-shadow 0.3s, border-color 0.3s; }
         .webcam-video-wrapper { display: none; width: 100%; height: 100%; transform: scaleX(-1); /* Default to mirrored */ touch-action: none; /* For Pointer Events */ cursor: pointer; }
         .webcam-video-wrapper.panning { cursor: grabbing; }
         .webcam-video-wrapper.normal-view { transform: scaleX(1); /* Class to un-mirror */ }
@@ -215,15 +215,17 @@
         <div id="webcam-widget" class="draggable-item widget" title="Click feed to mirror | Dbl-click feed for pan/zoom">
             <div class="webcam-video-wrapper">
                 <canvas id="webcam-canvas"></canvas>
-                <button id="webcam-43-btn" style="position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); opacity: 0; pointer-events: none; transition: opacity 0.5s; z-index: 20; background: rgba(0,0,0,0.7); color: #fff; border: none; border-radius: 8px; padding: 8px 18px; font-size: 1.1em;">4:3</button>
+                <div id="webcam-controls">
+                    <select id="webcam-source-select"><option>No Cams</option></select>
+                    <button id="webcam-stop-btn" title="Stop Camera"><i class="fa-solid fa-power-off"></i></button>
+                </div>
                 <video id="webcam-video-source" playsinline muted style="display: none;"></video>
             </div>
             <div id="webcam-placeholder"><i class="fa-solid fa-video-slash"></i><span>Camera Inactive</span></div>
-            <div id="webcam-controls">
-                <select id="webcam-source-select"><option>No Cams</option></select>
-                <button id="webcam-stop-btn" title="Stop Camera"><i class="fa-solid fa-power-off"></i></button>
-            </div>
         </div>
+
+        <!-- Position the 4:3 button under the camera window and fix the resize logic -->
+        <button id="webcam-43-btn" style="position: absolute; opacity: 0; pointer-events: none; transition: opacity 0.5s; z-index: 20; background: rgba(0,0,0,0.7); color: #fff; border: none; border-radius: 8px; padding: 8px 18px; font-size: 1.1em;">4:3</button>
 
         <!-- NEW: Webcam Toggle Button -->
         <div id="webcam-toggle-btn" class="draggable-item app-icon hidden" title="Toggle Rear Seat Cam">
@@ -789,36 +791,67 @@
                             const video = this.elements.video;
                             const canvas = this.elements.canvas;
                             const ctx = this.elements.canvasContext;
+                            
+                            // Only proceed if video has loaded
+                            if (!video.videoWidth || !video.videoHeight) {
+                                this.animationFrameId = requestAnimationFrame(() => this.drawToCanvas());
+                                return;
+                            }
+                            
                             if (canvas.width !== canvas.clientWidth || canvas.height !== canvas.clientHeight) {
                                 canvas.width = canvas.clientWidth;
                                 canvas.height = canvas.clientHeight;
                             }
-                            if (canvas.width === 0 || canvas.height === 0 || video.videoWidth === 0) {
-                                 this.animationFrameId = requestAnimationFrame(() => this.drawToCanvas());
-                                 return;
-                            }
-                            const vWidth = video.videoWidth;
-                            const vHeight = video.videoHeight;
-                            const cWidth = canvas.width;
-                            const cHeight = canvas.height;
-                            const vRatio = vWidth / vHeight;
-                            const cRatio = cWidth / cHeight;
-                            let sx, sy, sWidth, sHeight;
-
-                            if (vRatio > cRatio) {
-                                sHeight = vHeight;
-                                sWidth = vHeight * cRatio;
-                                sx = (vWidth - sWidth) / 2;
-                                sy = 0;
-                            } else {
-                                sWidth = vWidth;
-                                sHeight = vWidth / cRatio;
-                                sy = (vHeight - sHeight) / 2;
-                                sx = 0;
+                            if (canvas.width === 0 || canvas.height === 0) {
+                                this.animationFrameId = requestAnimationFrame(() => this.drawToCanvas());
+                                return;
                             }
                             
-                            ctx.clearRect(0, 0, cWidth, cHeight);
-                            ctx.drawImage(video, sx, sy, sWidth, sHeight, 0, 0, cWidth, cHeight);
+                            let vWidth = video.videoWidth;
+                            let vHeight = video.videoHeight;
+                            let sx = 0, sy = 0, sWidth = vWidth, sHeight = vHeight;
+                            
+                            // Default: crop 20% from bottom
+                            sHeight = vHeight * 0.8;
+                            sy = 0;
+                            
+                            // If 4:3 mode is enabled, apply 4:3 crop instead
+                            if (isWebcam43) {
+                                const targetRatio = 4/3;
+                                const videoRatio = vWidth / vHeight;
+                                if (videoRatio > targetRatio) {
+                                    // Video is wider than 4:3, crop sides
+                                    sWidth = vHeight * targetRatio;
+                                    sx = (vWidth - sWidth) / 2;
+                                    sHeight = vHeight;
+                                    sy = 0;
+                                } else {
+                                    // Video is taller than 4:3, crop top/bottom
+                                    sWidth = vWidth;
+                                    sHeight = vWidth / targetRatio;
+                                    sx = 0;
+                                    sy = (vHeight - sHeight) / 2;
+                                }
+                            }
+                            
+                            const vRatio = sWidth / sHeight;
+                            const cRatio = canvas.width / canvas.height;
+                            let drawSx, drawSy, drawSWidth, drawSHeight;
+
+                            if (vRatio > cRatio) {
+                                drawSHeight = sHeight;
+                                drawSWidth = sHeight * cRatio;
+                                drawSx = sx + (sWidth - drawSWidth) / 2;
+                                drawSy = sy;
+                            } else {
+                                drawSWidth = sWidth;
+                                drawSHeight = sWidth / cRatio;
+                                drawSx = sx;
+                                drawSy = sy + (sHeight - drawSHeight) / 2;
+                            }
+                            
+                            ctx.clearRect(0, 0, canvas.width, canvas.height);
+                            ctx.drawImage(video, drawSx, drawSy, drawSWidth, drawSHeight, 0, 0, canvas.width, canvas.height);
                             
                             this.animationFrameId = requestAnimationFrame(() => this.drawToCanvas());
                         },
@@ -974,18 +1007,19 @@
                         }
                     }
                     // Double-click toggles pan/zoom mode
-                    videoWrapper.addEventListener('dblclick', () => {
-                        clearTimeout(webcamClickTimer);
+                    videoWrapper.addEventListener('dblclick', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
                         window.isWebcamPanZoomMode = !window.isWebcamPanZoomMode;
-                        webcamWidget.classList.toggle('webcam-pan-zoom-active', window.isWebcamPanZoomMode);
-                        setWebcamDraggable(!window.isWebcamPanZoomMode);
+                        setWebcamDraggable();
+                        
                         if (window.isWebcamPanZoomMode) {
                             webcamPlayer.loadPanZoomState();
-                            resetGlowTimeout();
+                            showWebcam43Btn();
                         } else {
-                            clearTimeout(webcamGlowTimeout);
                             webcamPlayer.savePanZoomState();
-                            resetWebcamTransform(false);
+                            hideWebcam43Btn();
                         }
                     });
                     // Single click toggles mirroring only if not in pan/zoom mode
@@ -1277,6 +1311,7 @@
                         let oX, oY, isD, hasMoved;
                         let isPinching = false, initialPinchDist, initialScale;
                         const getDist = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+                        
                         const mv = (e) => {
                             if (el.isEditing) return;
                             if (el.id === 'clock' && isPinching && e.touches && e.touches.length === 2) {
@@ -1286,46 +1321,93 @@
                                 applyClockScale(newScale); const newWidth = el.offsetWidth, newHeight = el.offsetHeight; const deltaWidth = newWidth - oldWidth, deltaHeight = newHeight - oldHeight;
                                 el.style.left = `${oldLeft - (deltaWidth / 2)}px`; el.style.top = `${oldTop - (deltaHeight / 2)}px`; return;
                             }
-                            if (!isD) return; e.preventDefault(); hasMoved = true;
-                            const cX = e.touches ? e.touches[0].clientX : e.clientX, cY = e.touches ? e.touches[0].clientY : e.clientY;
+                            if (!isD) return; 
+                            e.preventDefault(); 
+                            hasMoved = true;
+                            
+                            // Get coordinates consistently for both mouse and touch
+                            let cX, cY;
+                            if (e.touches && e.touches.length > 0) {
+                                cX = e.touches[0].clientX;
+                                cY = e.touches[0].clientY;
+                            } else {
+                                cX = e.clientX;
+                                cY = e.clientY;
+                            }
+                            
                             let nX = cX - oX, nY = cY - oY;
                             const sR = lockScreen;
                             const maxX = sR.clientWidth - el.offsetWidth;
                             const maxY = sR.clientHeight - el.offsetHeight;
                             nX = Math.max(0, Math.min(nX, maxX));
                             nY = Math.max(0, Math.min(nY, maxY));
-                            el.style.left = `${nX}px`; el.style.top = `${nY}px`;
+                            el.style.left = `${nX}px`; 
+                            el.style.top = `${nY}px`;
                             if(['clock', 'stock-widget'].indexOf(el.id) === -1) el.style.transform = 'none';
                         };
+                        
                         const stD = (e) => {
                             if (!isD && !isPinching) return;
                             e.target.hasMoved = hasMoved;
-                            if (el.id === 'fun-stock-name-display' && el.classList.contains('visible')) { stockNameFadeOutTimer = setTimeout(() => { el.classList.remove('visible'); }, 3000); }
-                            isD = false; isPinching = false;
+                            if (el.id === 'fun-stock-name-display' && el.classList.contains('visible')) { 
+                                stockNameFadeOutTimer = setTimeout(() => { el.classList.remove('visible'); }, 3000); 
+                            }
+                            isD = false; 
+                            isPinching = false;
                             if (hasMoved) savePos();
-                            document.removeEventListener('mousemove', mv); document.removeEventListener('touchmove', mv);
+                            document.removeEventListener('mousemove', mv); 
+                            document.removeEventListener('touchmove', mv);
                         };
+                        
                         const sD_longPress = (e) => {
                             if (el.id === 'webcam-widget' && window.isWebcamPanZoomMode) {
                                 return;
                             }
                             if (el.isEditing) return;
                             if (e.target.closest('#music-controls, #remove-gif-btn, #webcam-controls, #note-settings-btn')) return;
-                            if (e.touches && e.touches.length === 2 && el.id === 'clock') { isPinching = true; isD = false; initialPinchDist = getDist(e.touches); initialScale = clockScale; return; }
+                            if (e.touches && e.touches.length === 2 && el.id === 'clock') { 
+                                isPinching = true; 
+                                isD = false; 
+                                initialPinchDist = getDist(e.touches); 
+                                initialScale = clockScale; 
+                                return; 
+                            }
                             
-                            isD = true; hasMoved = false; e.target.hasMoved = false;
-                            const cX = e.touches ? e.touches[0].clientX : e.clientX, cY = e.touches ? e.touches[0].clientY : e.clientY;
-                            oX = cX - el.offsetLeft; oY = cY - el.offsetTop;
-                            if (el.id === 'fun-stock-name-display' && stockNameFadeOutTimer) { clearTimeout(stockNameFadeOutTimer); stockNameFadeOutTimer = null; }
+                            isD = true; 
+                            hasMoved = false; 
+                            e.target.hasMoved = false;
+                            
+                            // Get coordinates consistently for both mouse and touch
+                            let cX, cY;
+                            if (e.touches && e.touches.length > 0) {
+                                cX = e.touches[0].clientX;
+                                cY = e.touches[0].clientY;
+                            } else {
+                                cX = e.clientX;
+                                cY = e.clientY;
+                            }
+                            
+                            oX = cX - el.offsetLeft; 
+                            oY = cY - el.offsetTop;
+                            if (el.id === 'fun-stock-name-display' && stockNameFadeOutTimer) { 
+                                clearTimeout(stockNameFadeOutTimer); 
+                                stockNameFadeOutTimer = null; 
+                            }
                             document.addEventListener('mousemove', mv, { passive: false });
                             document.addEventListener('touchmove', mv, { passive: false });
                             document.addEventListener('mouseup', stD, { once: true });
                             document.addEventListener('touchend', stD, { once: true });
                         };
+                        
                         el.addEventListener('mousedown', sD_longPress);
                         el.addEventListener('touchstart', sD_longPress, { passive: false });
-                        const lnk = el.querySelector('a'); if (lnk) { lnk.addEventListener('click', (e) => { if (hasMoved) e.preventDefault(); }); }
-                        if(el.id === 'settings-btn') { el.addEventListener('click', (e) => { if (!hasMoved) { showWallpaperSettings(); settingsMenu.classList.add('visible'); } }); }
+                        const lnk = el.querySelector('a'); 
+                        if (lnk) { 
+                            lnk.addEventListener('click', (e) => { if (hasMoved) e.preventDefault(); }); 
+                        }
+                        if(el.id === 'settings-btn') { 
+                            el.addEventListener('click', (e) => { if (!hasMoved) { showWallpaperSettings(); settingsMenu.classList.add('visible'); } }); 
+                        }
                     };
                     
                     stockWidget.addEventListener('click', (e) => {
@@ -1597,6 +1679,138 @@
                         triggerStockFlashEffect(isUp, isSuper, symbol);
                     }
                 });
+
+                // Add 4:3 button logic after webcamPlayer.init():
+                const webcam43Btn = document.getElementById('webcam-43-btn');
+                let isWebcam43 = false;
+                let webcam43BtnTimer = null;
+
+                // Fix the 4:3 button positioning and resize logic
+                function updateWebcam43BtnPosition() {
+                    const webcamWidget = document.getElementById('webcam-widget');
+                    const webcam43Btn = document.getElementById('webcam-43-btn');
+                    
+                    if (webcamWidget && webcam43Btn) {
+                        const rect = webcamWidget.getBoundingClientRect();
+                        const left = rect.left + (rect.width / 2) - (webcam43Btn.offsetWidth / 2);
+                        const top = rect.bottom + 10; // 10px below the camera window
+                        
+                        webcam43Btn.style.left = `${left}px`;
+                        webcam43Btn.style.top = `${top}px`;
+                    }
+                }
+
+                function showWebcam43Btn() {
+                    const webcam43Btn = document.getElementById('webcam-43-btn');
+                    if (webcam43Btn) {
+                        updateWebcam43BtnPosition();
+                        webcam43Btn.style.opacity = '1';
+                        webcam43Btn.style.pointerEvents = 'auto';
+                        
+                        clearTimeout(webcam43BtnTimer);
+                        webcam43BtnTimer = setTimeout(hideWebcam43Btn, 10000);
+                    }
+                }
+
+                function hideWebcam43Btn() {
+                    const webcam43Btn = document.getElementById('webcam-43-btn');
+                    if (webcam43Btn) {
+                        webcam43Btn.style.opacity = '0';
+                        webcam43Btn.style.pointerEvents = 'none';
+                    }
+                }
+
+                // Fix the 4:3 button click handler to properly resize the camera window
+                webcam43Btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    isWebcam43 = !isWebcam43;
+                    webcam43Btn.classList.toggle('active', isWebcam43);
+                    webcam43Btn.textContent = isWebcam43 ? 'Full' : '4:3';
+                    
+                    const webcamWidget = document.getElementById('webcam-widget');
+                    if (webcamWidget) {
+                        if (isWebcam43) {
+                            // Set to 4:3 aspect ratio - make it more square
+                            const currentWidth = webcamWidget.offsetWidth;
+                            const newHeight = (currentWidth * 3) / 4; // 4:3 ratio
+                            webcamWidget.style.height = `${newHeight}px`;
+                        } else {
+                            // Return to original size (16:9 or default)
+                            webcamWidget.style.height = '240px'; // Default height
+                        }
+                        
+                        // Update button position after resize
+                        setTimeout(updateWebcam43BtnPosition, 100);
+                    }
+                    
+                    showWebcam43Btn();
+                });
+
+                // Update button position when webcam widget moves
+                const webcamWidget = document.getElementById('webcam-widget');
+                if (webcamWidget) {
+                    const observer = new MutationObserver(() => {
+                        if (window.isWebcamPanZoomMode) {
+                            updateWebcam43BtnPosition();
+                        }
+                    });
+                    observer.observe(webcamWidget, { attributes: true, attributeFilter: ['style'] });
+                }
+
+                // Remove all cropping logic from drawToCanvas - just draw the video normally
+                webcamPlayer.drawToCanvas = function() {
+                    if (!this.stream || !this.stream.active) {
+                        return;
+                    }
+                    const video = this.elements.video;
+                    const canvas = this.elements.canvas;
+                    const ctx = this.elements.canvasContext;
+                    
+                    // Only proceed if video has loaded
+                    if (!video.videoWidth || !video.videoHeight) {
+                        this.animationFrameId = requestAnimationFrame(() => this.drawToCanvas());
+                        return;
+                    }
+                    
+                    if (canvas.width !== canvas.clientWidth || canvas.height !== canvas.clientHeight) {
+                        canvas.width = canvas.clientWidth;
+                        canvas.height = canvas.clientHeight;
+                    }
+                    if (canvas.width === 0 || canvas.height === 0) {
+                        this.animationFrameId = requestAnimationFrame(() => this.drawToCanvas());
+                        return;
+                    }
+                    
+                    // Draw video normally - no cropping, let the window aspect ratio handle the display
+                    const vWidth = video.videoWidth;
+                    const vHeight = video.videoHeight;
+                    const cWidth = canvas.width;
+                    const cHeight = canvas.height;
+                    const vRatio = vWidth / vHeight;
+                    const cRatio = cWidth / cHeight;
+                    let sx, sy, sWidth, sHeight;
+
+                    if (vRatio > cRatio) {
+                        sHeight = vHeight;
+                        sWidth = vHeight * cRatio;
+                        sx = (vWidth - sWidth) / 2;
+                        sy = 0;
+                    } else {
+                        sWidth = vWidth;
+                        sHeight = vWidth / cRatio;
+                        sy = (vHeight - sHeight) / 2;
+                        sx = 0;
+                    }
+                    
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(video, sx, sy, sWidth, sHeight, 0, 0, canvas.width, canvas.height);
+                    
+                    this.animationFrameId = requestAnimationFrame(() => this.drawToCanvas());
+                };
+
+                // Add updateWebcam43BtnVisibility() call to the pan/zoom mode toggle
+                // In the videoWrapper dblclick handler, after toggling pan/zoom mode:
+                // ... existing code ...
             }
         });
     </script>
