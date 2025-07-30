@@ -215,6 +215,7 @@
         <div id="webcam-widget" class="draggable-item widget" title="Click feed to mirror | Dbl-click feed for pan/zoom">
             <div class="webcam-video-wrapper">
                 <canvas id="webcam-canvas"></canvas>
+                <button id="webcam-43-btn" style="position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); opacity: 0; pointer-events: none; transition: opacity 0.5s; z-index: 20; background: rgba(0,0,0,0.7); color: #fff; border: none; border-radius: 8px; padding: 8px 18px; font-size: 1.1em;">4:3</button>
                 <video id="webcam-video-source" playsinline muted style="display: none;"></video>
             </div>
             <div id="webcam-placeholder"><i class="fa-solid fa-video-slash"></i><span>Camera Inactive</span></div>
@@ -868,7 +869,7 @@
                             this.elements.widget.style.display = 'flex';
                             const deviceId = this.elements.select.value;
                             if (!deviceId) { this.stop(); return; }
-                            const constraints = { video: { deviceId: { exact: deviceId } } };
+                            const constraints = { video: { deviceId: { exact: deviceId }, width: { ideal: 1280 }, height: { ideal: 720 } } };
                             try {
                                 this.stream = await navigator.mediaDevices.getUserMedia(constraints);
                                 this.elements.video.srcObject = this.stream;
