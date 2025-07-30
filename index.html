@@ -43,7 +43,7 @@
         #note-widget.edit-mode { cursor: default; box-shadow: 0 0 15px rgba(10, 132, 255, 0.7); }
         #note-display, #note-textarea { width: 100%; height: 100%; background: transparent; border: none; color: var(--text-color); font-family: 'Roboto', sans-serif; font-size: 1rem; padding: 10px; resize: none; outline: none; text-align: center; }
         #note-display { white-space: pre-wrap; word-wrap: break-word; user-select: none; }
-        #note-textarea { display: none; overflow-y: hidden; /* MODIFIED: Hide scrollbar during resize */ }
+        #note-textarea { display: none; }
         #note-widget.edit-mode #note-display { display: none; }
         #note-widget.edit-mode #note-textarea { display: block; }
         #note-settings-btn { position: absolute; top: 8px; right: 8px; width: 28px; height: 28px; background-color: rgba(0,0,0,0.5); color: white; border-radius: 50%; display: none; justify-content: center; align-items: center; font-size: 16px; cursor: pointer; z-index: 12; }
@@ -179,7 +179,7 @@
     <div id="lock-screen">
         <div id="status-bar"><div id="weather-info"><span id="date"></span> <i id="weather-icon" class="fa-solid fa-cloud-sun"></i> <span id="temperature">...</span></div></div>
         <div id="fullscreen-hint">Double press wallpaper for fullscreen</div>
-        <div id="clock" class="draggable-item" title="Double-press for wallpapers"><div id="hours">00</div><div id="minutes">00</div></div>
+        <div id="clock" class="draggable-item"><div id="hours">00</div><div id="minutes">00</div></div>
         <div id="youtube-music-btn" class="draggable-item app-icon"><a href="https://music.youtube.com/" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="50" fill="#FF0000"/><circle cx="50" cy="50" r="23" fill="none" stroke="white" stroke-width="4"/><polygon points="43,38 62,50 43,62" fill="white"/></svg></a></div>
         <div id="youtube-btn" class="draggable-item app-icon"><a href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="50" fill="#FF0000"/><path d="M 35,29 A 10,10 0 0 0 25,39 V 61 A 10,10 0 0 0 35,71 H 65 A 10,10 0 0 0 75,61 V 39 A 10,10 0 0 0 65,29 Z" fill="white"/><polygon points="45,42 62,50 45,58" fill="#FF0000"/></svg></a></div>
         
@@ -496,20 +496,10 @@
                     const noteFontSelect = document.getElementById('note-font-select');
                     const noteFontSizeInput = document.getElementById('note-font-size-input');
 
-                    // MODIFIED: Function to auto-resize the note textarea
-                    const autoResizeNote = () => {
-                        // Use a small timeout to ensure DOM is ready for scrollHeight calculation
-                        setTimeout(() => {
-                            noteTextarea.style.height = 'auto'; // Reset height to recalculate
-                            noteTextarea.style.height = `${noteTextarea.scrollHeight}px`; // Set to content height
-                        }, 0);
-                    };
-
                     const enterNoteEditMode = () => {
                         noteWidget.isEditing = true;
                         noteWidget.classList.add('edit-mode');
                         noteTextarea.focus();
-                        autoResizeNote(); // Resize on entering edit mode too
                         setTimeout(() => {
                             document.addEventListener('click', exitNoteEditModeOnClickOutside, { once: true });
                         }, 0);
@@ -540,18 +530,15 @@
                         noteDisplay.style.fontSize = `${fontSize}px`;
                         noteFontSelect.value = fontFamily;
                         noteFontSizeInput.value = fontSize;
-                        autoResizeNote(); // Apply resize when style changes
                     };
 
                     const savedText = localStorage.getItem('lockscreenNoteContent') || '';
                     noteTextarea.value = savedText;
                     noteDisplay.innerText = savedText;
                     
-                    // MODIFIED: Call auto-resize on input
                     noteTextarea.addEventListener('input', () => { 
                         localStorage.setItem('lockscreenNoteContent', noteTextarea.value);
                         noteDisplay.innerText = noteTextarea.value;
-                        autoResizeNote();
                     });
                     
                     noteWidget.addEventListener('dblclick', (e) => {
@@ -575,8 +562,7 @@
                             applyNoteStyle();
                         }
                     });
-                    
-                    applyNoteStyle(); // Initial call to set style and size
+                    applyNoteStyle();
 
                     // Music Widget
                     const radioPlayer = {
@@ -588,7 +574,7 @@
                             { name: 'SomaFM: Vaporwaves', genre: 'Hypnagogic Retro', streamUrl: 'https://ice1.somafm.com/vaporwaves-128-mp3' }
                         ],
                         currentStationIndex: -1,
-                        currentArtworkUrl: '',
+                        currentArtworkUrl: '', // NEW: To store the wallpaper art
                         audio: document.getElementById('audio-player'),
                         elements: {
                             widget: document.getElementById('music-widget'),
@@ -614,10 +600,16 @@
                             this.elements.art.innerHTML = '<i class="fa-solid fa-headphones"></i>';
                             this.setupMediaSession();
                         },
+                        // NEW: Function to update the album art for the widget and Media Session
                         updateAlbumArt(artUrl) {
                             if (artUrl) this.currentArtworkUrl = artUrl;
                             
-                            if (this.currentStationIndex !== -1 && 'mediaSession' in navigator && this.currentArtworkUrl) {
+                            // Update the widget's album art display
+                            this.elements.art.innerHTML = '';
+                            this.elements.art.style.backgroundImage = `url('${this.currentArtworkUrl}')`;
+
+                            // Update the media session if a station is loaded
+                            if (this.currentStationIndex !== -1 && 'mediaSession' in navigator) {
                                 const station = this.stations[this.currentStationIndex];
                                 navigator.mediaSession.metadata = new MediaMetadata({
                                     title: station.name,
@@ -640,6 +632,7 @@
                             this.audio.src = station.streamUrl;
                             this.audio.play().catch(e => console.error("Audio play failed:", e));
                             
+                            // MODIFIED: Use the new update function
                             this.updateAlbumArt(); 
                         },
                         openRadioMenu() {
@@ -868,12 +861,14 @@
                                 }
                                 this.stop(true);
                             }
-
+                            // Always show widget and toggle button
+                            this.elements.widget.classList.remove('hidden');
+                            const webcamToggleBtn = document.getElementById('webcam-toggle-btn');
+                            if (webcamToggleBtn) webcamToggleBtn.classList.remove('hidden');
                             this.elements.widget.style.display = 'flex';
                             const deviceId = this.elements.select.value;
                             if (!deviceId) { this.stop(); return; }
                             const constraints = { video: { deviceId: { exact: deviceId } } };
-
                             try {
                                 this.stream = await navigator.mediaDevices.getUserMedia(constraints);
                                 this.elements.video.srcObject = this.stream;
@@ -909,7 +904,26 @@
                             if (!isRestarting) {
                                 this.elements.widget.style.display = 'none';
                             }
-                        }
+                        },
+                        // Persistent pan/zoom state helpers
+                        savePanZoomState() {
+                            localStorage.setItem('webcamPanZoomState', JSON.stringify(webcam_transform));
+                        },
+                        loadPanZoomState() {
+                            const state = localStorage.getItem('webcamPanZoomState');
+                            if (state) {
+                                try {
+                                    const obj = JSON.parse(state);
+                                    if (typeof obj.scale === 'number' && typeof obj.panX === 'number' && typeof obj.panY === 'number') {
+                                        webcam_transform = obj;
+                                        applyWebcamTransform();
+                                    }
+                                } catch {}
+                            }
+                        },
+                        clearPanZoomState() {
+                            localStorage.removeItem('webcamPanZoomState');
+                        },
                     };
                     window.webcamPlayer = webcamPlayer;
                     webcamPlayer.init();
@@ -929,9 +943,10 @@
                         canvasEl.style.transform = `translate(${webcam_transform.panX}px, ${webcam_transform.panY}px) scale(${webcam_transform.scale})`;
                     }
 
-                    function resetWebcamTransform() {
+                    function resetWebcamTransform(save = true) {
                         webcam_transform = { scale: 1, panX: 0, panY: 0 };
                         applyWebcamTransform();
+                        if (save) webcamPlayer.savePanZoomState();
                     }
                     
                     function resetGlowTimeout() {
@@ -941,30 +956,68 @@
                         }, 10000);
                     }
 
-                    webcamPlayer.elements.stopBtn.addEventListener('click', resetWebcamTransform);
+                    webcamPlayer.elements.stopBtn.addEventListener('click', () => resetWebcamTransform());
                     document.getElementById('webcam-toggle-btn').addEventListener('click', () => {
-                        if (webcamPlayer.stream) { resetWebcamTransform(); }
+                        if (webcamPlayer.stream) resetWebcamTransform();
                     });
 
+                    // --- Webcam Widget: Improved Pan/Zoom, Drag, Mirror, and Scroll-to-Zoom Logic ---
+                    const webcamWidget = document.getElementById('webcam-widget');
+                    function setWebcamDraggable(enabled) {
+                        if (enabled) {
+                            webcamWidget.classList.remove('no-drag');
+                            webcamWidget.setAttribute('draggable', 'true');
+                        } else {
+                            webcamWidget.classList.add('no-drag');
+                            webcamWidget.removeAttribute('draggable');
+                        }
+                    }
+                    // Double-click toggles pan/zoom mode
+                    videoWrapper.addEventListener('dblclick', () => {
+                        clearTimeout(webcamClickTimer);
+                        window.isWebcamPanZoomMode = !window.isWebcamPanZoomMode;
+                        webcamWidget.classList.toggle('webcam-pan-zoom-active', window.isWebcamPanZoomMode);
+                        setWebcamDraggable(!window.isWebcamPanZoomMode);
+                        if (window.isWebcamPanZoomMode) {
+                            webcamPlayer.loadPanZoomState();
+                            resetGlowTimeout();
+                        } else {
+                            clearTimeout(webcamGlowTimeout);
+                            webcamPlayer.savePanZoomState();
+                            resetWebcamTransform(false);
+                        }
+                    });
+                    // Single click toggles mirroring only if not in pan/zoom mode
                     videoWrapper.addEventListener('click', () => {
                         if (window.isWebcamPanZoomMode) return;
                         clearTimeout(webcamClickTimer);
                         webcamClickTimer = setTimeout(() => videoWrapper.classList.toggle('normal-view'), 250);
                     });
-
-                    videoWrapper.addEventListener('dblclick', () => {
-                        clearTimeout(webcamClickTimer);
-                        window.isWebcamPanZoomMode = !window.isWebcamPanZoomMode;
-                        const widget = document.getElementById('webcam-widget');
-                        widget.classList.toggle('webcam-pan-zoom-active', window.isWebcamPanZoomMode);
-                        
-                        if (window.isWebcamPanZoomMode) {
-                            resetGlowTimeout();
-                        } else {
-                            clearTimeout(webcamGlowTimeout);
-                            resetWebcamTransform();
-                        }
-                    });
+                    // Scroll to zoom only in pan/zoom mode
+                    videoWrapper.addEventListener('wheel', (e) => {
+                        if (!window.isWebcamPanZoomMode) return;
+                        e.preventDefault();
+                        let scale = webcam_transform.scale;
+                        if (e.deltaY < 0) scale *= 1.08;
+                        else scale /= 1.08;
+                        scale = Math.max(1, Math.min(5, scale));
+                        webcam_transform.scale = scale;
+                        // Clamp pan to bounds
+                        const rect = videoWrapper.getBoundingClientRect();
+                        const max_panX = (rect.width * scale - rect.width) / 2;
+                        const max_panY = (rect.height * scale - rect.height) / 2;
+                        webcam_transform.panX = Math.max(-max_panX, Math.min(max_panX, webcam_transform.panX));
+                        webcam_transform.panY = Math.max(-max_panY, Math.min(max_panY, webcam_transform.panY));
+                        applyWebcamTransform();
+                        webcamPlayer.savePanZoomState();
+                    }, { passive: false });
+                    // Prevent dragging in pan/zoom mode
+                    webcamWidget.addEventListener('mousedown', (e) => {
+                        if (window.isWebcamPanZoomMode) e.stopImmediatePropagation();
+                    }, true);
+                    webcamWidget.addEventListener('touchstart', (e) => {
+                        if (window.isWebcamPanZoomMode) e.stopImmediatePropagation();
+                    }, true);
 
                     videoWrapper.addEventListener('touchstart', (e) => {
                         if (!window.isWebcamPanZoomMode) return;
@@ -1018,6 +1071,70 @@
                         webcam_initial_pinch_dist = 0;
                     });
 
+                    // --- Webcam pan/zoom: mouse-based panning on canvas only, and safe mirroring with drag suppression ---
+                    let webcamPanMouse = { isDown: false, startX: 0, startY: 0, startPanX: 0, startPanY: 0, moved: false };
+                    let webcamWidgetDragInProgress = false;
+                    const webcamCanvas = webcamPlayer.elements.canvas;
+                    webcamCanvas.addEventListener('mousedown', (e) => {
+                        if (!window.isWebcamPanZoomMode) return;
+                        e.preventDefault();
+                        e.stopPropagation(); // Prevent widget drag
+                        webcamPanMouse.isDown = true;
+                        webcamPanMouse.startX = e.clientX;
+                        webcamPanMouse.startY = e.clientY;
+                        webcamPanMouse.startPanX = webcam_transform.panX;
+                        webcamPanMouse.startPanY = webcam_transform.panY;
+                        webcamPanMouse.moved = false;
+                        document.addEventListener('mousemove', webcamPanMouseMove);
+                        document.addEventListener('mouseup', webcamPanMouseUp);
+                    });
+                    function webcamPanMouseMove(e) {
+                        if (!webcamPanMouse.isDown) return;
+                        webcamPanMouse.moved = true;
+                        const dx = e.clientX - webcamPanMouse.startX;
+                        const dy = e.clientY - webcamPanMouse.startY;
+                        webcam_transform.panX = webcamPanMouse.startPanX + dx;
+                        webcam_transform.panY = webcamPanMouse.startPanY + dy;
+                        // Clamp pan
+                        const rect = webcamPlayer.elements.videoWrapper.getBoundingClientRect();
+                        const max_panX = (rect.width * webcam_transform.scale - rect.width) / 2;
+                        const max_panY = (rect.height * webcam_transform.scale - rect.height) / 2;
+                        webcam_transform.panX = Math.max(-max_panX, Math.min(max_panX, webcam_transform.panX));
+                        webcam_transform.panY = Math.max(-max_panY, Math.min(max_panY, webcam_transform.panY));
+                        applyWebcamTransform();
+                    }
+                    function webcamPanMouseUp(e) {
+                        if (webcamPanMouse.isDown) {
+                            webcamPanMouse.isDown = false;
+                            webcamPlayer.savePanZoomState();
+                            document.removeEventListener('mousemove', webcamPanMouseMove);
+                            document.removeEventListener('mouseup', webcamPanMouseUp);
+                        }
+                    }
+                    // Widget drag suppression for mirroring
+                    webcamWidget.addEventListener('mousedown', (e) => {
+                        if (window.isWebcamPanZoomMode) return;
+                        webcamWidgetDragInProgress = false;
+                        const startX = e.clientX, startY = e.clientY;
+                        function moveHandler(ev) {
+                            if (Math.abs(ev.clientX - startX) > 5 || Math.abs(ev.clientY - startY) > 5) {
+                                webcamWidgetDragInProgress = true;
+                            }
+                        }
+                        function upHandler() {
+                            document.removeEventListener('mousemove', moveHandler);
+                            document.removeEventListener('mouseup', upHandler);
+                        }
+                        document.addEventListener('mousemove', moveHandler);
+                        document.addEventListener('mouseup', upHandler);
+                    });
+                    videoWrapper.addEventListener('click', (e) => {
+                        if (window.isWebcamPanZoomMode) return;
+                        if (webcamWidgetDragInProgress) return;
+                        clearTimeout(webcamClickTimer);
+                        webcamClickTimer = setTimeout(() => videoWrapper.classList.toggle('normal-view'), 250);
+                    });
+
                 })();
                 
                 (function setupBaseFeatures() {
@@ -1030,7 +1147,6 @@
                         gif: { el: document.getElementById('gif-widget'), toggle: document.getElementById('toggle-gif-widget'), default: false },
                         webcam: { el: document.getElementById('webcam-widget'), toggle: document.getElementById('toggle-webcam-widget'), default: false },
                     };
-                    let clockClickTimer = null;
                     
                     function initializeWidgetToggles() {
                         for(const key in WIDGETS) {
@@ -1066,14 +1182,51 @@
                     }
                     initializeWidgetToggles();
 
+                    // --- Webcam Toggle Button: robust click handler ---
                     webcamToggleBtn.addEventListener('click', (e) => {
-                        if (e.target.hasMoved) return;
+                        // Always check .hasMoved on the button, not the icon
+                        const btn = e.currentTarget;
+                        if (btn.hasMoved) return;
                         if (window.webcamPlayer.stream) {
                             window.webcamPlayer.stop();
                         } else {
                             window.webcamPlayer.start();
                         }
                     });
+                    // --- Mouse wheel zoom for clock and webcam ---
+                    clock.addEventListener('wheel', (e) => {
+                        e.preventDefault();
+                        if (clock.isEditing) return;
+                        let scale = clockScale;
+                        if (e.deltaY < 0) scale *= 1.08;
+                        else scale /= 1.08;
+                        scale = Math.max(0.5, Math.min(3, scale));
+                        applyClockScale(scale);
+                        // Save position/scale
+                        const p = JSON.parse(localStorage.getItem('lockscreenItemPositions_v5')) || {};
+                        if (!p.clock) p.clock = {};
+                        p.clock.s = scale;
+                        localStorage.setItem('lockscreenItemPositions_v5', JSON.stringify(p));
+                    }, { passive: false });
+                    // For webcam, allow wheel zoom if mouse is over videoWrapper and pan/zoom mode is active
+                    const videoWrapper = webcamPlayer.elements.videoWrapper;
+                    videoWrapper.addEventListener('wheel', (e) => {
+                        if (!window.isWebcamPanZoomMode) return;
+                        e.preventDefault();
+                        let scale = webcam_transform.scale;
+                        if (e.deltaY < 0) scale *= 1.08;
+                        else scale /= 1.08;
+                        scale = Math.max(1, Math.min(5, scale));
+                        webcam_transform.scale = scale;
+                        // Clamp pan to bounds
+                        const rect = videoWrapper.getBoundingClientRect();
+                        const max_panX = (rect.width * scale - rect.width) / 2;
+                        const max_panY = (rect.height * scale - rect.height) / 2;
+                        webcam_transform.panX = Math.max(-max_panX, Math.min(max_panX, webcam_transform.panX));
+                        webcam_transform.panY = Math.max(-max_panY, Math.min(max_panY, webcam_transform.panY));
+                        applyWebcamTransform();
+                        webcamPlayer.savePanZoomState();
+                    }, { passive: false });
 
                     const timeElems = { h: document.getElementById('hours'), m: document.getElementById('minutes'), d: document.getElementById('date') };
                     const weatherElems = { t: document.getElementById('temperature'), i: document.getElementById('weather-icon') };
@@ -1111,10 +1264,7 @@
                                 const pos = p[id];
                                 if (e && pos.t && pos.l) {
                                     e.style.top = pos.t; e.style.left = pos.l;
-                                    // MODIFIED: Only clear transform for stock widget to allow dragging to far right
-                                    if (id === 'stock-widget') e.style.transform = 'none';
-                                    else if (id !== 'clock') e.style.transform = 'none';
-                                    
+                                    e.style.transform = (id === 'clock' || id === 'stock-widget') ? 'none' : e.style.transform;
                                     if (id === 'clock' && pos.s) applyClockScale(pos.s);
                                     if (id === 'note-widget' || id === 'gif-widget' || id === 'webcam-widget') { e.style.width = pos.w || e.style.width; e.style.height = pos.h || e.style.height; }
                                 }
@@ -1129,7 +1279,8 @@
                         const mv = (e) => {
                             if (el.isEditing) return;
                             if (el.id === 'clock' && isPinching && e.touches && e.touches.length === 2) {
-                                e.preventDefault(); const oldWidth = el.offsetWidth, oldHeight = el.offsetHeight, oldLeft = el.offsetLeft, oldTop = el.offsetTop;
+                                e.preventDefault();
+                                const oldWidth = el.offsetWidth, oldHeight = el.offsetHeight, oldLeft = el.offsetLeft, oldTop = el.offsetTop;
                                 const newDist = getDist(e.touches); const scaleRatio = newDist / initialPinchDist; const newScale = Math.max(0.5, Math.min(initialScale * scaleRatio, 3));
                                 applyClockScale(newScale); const newWidth = el.offsetWidth, newHeight = el.offsetHeight; const deltaWidth = newWidth - oldWidth, deltaHeight = newHeight - oldHeight;
                                 el.style.left = `${oldLeft - (deltaWidth / 2)}px`; el.style.top = `${oldTop - (deltaHeight / 2)}px`; return;
@@ -1137,34 +1288,26 @@
                             if (!isD) return; e.preventDefault(); hasMoved = true;
                             const cX = e.touches ? e.touches[0].clientX : e.clientX, cY = e.touches ? e.touches[0].clientY : e.clientY;
                             let nX = cX - oX, nY = cY - oY;
-                            const sR = lockScreen.getBoundingClientRect(), eR = el.getBoundingClientRect();
-                            nX = Math.max(0, Math.min(nX, sR.width - eR.width)); nY = Math.max(0, Math.min(nY, sR.height - eR.height));
+                            const sR = lockScreen;
+                            const maxX = sR.clientWidth - el.offsetWidth;
+                            const maxY = sR.clientHeight - el.offsetHeight;
+                            nX = Math.max(0, Math.min(nX, maxX));
+                            nY = Math.max(0, Math.min(nY, maxY));
                             el.style.left = `${nX}px`; el.style.top = `${nY}px`;
-                            // MODIFIED: Clear transform on any draggable item except clock to fix positioning
-                            if(el.id !== 'clock') el.style.transform = 'none';
+                            if(['clock', 'stock-widget'].indexOf(el.id) === -1) el.style.transform = 'none';
                         };
                         const stD = (e) => {
                             if (!isD && !isPinching) return;
                             e.target.hasMoved = hasMoved;
-
-                            if (el.id === 'clock' && !hasMoved) {
-                                if (clockClickTimer) {
-                                    clearTimeout(clockClickTimer);
-                                    clockClickTimer = null;
-                                    showWallpaperSettings();
-                                    settingsMenu.classList.add('visible');
-                                } else {
-                                    clockClickTimer = setTimeout(() => { clockClickTimer = null; }, 300);
-                                }
-                            }
-                            
                             if (el.id === 'fun-stock-name-display' && el.classList.contains('visible')) { stockNameFadeOutTimer = setTimeout(() => { el.classList.remove('visible'); }, 3000); }
                             isD = false; isPinching = false;
                             if (hasMoved) savePos();
                             document.removeEventListener('mousemove', mv); document.removeEventListener('touchmove', mv);
                         };
-                        const sD_press = (e) => {
-                            if (el.id === 'webcam-widget' && window.isWebcamPanZoomMode) return;
+                        const sD_longPress = (e) => {
+                            if (el.id === 'webcam-widget' && window.isWebcamPanZoomMode) {
+                                return;
+                            }
                             if (el.isEditing) return;
                             if (e.target.closest('#music-controls, #remove-gif-btn, #webcam-controls, #note-settings-btn')) return;
                             if (e.touches && e.touches.length === 2 && el.id === 'clock') { isPinching = true; isD = false; initialPinchDist = getDist(e.touches); initialScale = clockScale; return; }
@@ -1178,8 +1321,8 @@
                             document.addEventListener('mouseup', stD, { once: true });
                             document.addEventListener('touchend', stD, { once: true });
                         };
-                        el.addEventListener('mousedown', sD_press);
-                        el.addEventListener('touchstart', sD_press, { passive: false });
+                        el.addEventListener('mousedown', sD_longPress);
+                        el.addEventListener('touchstart', sD_longPress, { passive: false });
                         const lnk = el.querySelector('a'); if (lnk) { lnk.addEventListener('click', (e) => { if (hasMoved) e.preventDefault(); }); }
                         if(el.id === 'settings-btn') { el.addEventListener('click', (e) => { if (!hasMoved) { showWallpaperSettings(); settingsMenu.classList.add('visible'); } }); }
                     };
@@ -1224,10 +1367,11 @@
                     checkStockFlashTrigger(); setInterval(checkStockFlashTrigger, 60 * 1000);
                 })();
                 
+                // NEW: Function to generate a square, cropped version of the wallpaper for media art
                 function generateSquareArt(image, callback) {
                     const canvas = document.createElement('canvas');
                     const ctx = canvas.getContext('2d');
-                    const size = 512;
+                    const size = 512; // Standard size for media art
                     canvas.width = canvas.height = size;
                     
                     const srcWidth = image.naturalWidth;
@@ -1236,10 +1380,10 @@
 
                     let sx = 0, sy = 0, sWidth = srcWidth, sHeight = srcHeight;
                     
-                    if (srcRatio > 1) { 
+                    if (srcRatio > 1) { // Wider than tall
                         sWidth = srcHeight;
                         sx = (srcWidth - srcHeight) / 2;
-                    } else {
+                    } else { // Taller than wide
                         sHeight = srcWidth;
                         sy = (srcHeight - srcWidth) / 2;
                     }
@@ -1254,14 +1398,16 @@
                     exitPanningMode();
                     lockScreen.style.backgroundImage = `url('${wpObj.url}')`;
                     lockScreen.style.backgroundPosition = wpObj.position || 'center center';
+                    wallpaperReady = false;
                     currentWallpaperImg.src = wpObj.url;
-                    
                     currentWallpaperImg.onload = () => {
+                        wallpaperReady = true;
                         generateSquareArt(currentWallpaperImg, (artUrl) => {
                             window.radioPlayer.updateAlbumArt(artUrl);
                         });
                     };
                     currentWallpaperImg.onerror = () => {
+                        wallpaperReady = false;
                         console.error("Failed to load wallpaper image for media art.");
                     };
                 };
@@ -1277,11 +1423,65 @@
                 
                 lockScreen.addEventListener('dblclick', (e) => { if (e.target.closest('.draggable-item')) return; if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); });
                 
-                let isDraggingWp = false, sPanX, sPanY, sBgX, sBgY;
+                let isDraggingWp = false, sPanX, sPanY, sBgX, sBgY, startX, startY;
                 const panMove = (e) => { if (!isDraggingWp) return; hasMovedWp = true; e.preventDefault(); const cX = e.touches ? e.touches[0].clientX : e.clientX; const cY = e.touches ? e.touches[0].clientY : e.clientY; const dX = cX - sPanX, dY = cY - sPanY; let nBgX = sBgX + dX, nBgY = sBgY + dY; const sW = lockScreen.clientWidth, sH = lockScreen.clientHeight; const iW = currentWallpaperImg.naturalWidth, iH = currentWallpaperImg.naturalHeight; const sR = sW / sH, iR = iW / iH; let scW, scH; if (iR > sR) { scH = sH; scW = sH * iR; } else { scW = sW; scH = sW / iR; } const minX = sW - scW, minY = sH - scH; nBgX = Math.max(minX, Math.min(0, nBgX)); nBgY = Math.max(minY, Math.min(0, nBgY)); lockScreen.style.backgroundPosition = `${nBgX}px ${nBgY}px`; };
-                const interactionEnd = () => { clearTimeout(pressHoldTimer); if (isPanningMode) { isDraggingWp = false; document.removeEventListener('mousemove', panMove); document.removeEventListener('touchmove', panMove); } document.removeEventListener('mouseup', interactionEnd); document.removeEventListener('touchend', interactionEnd); document.removeEventListener('mousemove', clearHoldTimer); };
+                const interactionEnd = () => { 
+                    clearTimeout(pressHoldTimer); 
+                    if (isPanningMode) { 
+                        isDraggingWp = false; 
+                        lockScreen.classList.remove('panning-active');
+                        document.removeEventListener('mousemove', panMove); 
+                        document.removeEventListener('touchmove', panMove); 
+                        // Save wallpaper position after panning ends
+                        const url = currentWallpaperImg.src;
+                        const wps = getWps();
+                        const idx = wps.findIndex(w => w.url === url);
+                        if (idx > -1) {
+                            wps[idx].position = lockScreen.style.backgroundPosition;
+                            saveWps(wps);
+                        }
+                    } 
+                    document.removeEventListener('mouseup', interactionEnd); 
+                    document.removeEventListener('touchend', interactionEnd); 
+                    document.removeEventListener('mousemove', clearHoldTimer); 
+                };
                 const clearHoldTimer = () => { clearTimeout(pressHoldTimer); };
-                const interactionStart = (e) => { if (e.target.closest('.draggable-item')) return; const sW = lockScreen.clientWidth, sH = lockScreen.clientHeight, iW = currentWallpaperImg.naturalWidth, iH = currentWallpaperImg.naturalHeight; if (iW <= sW && iH <= sH && !isPanningMode) return; hasMovedWp = false; document.addEventListener('mouseup', interactionEnd); document.addEventListener('touchend', interactionEnd); clearTimeout(pressHoldTimer); pressHoldTimer = setTimeout(() => { isPanningMode = true; isDraggingWp = true; lockScreen.classList.add('panning-active'); const bgPos = window.getComputedStyle(lockScreen).backgroundPosition.split(' '); sBgX = parseFloat(bgPos[0]); sBgY = parseFloat(bgPos[1]); sPanX = e.touches ? e.touches[0].clientX : e.clientX; sPanY = e.touches ? e.touches[0].clientY : e.clientY; document.addEventListener('mousemove', panMove); document.addEventListener('touchmove', panMove); }, 500); document.addEventListener('mousemove', clearHoldTimer, { once: true }); };
+                const interactionStart = (e) => {
+                    if (e.target.closest('.draggable-item')) return;
+                    if (!wallpaperReady) return;
+                    const sW = lockScreen.clientWidth, sH = lockScreen.clientHeight, iW = currentWallpaperImg.naturalWidth, iH = currentWallpaperImg.naturalHeight;
+                    if (iW <= sW && iH <= sH && !isPanningMode) return;
+                    hasMovedWp = false;
+                    startX = e.touches ? e.touches[0].clientX : e.clientX;
+                    startY = e.touches ? e.touches[0].clientY : e.clientY;
+                    document.addEventListener('mouseup', interactionEnd);
+                    document.addEventListener('touchend', interactionEnd);
+                    clearTimeout(pressHoldTimer);
+                    pressHoldTimer = setTimeout(() => {
+                        isPanningMode = true;
+                        isDraggingWp = true;
+                        lockScreen.classList.add('panning-active');
+                        const bgPos = window.getComputedStyle(lockScreen).backgroundPosition.split(' ');
+                        sBgX = parseFloat(bgPos[0]);
+                        sBgY = parseFloat(bgPos[1]);
+                        sPanX = startX;
+                        sPanY = startY;
+                        document.addEventListener('mousemove', panMove);
+                        document.addEventListener('touchmove', panMove);
+                    }, 250);
+                    // Only cancel if pointer moves >10px before timer fires
+                    const moveCheck = (ev) => {
+                        const mX = ev.touches ? ev.touches[0].clientX : ev.clientX;
+                        const mY = ev.touches ? ev.touches[0].clientY : ev.clientY;
+                        if (Math.abs(mX - startX) > 10 || Math.abs(mY - startY) > 10) {
+                            clearTimeout(pressHoldTimer);
+                            document.removeEventListener('mousemove', moveCheck);
+                            document.removeEventListener('touchmove', moveCheck);
+                        }
+                    };
+                    document.addEventListener('mousemove', moveCheck);
+                    document.addEventListener('touchmove', moveCheck);
+                };
                 lockScreen.addEventListener('mousedown', interactionStart);
                 lockScreen.addEventListener('touchstart', interactionStart, { passive: false });
                 
