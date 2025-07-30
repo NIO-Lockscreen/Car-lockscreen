@@ -67,7 +67,7 @@
         #gif-widget.has-gif:hover #remove-gif-btn { display: flex; }
         
         /* Webcam Widget CSS */
-        #webcam-widget { top: 20%; left: 20%; width: 320px; height: 240px; padding: 0; resize: both; overflow: hidden; display: flex; align-items: center; justify-content: center; background-color: #000; border: 1px solid var(--widget-bg); transition: box-shadow 0.3s, border-color 0.3s; }
+        #webcam-widget { top: 20%; left: 20%; width: 320px; height: 240px; padding: 0; resize: both; overflow: hidden; display: flex; align-items: center; justify-content: center; background-color: #000; border: 1px solid var(--widget-bg); transition: box-shadow 0.3s, border-color 0.3s; aspect-ratio: 16/9; }
         .webcam-video-wrapper { display: none; width: 100%; height: 100%; transform: scaleX(-1); /* Default to mirrored */ touch-action: none; /* For Pointer Events */ cursor: pointer; }
         .webcam-video-wrapper.panning { cursor: grabbing; }
         .webcam-video-wrapper.normal-view { transform: scaleX(1); /* Class to un-mirror */ }
@@ -977,15 +977,25 @@
                     });
 
                     let webcamLastTap = 0;
+                    let resizeGestureState = {}; // Declare here for use in touchend handler
+                    
                     webcamWidget.addEventListener('touchend', (e) => {
                         if (e.target.closest('#webcam-controls, #webcam-portrait-btn')) return;
-                        if (e.touches.length > 0) return;
-                        const now = Date.now();
-                        if (now - webcamLastTap < 350) {
-                            toggleWebcamPanZoomMode();
-                            webcamLastTap = 0;
-                        } else {
-                            webcamLastTap = now;
+                        
+                        // Handle pinch resize end
+                        if (e.touches.length < 2) {
+                            resizeGestureState = {};
+                        }
+                        
+                        // Handle double-tap only if no pinch was happening
+                        if (e.touches.length === 0 && !resizeGestureState.initialDist) {
+                            const now = Date.now();
+                            if (now - webcamLastTap < 350) {
+                                toggleWebcamPanZoomMode();
+                                webcamLastTap = 0;
+                            } else {
+                                webcamLastTap = now;
+                            }
                         }
                     });
 
@@ -1030,6 +1040,14 @@
                         e.preventDefault();
                         let scale = webcam_transform.scale * (e.deltaY < 0 ? 1.08 : 1 / 1.08);
                         webcam_transform.scale = Math.max(1, Math.min(5, scale));
+                        
+                        // Apply bounds checking after zoom to keep pan in valid range
+                        const rect = videoWrapper.getBoundingClientRect();
+                        const max_panX = (rect.width * webcam_transform.scale - rect.width) / 2;
+                        const max_panY = (rect.height * webcam_transform.scale - rect.height) / 2;
+                        webcam_transform.panX = Math.max(-max_panX, Math.min(max_panX, webcam_transform.panX));
+                        webcam_transform.panY = Math.max(-max_panY, Math.min(max_panY, webcam_transform.panY));
+                        
                         applyWebcamTransform();
                         webcamPlayer.savePanZoomState();
                     }, { passive: false });
@@ -1047,6 +1065,33 @@
                         document.addEventListener('mouseup', up, { once: true });
                     }, true);
 
+                    // Pinch resize when NOT in zoom mode
+                    webcamWidget.addEventListener('touchstart', (e) => {
+                        if (window.isWebcamPanZoomMode) return; // Only when NOT in zoom mode
+                        if (e.touches.length === 2) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            resizeGestureState.initialDist = get_touch_dist(e.touches);
+                            resizeGestureState.initialWidth = webcamWidget.offsetWidth;
+                        }
+                    }, { passive: false });
+                    
+                    webcamWidget.addEventListener('touchmove', (e) => {
+                        if (window.isWebcamPanZoomMode || !resizeGestureState.initialDist) return;
+                        if (e.touches.length === 2) {
+                            e.preventDefault();
+                            const currentDist = get_touch_dist(e.touches);
+                            const scaleRatio = currentDist / resizeGestureState.initialDist;
+                            let newWidth = Math.max(120, Math.min(800, resizeGestureState.initialWidth * scaleRatio));
+                            webcamWidget.style.width = `${Math.round(newWidth)}px`;
+                            // Maintain 16:9 aspect ratio
+                            webcamWidget.style.height = `${Math.round(newWidth * 9 / 16)}px`;
+                        }
+                    }, { passive: false });
+                    
+
+
+                    // Pan/zoom mode touch gestures (only when in zoom mode)
                     let touchGestureState = {};
                     videoWrapper.addEventListener('touchstart', (e) => {
                         if (!window.isWebcamPanZoomMode) return;
@@ -1085,11 +1130,13 @@
                         touchGestureState = {};
                     });
 
-                    canvasEl.addEventListener('mousedown', (e) => {
+                    // Mouse panning on videoWrapper instead of canvas
+                    videoWrapper.addEventListener('mousedown', (e) => {
                         if (!window.isWebcamPanZoomMode) return;
                         e.preventDefault();
                         e.stopPropagation();
                         webcamPanMouse = { isDown: true, startX: e.clientX, startY: e.clientY, startPanX: webcam_transform.panX, startPanY: webcam_transform.panY };
+                        videoWrapper.classList.add('panning'); // Show grabbing cursor
                         document.addEventListener('mousemove', webcamPanMouseMove);
                         document.addEventListener('mouseup', webcamPanMouseUp, { once: true });
                     });
@@ -1098,12 +1145,21 @@
                         if (!webcamPanMouse.isDown) return;
                         webcam_transform.panX = webcamPanMouse.startPanX + e.clientX - webcamPanMouse.startX;
                         webcam_transform.panY = webcamPanMouse.startPanY + e.clientY - webcamPanMouse.startY;
+                        
+                        // Apply bounds checking to prevent panning beyond visible area
+                        const rect = videoWrapper.getBoundingClientRect();
+                        const max_panX = (rect.width * webcam_transform.scale - rect.width) / 2;
+                        const max_panY = (rect.height * webcam_transform.scale - rect.height) / 2;
+                        webcam_transform.panX = Math.max(-max_panX, Math.min(max_panX, webcam_transform.panX));
+                        webcam_transform.panY = Math.max(-max_panY, Math.min(max_panY, webcam_transform.panY));
+                        
                         applyWebcamTransform();
                     }
 
                     function webcamPanMouseUp() {
                         if (webcamPanMouse.isDown) {
                             webcamPanMouse.isDown = false;
+                            videoWrapper.classList.remove('panning'); // Remove grabbing cursor
                             webcamPlayer.savePanZoomState();
                             document.removeEventListener('mousemove', webcamPanMouseMove);
                         }
