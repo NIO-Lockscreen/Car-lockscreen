@@ -999,8 +999,9 @@
                         if (webcamPlayer.stream) resetWebcamTransform();
                     });
 
-                    // --- Webcam Widget: Improved Pan/Zoom, Drag, Mirror, and Scroll-to-Zoom Logic ---
+                    // --- REFACTORED AND CORRECTED: Webcam Widget Interaction Logic ---
                     const webcamWidget = document.getElementById('webcam-widget');
+                    
                     function setWebcamDraggable() {
                         const webcamWidget = document.getElementById('webcam-widget');
                         const isDraggable = !window.isWebcamPanZoomMode;
@@ -1012,7 +1013,7 @@
                             webcamWidget.removeAttribute('draggable');
                         }
                     }
-                    // Helper to toggle Pan/Zoom mode
+
                     function toggleWebcamPanZoomMode() {
                         window.isWebcamPanZoomMode = !window.isWebcamPanZoomMode;
                         webcamWidget.classList.toggle('webcam-pan-zoom-active', window.isWebcamPanZoomMode);
@@ -1020,40 +1021,23 @@
                         if (window.isWebcamPanZoomMode) {
                             webcamPlayer.loadPanZoomState();
                             resetInactivityTimer();
-                        } else {
-                            exitPanZoomMode();
+                            resetGlowTimeout();
                         }
                         updateWebcam43BtnVisibility();
                     }
 
-                    // Update existing dblclick handler to use helper
                     videoWrapper.addEventListener('dblclick', (e) => {
                         e.preventDefault();
                         e.stopPropagation();
                         toggleWebcamPanZoomMode();
                     });
 
-                    // Double-tap (touch) detection for touch screens
-                    let webcamLastTap = 0;
-                    videoWrapper.addEventListener('touchend', (e) => {
-                        if (e.touches.length > 0) return; // still touching
-                        const now = Date.now();
-                        if (now - webcamLastTap < 350) {
-                            // Detected double-tap
-                            toggleWebcamPanZoomMode();
-                            webcamLastTap = 0;
-                        } else {
-                            webcamLastTap = now;
-                        }
-                    });
-
-                    // Single click toggles mirroring only if not in pan/zoom mode
                     videoWrapper.addEventListener('click', () => {
-                        if (window.isWebcamPanZoomMode) return;
+                        if (window.isWebcamPanZoomMode || webcamWidgetDragInProgress) return;
                         clearTimeout(webcamClickTimer);
                         webcamClickTimer = setTimeout(() => videoWrapper.classList.toggle('normal-view'), 250);
                     });
-                    // Scroll to zoom only in pan/zoom mode
+                    
                     videoWrapper.addEventListener('wheel', (e) => {
                         if (!window.isWebcamPanZoomMode) return;
                         e.preventDefault();
@@ -1061,62 +1045,7 @@
                         let scale = webcam_transform.scale;
                         if (e.deltaY < 0) scale *= 1.08;
                         else scale /= 1.08;
-                        scale = Math.max(1, Math.min(5, scale));
-                        webcam_transform.scale = scale;
-                        // Clamp pan to bounds
-                        const rect = videoWrapper.getBoundingClientRect();
-                        const max_panX = (rect.width * scale - rect.width) / 2;
-                        const max_panY = (rect.height * scale - rect.height) / 2;
-                        webcam_transform.panX = Math.max(-max_panX, Math.min(max_panX, webcam_transform.panX));
-                        webcam_transform.panY = Math.max(-max_panY, Math.min(max_panY, webcam_transform.panY));
-                        applyWebcamTransform();
-                        webcamPlayer.savePanZoomState();
-                    }, { passive: false });
-                    // Prevent dragging in pan/zoom mode
-                    webcamWidget.addEventListener('mousedown', (e) => {
-                        if (window.isWebcamPanZoomMode) e.stopImmediatePropagation();
-                    }, true);
-                    webcamWidget.addEventListener('touchstart', (e) => {
-                        if (window.isWebcamPanZoomMode) e.stopImmediatePropagation();
-                    }, true);
-
-                    videoWrapper.addEventListener('touchstart', (e) => {
-                        if (!window.isWebcamPanZoomMode) return;
-                        e.stopPropagation();
-                        resetInactivityTimer();
-                        
-                        document.getElementById('webcam-widget').classList.add('webcam-pan-zoom-active');
-                        resetGlowTimeout();
-
-                        webcam_start_transform = { ...webcam_transform };
-                        if (e.touches.length === 1) {
-                            webcam_start_touch = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-                        } else if (e.touches.length === 2) {
-                            webcam_initial_pinch_dist = get_touch_dist(e.touches);
-                        }
-                    }, { passive: false });
-
-                    videoWrapper.addEventListener('touchmove', (e) => {
-                        if (!window.isWebcamPanZoomMode || !webcam_start_transform) return;
-                        e.preventDefault();
-                        e.stopPropagation();
-                        resetInactivityTimer();
-                        resetGlowTimeout();
-
-                        if (e.touches.length === 2) {
-                            const new_dist = get_touch_dist(e.touches);
-                            const scale_ratio = new_dist / webcam_initial_pinch_dist;
-                            webcam_transform.scale = Math.max(1.0, webcam_start_transform.scale * scale_ratio);
-                        } 
-                        else if (e.touches.length === 1 && webcam_start_touch) {
-                            const deltaX = e.touches[0].clientX - webcam_start_touch.x;
-                            const deltaY = e.touches[0].clientY - webcam_start_touch.y;
-                            const isMirrored = !videoWrapper.classList.contains('normal-view');
-                            const panDirection = isMirrored ? -1 : 1;
-
-                            webcam_transform.panX = webcam_start_transform.panX + (deltaX * panDirection);
-                            webcam_transform.panY = webcam_start_transform.panY + deltaY;
-                        }
+                        webcam_transform.scale = Math.max(1, Math.min(5, scale));
                         
                         const rect = videoWrapper.getBoundingClientRect();
                         const max_panX = (rect.width * webcam_transform.scale - rect.width) / 2;
@@ -1125,23 +1054,123 @@
                         webcam_transform.panY = Math.max(-max_panY, Math.min(max_panY, webcam_transform.panY));
                         
                         applyWebcamTransform();
+                        webcamPlayer.savePanZoomState();
                     }, { passive: false });
+
+                    webcamWidget.addEventListener('mousedown', (e) => {
+                        if (window.isWebcamPanZoomMode) e.stopImmediatePropagation();
+                    }, true);
+
+                    // --- Consolidated Touch Event Handlers for Webcam ---
+                    let webcamTouch = {
+                        isDown: false,
+                        isGesture: false,
+                        lastTap: 0,
+                        start: [],
+                        startTransform: null,
+                    };
                     
+                    let resizePinching = false, resizeStartDist = 0, resizeStartWidth = 0;
+
+                    videoWrapper.addEventListener('touchstart', (e) => {
+                        webcamTouch.isDown = true;
+                        webcamTouch.isGesture = false;
+                        webcamTouch.start = Array.from(e.touches).map(t => ({ x: t.clientX, y: t.clientY }));
+
+                        if (window.isWebcamPanZoomMode) {
+                            e.stopPropagation();
+                            resetInactivityTimer();
+                            resetGlowTimeout();
+                            webcamTouch.startTransform = { ...webcam_transform };
+                            if (e.touches.length === 2) {
+                                webcam_initial_pinch_dist = get_touch_dist(e.touches);
+                            }
+                        } else {
+                            if (e.touches.length === 2) {
+                                resizePinching = true;
+                                resizeStartDist = get_touch_dist(e.touches);
+                                resizeStartWidth = webcamWidget.offsetWidth;
+                            }
+                        }
+                    }, { passive: false });
+
+                    videoWrapper.addEventListener('touchmove', (e) => {
+                        if (!webcamTouch.isDown || e.touches.length === 0) return;
+                        
+                        const firstMove = !webcamTouch.isGesture;
+                        webcamTouch.isGesture = true;
+                        e.preventDefault();
+                        
+                        if (window.isWebcamPanZoomMode) {
+                             e.stopPropagation();
+                            if(firstMove) resetGlowTimeout();
+
+                            if (e.touches.length === 2 && webcamTouch.start.length === 2) {
+                                const new_dist = get_touch_dist(e.touches);
+                                const scale_ratio = new_dist / webcam_initial_pinch_dist;
+                                webcam_transform.scale = Math.max(1.0, webcamTouch.startTransform.scale * scale_ratio);
+                            } else if (e.touches.length === 1 && webcamTouch.start.length === 1) {
+                                const deltaX = e.touches[0].clientX - webcamTouch.start[0].x;
+                                const deltaY = e.touches[0].clientY - webcamTouch.start[0].y;
+                                const isMirrored = !videoWrapper.classList.contains('normal-view');
+                                webcam_transform.panX = webcamTouch.startTransform.panX + (deltaX * (isMirrored ? -1 : 1));
+                                webcam_transform.panY = webcamTouch.startTransform.panY + deltaY;
+                            }
+                            
+                            const rect = videoWrapper.getBoundingClientRect();
+                            const max_panX = (rect.width * webcam_transform.scale - rect.width) / 2;
+                            const max_panY = (rect.height * webcam_transform.scale - rect.height) / 2;
+                            webcam_transform.panX = Math.max(-max_panX, Math.min(max_panX, webcam_transform.panX));
+                            webcam_transform.panY = Math.max(-max_panY, Math.min(max_panY, webcam_transform.panY));
+                            applyWebcamTransform();
+
+                        } else if (resizePinching && e.touches.length === 2) {
+                            const newDist = get_touch_dist(e.touches);
+                            const scaleRatio = newDist / resizeStartDist;
+                            let newWidth = Math.max(120, Math.min(800, resizeStartWidth * scaleRatio));
+                            webcamWidget.style.width = `${Math.round(newWidth)}px`;
+                            webcamWidget.style.height = isWebcam43 ? `${Math.round(newWidth * 16 / 9)}px` : `${Math.round(newWidth * 9 / 16)}px`;
+                            updateWebcam43BtnPosition();
+                        }
+                    }, { passive: false });
+
                     videoWrapper.addEventListener('touchend', (e) => {
-                        if (!window.isWebcamPanZoomMode) return;
-                        webcam_start_transform = null;
-                        webcam_start_touch = null;
-                        webcam_initial_pinch_dist = 0;
+                        if (!webcamTouch.isDown) return;
+
+                        if (webcamTouch.isGesture) {
+                            if (window.isWebcamPanZoomMode) {
+                                webcamPlayer.savePanZoomState(); // <-- FIX: Save state on gesture end
+                            }
+                            if (resizePinching) {
+                                resizePinching = false;
+                            }
+                        } else {
+                            if (e.touches.length === 0) {
+                                const now = Date.now();
+                                if (now - webcamTouch.lastTap < 350) {
+                                    toggleWebcamPanZoomMode();
+                                    webcamTouch.lastTap = 0;
+                                } else {
+                                    webcamTouch.lastTap = now;
+                                }
+                            }
+                        }
+
+                        if (e.touches.length === 0) {
+                            webcamTouch.isDown = false;
+                            webcamTouch.start = [];
+                            webcamTouch.startTransform = null;
+                        }
                     });
 
-                    // --- Webcam pan/zoom: mouse-based panning on canvas only, and safe mirroring with drag suppression ---
+                    // --- Mouse-based panning logic (unchanged, but still necessary) ---
                     let webcamPanMouse = { isDown: false, startX: 0, startY: 0, startPanX: 0, startPanY: 0, moved: false };
                     let webcamWidgetDragInProgress = false;
                     const webcamCanvas = webcamPlayer.elements.canvas;
                     webcamCanvas.addEventListener('mousedown', (e) => {
                         if (!window.isWebcamPanZoomMode) return;
                         e.preventDefault();
-                        e.stopPropagation(); // Prevent widget drag
+                        e.stopPropagation();
                         webcamPanMouse.isDown = true;
                         webcamPanMouse.startX = e.clientX;
                         webcamPanMouse.startY = e.clientY;
@@ -1158,7 +1187,6 @@
                         const dy = e.clientY - webcamPanMouse.startY;
                         webcam_transform.panX = webcamPanMouse.startPanX + dx;
                         webcam_transform.panY = webcamPanMouse.startPanY + dy;
-                        // Clamp pan
                         const rect = webcamPlayer.elements.videoWrapper.getBoundingClientRect();
                         const max_panX = (rect.width * webcam_transform.scale - rect.width) / 2;
                         const max_panY = (rect.height * webcam_transform.scale - rect.height) / 2;
@@ -1169,12 +1197,14 @@
                     function webcamPanMouseUp(e) {
                         if (webcamPanMouse.isDown) {
                             webcamPanMouse.isDown = false;
-                            webcamPlayer.savePanZoomState();
+                            if(webcamPanMouse.moved) {
+                                webcamPlayer.savePanZoomState();
+                            }
                             document.removeEventListener('mousemove', webcamPanMouseMove);
                             document.removeEventListener('mouseup', webcamPanMouseUp);
                         }
                     }
-                    // Widget drag suppression for mirroring
+                    
                     webcamWidget.addEventListener('mousedown', (e) => {
                         if (window.isWebcamPanZoomMode) return;
                         webcamWidgetDragInProgress = false;
@@ -1191,48 +1221,6 @@
                         document.addEventListener('mousemove', moveHandler);
                         document.addEventListener('mouseup', upHandler);
                     });
-                    videoWrapper.addEventListener('click', (e) => {
-                        if (window.isWebcamPanZoomMode) return;
-                        if (webcamWidgetDragInProgress) return;
-                        clearTimeout(webcamClickTimer);
-                        webcamClickTimer = setTimeout(() => videoWrapper.classList.toggle('normal-view'), 250);
-                    });
-
-                    // --- New: Pinch-to-resize webcam widget when NOT in pan/zoom mode ---
-                    let resizePinching = false, resizeStartDist = 0, resizeStartWidth = 0;
-                    videoWrapper.addEventListener('touchstart', (e) => {
-                        if (window.isWebcamPanZoomMode) return; // only when not editing
-                        if (e.touches.length === 2) {
-                            resizePinching = true;
-                            resizeStartDist = get_touch_dist(e.touches);
-                            resizeStartWidth = webcamWidget.offsetWidth;
-                        }
-                    }, { passive: false });
-
-                    videoWrapper.addEventListener('touchmove', (e) => {
-                        if (!resizePinching) return;
-                        if (e.touches.length !== 2) return;
-                        e.preventDefault();
-                        const newDist = get_touch_dist(e.touches);
-                        const scaleRatio = newDist / resizeStartDist;
-                        let newWidth = resizeStartWidth * scaleRatio;
-                        newWidth = Math.max(120, Math.min(800, newWidth)); // clamp reasonable sizes
-                        webcamWidget.style.width = `${Math.round(newWidth)}px`;
-                        // Maintain current aspect ratio
-                        if (isWebcam43) {
-                            webcamWidget.style.height = `${Math.round(newWidth * 16 / 9)}px`;
-                        } else {
-                            webcamWidget.style.height = `${Math.round(newWidth * 9 / 16)}px`;
-                        }
-                        updateWebcam43BtnPosition();
-                    }, { passive: false });
-
-                    videoWrapper.addEventListener('touchend', (e) => {
-                        if (resizePinching && e.touches.length < 2) {
-                            resizePinching = false;
-                        }
-                    });
-
                 })();
                 
                 (function setupBaseFeatures() {
@@ -1559,7 +1547,7 @@
                     };
                 };
 
-                const renderWpChoices = () => { const cont = document.getElementById('wallpaper-choices'); cont.innerHTML = ''; getWps().forEach(wp => { const thumb = document.createElement('div'); thumb.className = 'wallpaper-thumbnail'; thumb.style.backgroundImage = `url('${wp.url}')`; const rmvBtn = document.createElement('span'); rmvBtn.className = 'remove-thumb-btn'; rmvBtn.innerHTML = '×'; rmvBtn.title = 'Remove wallpaper'; rmvBtn.addEventListener('click', (e) => { e.stopPropagation(); const newWps = getWps().filter(w => w.url !== wp.url); saveWps(newWps); renderWpChoices(); }); thumb.appendChild(rmvBtn); thumb.addEventListener('click', () => { setWp(wp); localStorage.setItem('lockscreenLastSelectedWp', wp.url); settingsMenu.classList.remove('visible'); }); cont.appendChild(thumb); }); };
+                const renderWpChoices = () => { const cont = document.getElementById('wallpaper-choices'); cont.innerHTML = ''; getWps().forEach(wp => { const thumb = document.createElement('div'); thumb.className = 'wallpaper-thumbnail'; thumb.style.backgroundImage = `url('${wp.url}')`; const rmvBtn = document.createElement('span'); rmvBtn.className = 'remove-thumb-btn'; rmvBtn.title = 'Remove wallpaper'; rmvBtn.addEventListener('click', (e) => { e.stopPropagation(); const newWps = getWps().filter(w => w.url !== wp.url); saveWps(newWps); renderWpChoices(); }); thumb.appendChild(rmvBtn); thumb.addEventListener('click', () => { setWp(wp); localStorage.setItem('lockscreenLastSelectedWp', wp.url); settingsMenu.classList.remove('visible'); }); cont.appendChild(thumb); }); };
                 document.getElementById('wallpaper-url-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') { const url = e.target.value.trim(); if(url.toLowerCase().endsWith('.gif')) { alert('Please use the GIF widget to add GIFs.'); e.target.value = ''; return; } if (url.match(/\.(jpeg|jpg|gif|png|webp)$/i)) { const wps = getWps(); if (!wps.some(w => w.url === url)) { const newWp = { url: url, position: 'center center' }; wps.push(newWp); saveWps(wps); setWp(newWp); localStorage.setItem('lockscreenLastSelectedWp', newWp.url); renderWpChoices(); } e.target.value = ''; settingsMenu.classList.remove('visible'); } else { alert('Invalid URL.'); } } });
                 function exitPanningMode() { if (!isPanningMode) return; isPanningMode = false; lockScreen.classList.remove('panning-active'); const url = currentWallpaperImg.src; const wps = getWps(); const idx = wps.findIndex(w => w.url === url); if (idx > -1) { wps[idx].position = lockScreen.style.backgroundPosition; saveWps(wps); } }
 
