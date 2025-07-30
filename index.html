@@ -67,7 +67,7 @@
         #gif-widget.has-gif:hover #remove-gif-btn { display: flex; }
         
         /* Webcam Widget CSS */
-        #webcam-widget { top: 20%; left: 20%; width: 320px; height: 240px; padding: 0; resize: both; overflow: hidden; display: flex; align-items: center; justify-content: center; background-color: #000; border: 1px solid var(--widget-bg); transition: box-shadow 0.3s, border-color 0.3s; aspect-ratio: 16/9; }
+        #webcam-widget { top: 20%; left: 20%; width: 320px; height: 240px; padding: 0; resize: both; overflow: hidden; display: flex; align-items: center; justify-content: center; background-color: #000; border: 1px solid var(--widget-bg); transition: box-shadow 0.3s, border-color 0.3s; }
         .webcam-video-wrapper { display: none; width: 100%; height: 100%; transform: scaleX(-1); /* Default to mirrored */ touch-action: none; /* For Pointer Events */ cursor: pointer; }
         .webcam-video-wrapper.panning { cursor: grabbing; }
         .webcam-video-wrapper.normal-view { transform: scaleX(1); /* Class to un-mirror */ }
@@ -76,6 +76,7 @@
         #webcam-widget.active #webcam-placeholder { display: none; }
         #webcam-widget.webcam-pan-zoom-active { box-shadow: 0 0 15px rgba(10, 132, 255, 0.7); border-color: #0a84ff; }
         #webcam-widget.webcam-pan-zoom-active .webcam-video-wrapper { cursor: grab; }
+        #webcam-widget.webcam-pan-zoom-active .webcam-video-wrapper:hover { cursor: grab; }
         #webcam-placeholder { display: flex; flex-direction: column; align-items: center; gap: 10px; font-size: 1.2rem; color: rgba(255, 255, 255, 0.7); text-align: center; padding: 10px; }
         #webcam-controls { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; background-color: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 8px; opacity: 0; transition: opacity 0.3s ease; z-index: 12; }
         #webcam-widget:hover #webcam-controls { opacity: 1; }
@@ -920,6 +921,17 @@
 
                     function applyWebcamTransform() {
                         canvasEl.style.transform = `translate(${webcam_transform.panX}px, ${webcam_transform.panY}px) scale(${webcam_transform.scale})`;
+                        updateWebcamCursor();
+                    }
+                    
+                    function updateWebcamCursor() {
+                        if (window.isWebcamPanZoomMode) {
+                            if (webcam_transform.scale > 1) {
+                                videoWrapper.style.cursor = 'grab';
+                            } else {
+                                videoWrapper.style.cursor = 'zoom-in';
+                            }
+                        }
                     }
 
                     function updatePortraitBtnPosition() {
@@ -966,6 +978,7 @@
                             clearTimeout(webcamGlowTimeout);
                         }
                         updatePortraitBtnVisibility();
+                        updateWebcamCursor();
                     }
 
                     // --- ATTACH LISTENERS TO THE CORRECT ELEMENT: webcamWidget ---
@@ -1017,6 +1030,19 @@
                             webcamWidget.style.height = `${Math.round(newWidth * 9 / 16)}px`;
                         }
                         
+                        // Recalculate and clamp pan position after resize
+                        setTimeout(() => {
+                            if (webcam_transform.scale > 1) {
+                                const rect = videoWrapper.getBoundingClientRect();
+                                const max_panX = (rect.width * webcam_transform.scale - rect.width) / 2;
+                                const max_panY = (rect.height * webcam_transform.scale - rect.height) / 2;
+                                webcam_transform.panX = Math.max(-max_panX, Math.min(max_panX, webcam_transform.panX));
+                                webcam_transform.panY = Math.max(-max_panY, Math.min(max_panY, webcam_transform.panY));
+                                applyWebcamTransform();
+                                webcamPlayer.savePanZoomState();
+                            }
+                        }, 10); // Small delay to let resize complete
+                        
                         portraitBtn.textContent = isWebcamPortraitMode ? 'Full' : '9:16';
                         showPortraitBtn(); // Reset the hide timer
                     });
@@ -1041,19 +1067,25 @@
                         let scale = webcam_transform.scale * (e.deltaY < 0 ? 1.08 : 1 / 1.08);
                         webcam_transform.scale = Math.max(1, Math.min(5, scale));
                         
-                        // Apply bounds checking after zoom to keep pan in valid range
-                        const rect = videoWrapper.getBoundingClientRect();
-                        const max_panX = (rect.width * webcam_transform.scale - rect.width) / 2;
-                        const max_panY = (rect.height * webcam_transform.scale - rect.height) / 2;
-                        webcam_transform.panX = Math.max(-max_panX, Math.min(max_panX, webcam_transform.panX));
-                        webcam_transform.panY = Math.max(-max_panY, Math.min(max_panY, webcam_transform.panY));
+                        // Apply bounds checking after zoom and reset pan if zoomed fully out
+                        if (webcam_transform.scale > 1) {
+                            const rect = videoWrapper.getBoundingClientRect();
+                            const max_panX = (rect.width * webcam_transform.scale - rect.width) / 2;
+                            const max_panY = (rect.height * webcam_transform.scale - rect.height) / 2;
+                            webcam_transform.panX = Math.max(-max_panX, Math.min(max_panX, webcam_transform.panX));
+                            webcam_transform.panY = Math.max(-max_panY, Math.min(max_panY, webcam_transform.panY));
+                        } else {
+                            // Reset pan position when fully zoomed out
+                            webcam_transform.panX = 0;
+                            webcam_transform.panY = 0;
+                        }
                         
                         applyWebcamTransform();
                         webcamPlayer.savePanZoomState();
                     }, { passive: false });
                     
                     webcamWidget.addEventListener('mousedown', (e) => {
-                        if (window.isWebcamPanZoomMode) { e.stopImmediatePropagation(); return; }
+                        if (window.isWebcamPanZoomMode) return; // Don't stop propagation - let videoWrapper handle it
                         webcamWidgetDragInProgress = false;
                         const sX = e.clientX, sY = e.clientY;
                         const move = () => webcamWidgetDragInProgress = true;
@@ -1110,17 +1142,25 @@
                         e.stopPropagation();
                         if (e.touches.length === 2 && touchGestureState.initialPinchDist) {
                             webcam_transform.scale = Math.max(1.0, touchGestureState.startTransform.scale * (get_touch_dist(e.touches) / touchGestureState.initialPinchDist));
-                        } else if (e.touches.length === 1 && touchGestureState.startTouch) {
+                        } else if (e.touches.length === 1 && touchGestureState.startTouch && webcam_transform.scale > 1) {
                             const dx = e.touches[0].clientX - touchGestureState.startTouch.x;
                             const dy = e.touches[0].clientY - touchGestureState.startTouch.y;
-                            webcam_transform.panX = touchGestureState.startTransform.panX + dx;
+                            
+                            // Reverse X direction when mirrored (not normal-view)
+                            const isMirrored = !videoWrapper.classList.contains('normal-view');
+                            const adjustedDx = isMirrored ? -dx : dx;
+                            
+                            webcam_transform.panX = touchGestureState.startTransform.panX + adjustedDx;
                             webcam_transform.panY = touchGestureState.startTransform.panY + dy;
                         }
-                        const rect = videoWrapper.getBoundingClientRect();
-                        const max_panX = (rect.width * webcam_transform.scale - rect.width) / 2;
-                        const max_panY = (rect.height * webcam_transform.scale - rect.height) / 2;
-                        webcam_transform.panX = Math.max(-max_panX, Math.min(max_panX, webcam_transform.panX));
-                        webcam_transform.panY = Math.max(-max_panY, Math.min(max_panY, webcam_transform.panY));
+                        // Apply bounds checking when zoomed in
+                        if (webcam_transform.scale > 1) {
+                            const rect = videoWrapper.getBoundingClientRect();
+                            const max_panX = (rect.width * webcam_transform.scale - rect.width) / 2;
+                            const max_panY = (rect.height * webcam_transform.scale - rect.height) / 2;
+                            webcam_transform.panX = Math.max(-max_panX, Math.min(max_panX, webcam_transform.panX));
+                            webcam_transform.panY = Math.max(-max_panY, Math.min(max_panY, webcam_transform.panY));
+                        }
                         applyWebcamTransform();
                     }, { passive: false });
 
@@ -1132,7 +1172,7 @@
 
                     // Mouse panning on videoWrapper instead of canvas
                     videoWrapper.addEventListener('mousedown', (e) => {
-                        if (!window.isWebcamPanZoomMode) return;
+                        if (!window.isWebcamPanZoomMode || webcam_transform.scale <= 1) return; // Only when zoomed in
                         e.preventDefault();
                         e.stopPropagation();
                         webcamPanMouse = { isDown: true, startX: e.clientX, startY: e.clientY, startPanX: webcam_transform.panX, startPanY: webcam_transform.panY };
@@ -1142,11 +1182,19 @@
                     });
 
                     function webcamPanMouseMove(e) {
-                        if (!webcamPanMouse.isDown) return;
-                        webcam_transform.panX = webcamPanMouse.startPanX + e.clientX - webcamPanMouse.startX;
-                        webcam_transform.panY = webcamPanMouse.startPanY + e.clientY - webcamPanMouse.startY;
+                        if (!webcamPanMouse.isDown || webcam_transform.scale <= 1) return; // Don't pan when not zoomed
                         
-                        // Apply bounds checking to prevent panning beyond visible area
+                        const deltaX = e.clientX - webcamPanMouse.startX;
+                        const deltaY = e.clientY - webcamPanMouse.startY;
+                        
+                        // Reverse X direction when mirrored (not normal-view)
+                        const isMirrored = !videoWrapper.classList.contains('normal-view');
+                        const adjustedDeltaX = isMirrored ? -deltaX : deltaX;
+                        
+                        webcam_transform.panX = webcamPanMouse.startPanX + adjustedDeltaX;
+                        webcam_transform.panY = webcamPanMouse.startPanY + deltaY;
+                        
+                        // Apply bounds checking to keep within visible area
                         const rect = videoWrapper.getBoundingClientRect();
                         const max_panX = (rect.width * webcam_transform.scale - rect.width) / 2;
                         const max_panY = (rect.height * webcam_transform.scale - rect.height) / 2;
