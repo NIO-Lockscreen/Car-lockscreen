@@ -1012,23 +1012,41 @@
                             webcamWidget.removeAttribute('draggable');
                         }
                     }
-                    // Double-click toggles pan/zoom mode
-                    videoWrapper.addEventListener('dblclick', (e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-
+                    // Helper to toggle Pan/Zoom mode
+                    function toggleWebcamPanZoomMode() {
                         window.isWebcamPanZoomMode = !window.isWebcamPanZoomMode;
-                        document.getElementById('webcam-widget').classList.toggle('webcam-pan-zoom-active', window.isWebcamPanZoomMode);
+                        webcamWidget.classList.toggle('webcam-pan-zoom-active', window.isWebcamPanZoomMode);
                         setWebcamDraggable();
-                        
                         if (window.isWebcamPanZoomMode) {
                             webcamPlayer.loadPanZoomState();
-                            resetGlowTimeout();
+                            resetInactivityTimer();
                         } else {
                             exitPanZoomMode();
                         }
                         updateWebcam43BtnVisibility();
+                    }
+
+                    // Update existing dblclick handler to use helper
+                    videoWrapper.addEventListener('dblclick', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        toggleWebcamPanZoomMode();
                     });
+
+                    // Double-tap (touch) detection for touch screens
+                    let webcamLastTap = 0;
+                    videoWrapper.addEventListener('touchend', (e) => {
+                        if (e.touches.length > 0) return; // still touching
+                        const now = Date.now();
+                        if (now - webcamLastTap < 350) {
+                            // Detected double-tap
+                            toggleWebcamPanZoomMode();
+                            webcamLastTap = 0;
+                        } else {
+                            webcamLastTap = now;
+                        }
+                    });
+
                     // Single click toggles mirroring only if not in pan/zoom mode
                     videoWrapper.addEventListener('click', () => {
                         if (window.isWebcamPanZoomMode) return;
@@ -1178,6 +1196,41 @@
                         if (webcamWidgetDragInProgress) return;
                         clearTimeout(webcamClickTimer);
                         webcamClickTimer = setTimeout(() => videoWrapper.classList.toggle('normal-view'), 250);
+                    });
+
+                    // --- New: Pinch-to-resize webcam widget when NOT in pan/zoom mode ---
+                    let resizePinching = false, resizeStartDist = 0, resizeStartWidth = 0;
+                    videoWrapper.addEventListener('touchstart', (e) => {
+                        if (window.isWebcamPanZoomMode) return; // only when not editing
+                        if (e.touches.length === 2) {
+                            resizePinching = true;
+                            resizeStartDist = get_touch_dist(e.touches);
+                            resizeStartWidth = webcamWidget.offsetWidth;
+                        }
+                    }, { passive: false });
+
+                    videoWrapper.addEventListener('touchmove', (e) => {
+                        if (!resizePinching) return;
+                        if (e.touches.length !== 2) return;
+                        e.preventDefault();
+                        const newDist = get_touch_dist(e.touches);
+                        const scaleRatio = newDist / resizeStartDist;
+                        let newWidth = resizeStartWidth * scaleRatio;
+                        newWidth = Math.max(120, Math.min(800, newWidth)); // clamp reasonable sizes
+                        webcamWidget.style.width = `${Math.round(newWidth)}px`;
+                        // Maintain current aspect ratio
+                        if (isWebcam43) {
+                            webcamWidget.style.height = `${Math.round(newWidth * 16 / 9)}px`;
+                        } else {
+                            webcamWidget.style.height = `${Math.round(newWidth * 9 / 16)}px`;
+                        }
+                        updateWebcam43BtnPosition();
+                    }, { passive: false });
+
+                    videoWrapper.addEventListener('touchend', (e) => {
+                        if (resizePinching && e.touches.length < 2) {
+                            resizePinching = false;
+                        }
                     });
 
                 })();
