@@ -1145,8 +1145,14 @@
                             const scaleRatio = currentDist / resizeGestureState.initialDist;
                             let newWidth = Math.max(120, Math.min(800, resizeGestureState.initialWidth * scaleRatio));
                             webcamWidget.style.width = `${Math.round(newWidth)}px`;
-                            // Maintain 16:9 aspect ratio
-                            webcamWidget.style.height = `${Math.round(newWidth * 9 / 16)}px`;
+                            // Use correct aspect ratio based on current mode
+                            if (isWebcamPortraitMode) {
+                                // Portrait mode: 9:16 ratio (taller)
+                                webcamWidget.style.height = `${Math.round(newWidth * 16 / 9)}px`;
+                            } else {
+                                // Landscape mode: 16:9 ratio (wider)
+                                webcamWidget.style.height = `${Math.round(newWidth * 9 / 16)}px`;
+                            }
                         }
                     }, { passive: false });
                     
