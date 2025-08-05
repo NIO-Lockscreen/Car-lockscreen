@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -24,7 +23,7 @@
         html, body { height: 100%; width: 100%; overflow: hidden; font-family: 'Roboto', sans-serif; }
         body { background-color: #1a1a1a; color: white; text-align: center; }
         #lock-screen { position: relative; width: 100vw; height: 100vh; background-image: url('https://images.pexels.com/photos/807598/pexels-photo-807598.jpeg'); background-size: cover; background-position: center center; overflow: hidden; transition: background-image 0.5s ease-in-out; text-align: left; --icon-stroke-color: white; }
-        #lock-screen.panning-active { cursor: grab; } #lock-screen.panning-active:active { cursor: grabbing; }
+        #lock-screen.panning-active { cursor: grab; border: 2px solid rgba(10, 132, 255, 0.6); box-shadow: inset 0 0 20px rgba(10, 132, 255, 0.3); } #lock-screen.panning-active:active { cursor: grabbing; }
         #status-bar { position: absolute; top: 20px; right: 30px; font-size: 1rem; text-shadow: var(--text-shadow); z-index: 20; color: var(--text-color); }
         #weather-info { display: flex; align-items: center; gap: 10px; user-select: none; padding: 10px 15px; border-radius: 12px; transition: background-color 0.2s; background-color: var(--widget-bg); }
         .draggable-item { position: absolute; user-select: none; cursor: grab; z-index: 10; } .draggable-item:active { cursor: grabbing; z-index: 11; }
@@ -1639,24 +1638,53 @@
 
                 const renderWpChoices = () => { const cont = document.getElementById('wallpaper-choices'); cont.innerHTML = ''; getWps().forEach(wp => { const thumb = document.createElement('div'); thumb.className = 'wallpaper-thumbnail'; thumb.style.backgroundImage = `url('${wp.url}')`; const rmvBtn = document.createElement('span'); rmvBtn.className = 'remove-thumb-btn'; rmvBtn.title = 'Remove wallpaper'; rmvBtn.addEventListener('click', (e) => { e.stopPropagation(); const newWps = getWps().filter(w => w.url !== wp.url); saveWps(newWps); renderWpChoices(); }); thumb.appendChild(rmvBtn); thumb.addEventListener('click', () => { setWp(wp); localStorage.setItem('lockscreenLastSelectedWp', wp.url); settingsMenu.classList.remove('visible'); }); cont.appendChild(thumb); }); };
                 document.getElementById('wallpaper-url-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') { const url = e.target.value.trim(); if(url.toLowerCase().endsWith('.gif')) { alert('Please use the GIF widget to add GIFs.'); e.target.value = ''; return; } if (url.match(/\.(jpeg|jpg|gif|png|webp)$/i)) { const wps = getWps(); if (!wps.some(w => w.url === url)) { const newWp = { url: url, position: 'center center' }; wps.push(newWp); saveWps(wps); setWp(newWp); localStorage.setItem('lockscreenLastSelectedWp', newWp.url); renderWpChoices(); } e.target.value = ''; settingsMenu.classList.remove('visible'); } else { alert('Invalid URL.'); } } });
-                function exitPanningMode() { if (!isPanningMode) return; isPanningMode = false; lockScreen.classList.remove('panning-active'); const url = currentWallpaperImg.src; const wps = getWps(); const idx = wps.findIndex(w => w.url === url); if (idx > -1) { wps[idx].position = lockScreen.style.backgroundPosition; saveWps(wps); } }
+                function exitPanningMode() { exitPanningModeCompletely(); }
 
                 const resetInactivityPrompts = () => { clearTimeout(inactivityTimer); unlockPrompt.classList.remove('visible'); fullscreenHint.classList.remove('visible'); inactivityTimer = setTimeout(() => { if (document.fullscreenElement) { unlockPrompt.classList.add('visible'); } else { fullscreenHint.classList.add('visible'); } }, 60000); };
                 ['mousemove', 'mousedown', 'keydown'].forEach(evt => document.addEventListener(evt, resetInactivityPrompts));
                 resetInactivityPrompts();
                 unlockPrompt.addEventListener('click', () => { if (document.fullscreenElement) document.exitFullscreen(); });
                 
-                lockScreen.addEventListener('dblclick', (e) => { if (e.target.closest('.draggable-item')) return; if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); });
+                lockScreen.addEventListener('dblclick', (e) => { 
+                    if (e.target.closest('.draggable-item')) return; 
+                    if (isPanningMode) {
+                        exitPanningModeCompletely();
+                        return;
+                    }
+                    if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); 
+                });
                 
                 let isDraggingWp = false, sPanX, sPanY, sBgX, sBgY, startX, startY;
+                let panModeTimeout = null;
+                
                 const panMove = (e) => { if (!isDraggingWp) return; hasMovedWp = true; e.preventDefault(); const cX = e.touches ? e.touches[0].clientX : e.clientX; const cY = e.touches ? e.touches[0].clientY : e.clientY; const dX = cX - sPanX, dY = cY - sPanY; let nBgX = sBgX + dX, nBgY = sBgY + dY; const sW = lockScreen.clientWidth, sH = lockScreen.clientHeight; const iW = currentWallpaperImg.naturalWidth, iH = currentWallpaperImg.naturalHeight; const sR = sW / sH, iR = iW / iH; let scW, scH; if (iR > sR) { scH = sH; scW = sH * iR; } else { scW = sW; scH = sW / iR; } const minX = sW - scW, minY = sH - scH; nBgX = Math.max(minX, Math.min(0, nBgX)); nBgY = Math.max(minY, Math.min(0, nBgY)); lockScreen.style.backgroundPosition = `${nBgX}px ${nBgY}px`; };
+                
+                const exitPanningModeCompletely = () => {
+                    if (!isPanningMode) return;
+                    isPanningMode = false;
+                    isDraggingWp = false;
+                    lockScreen.classList.remove('panning-active');
+                    document.removeEventListener('mousemove', panMove); 
+                    document.removeEventListener('touchmove', panMove);
+                    clearTimeout(panModeTimeout);
+                    const url = currentWallpaperImg.src;
+                    const wps = getWps();
+                    const idx = wps.findIndex(w => w.url === url);
+                    if (idx > -1) {
+                        wps[idx].position = lockScreen.style.backgroundPosition;
+                        saveWps(wps);
+                    }
+                };
+                
                 const interactionEnd = () => { 
                     clearTimeout(pressHoldTimer); 
-                    if (isPanningMode) { 
+                    if (isPanningMode && isDraggingWp) { 
+                        // Only stop dragging, but keep pan mode active for 3 seconds
                         isDraggingWp = false; 
-                        lockScreen.classList.remove('panning-active');
                         document.removeEventListener('mousemove', panMove); 
-                        document.removeEventListener('touchmove', panMove); 
+                        document.removeEventListener('touchmove', panMove);
+                        
+                        // Save position after dragging ends
                         const url = currentWallpaperImg.src;
                         const wps = getWps();
                         const idx = wps.findIndex(w => w.url === url);
@@ -1664,6 +1692,10 @@
                             wps[idx].position = lockScreen.style.backgroundPosition;
                             saveWps(wps);
                         }
+                        
+                        // Keep pan mode active for 3 more seconds
+                        clearTimeout(panModeTimeout);
+                        panModeTimeout = setTimeout(exitPanningModeCompletely, 3000);
                     } 
                     document.removeEventListener('mouseup', interactionEnd); 
                     document.removeEventListener('touchend', interactionEnd); 
@@ -1681,6 +1713,20 @@
                     document.addEventListener('mouseup', interactionEnd);
                     document.addEventListener('touchend', interactionEnd);
                     clearTimeout(pressHoldTimer);
+                    
+                    // If already in pan mode, start dragging immediately
+                    if (isPanningMode && !isDraggingWp) {
+                        isDraggingWp = true;
+                        const bgPos = window.getComputedStyle(lockScreen).backgroundPosition.split(' ');
+                        sBgX = parseFloat(bgPos[0]);
+                        sBgY = parseFloat(bgPos[1]);
+                        sPanX = startX;
+                        sPanY = startY;
+                        document.addEventListener('mousemove', panMove);
+                        document.addEventListener('touchmove', panMove);
+                        clearTimeout(panModeTimeout); // Cancel auto-exit since user is actively panning
+                        return;
+                    }
                     
                     // Improved press and hold logic for better touchscreen experience
                     const isTouch = !!e.touches;
@@ -1702,6 +1748,10 @@
                         // Visual feedback for successful pan mode activation
                         lockScreen.style.filter = 'brightness(1.1)';
                         setTimeout(() => lockScreen.style.filter = '', 150);
+                        
+                        // Set auto-exit timer for pan mode
+                        clearTimeout(panModeTimeout);
+                        panModeTimeout = setTimeout(exitPanningModeCompletely, 10000); // 10 seconds if no activity
                     }, holdDelay);
                     
                     const moveCheck = (ev) => {
@@ -1716,8 +1766,34 @@
                     document.addEventListener('mousemove', moveCheck);
                     document.addEventListener('touchmove', moveCheck);
                 };
+                // Add touch double-tap to exit pan mode
+                let wallpaperTapCount = 0;
+                let wallpaperTapTimer = null;
+                
+                lockScreen.addEventListener('touchstart', (e) => {
+                    if (e.target.closest('.draggable-item')) return;
+                    if (isPanningMode && e.touches.length === 1) {
+                        wallpaperTapCount++;
+                        
+                        if (wallpaperTapCount === 1) {
+                            wallpaperTapTimer = setTimeout(() => {
+                                wallpaperTapCount = 0;
+                            }, 400);
+                        } else if (wallpaperTapCount === 2) {
+                            clearTimeout(wallpaperTapTimer);
+                            wallpaperTapCount = 0;
+                            e.preventDefault();
+                            e.stopPropagation();
+                            exitPanningModeCompletely();
+                            return;
+                        }
+                    }
+                    
+                    // Call the normal interaction start
+                    interactionStart(e);
+                }, { passive: false });
+
                 lockScreen.addEventListener('mousedown', interactionStart);
-                lockScreen.addEventListener('touchstart', interactionStart, { passive: false });
                 
                 const themeToggle = document.getElementById('theme-toggle');
                 const clockColorInput = document.getElementById('clock-color-input');
