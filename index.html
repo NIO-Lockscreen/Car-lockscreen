@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dynamic Lockscreen</title>
     <!-- MODIFIED: Favicons for Car Dash / Browser Tabs -->
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%232c2c2e'/%3E%3Ccircle cx='50' cy='50' r='30' fill='none' stroke='white' stroke-width='8'/%3E%3C/svg%3E">
@@ -23,7 +23,7 @@
         html, body { height: 100%; width: 100%; overflow: hidden; font-family: 'Roboto', sans-serif; }
         body { background-color: #1a1a1a; color: white; text-align: center; }
         #lock-screen { position: relative; width: 100vw; height: 100vh; background-image: url('https://images.pexels.com/photos/807598/pexels-photo-807598.jpeg'); background-size: cover; background-position: center center; overflow: hidden; transition: background-image 0.5s ease-in-out; text-align: left; --icon-stroke-color: white; }
-        #lock-screen.panning-active { cursor: grab; } #lock-screen.panning-active:active { cursor: grabbing; }
+        #lock-screen.panning-active { cursor: grab; border: 2px solid rgba(10, 132, 255, 0.6); box-shadow: inset 0 0 20px rgba(10, 132, 255, 0.3); } #lock-screen.panning-active:active { cursor: grabbing; }
         #status-bar { position: absolute; top: 20px; right: 30px; font-size: 1rem; text-shadow: var(--text-shadow); z-index: 20; color: var(--text-color); }
         #weather-info { display: flex; align-items: center; gap: 10px; user-select: none; padding: 10px 15px; border-radius: 12px; transition: background-color 0.2s; background-color: var(--widget-bg); }
         .draggable-item { position: absolute; user-select: none; cursor: grab; z-index: 10; } .draggable-item:active { cursor: grabbing; z-index: 11; }
@@ -181,8 +181,8 @@
         <div id="status-bar"><div id="weather-info"><span id="date"></span> <i id="weather-icon" class="fa-solid fa-cloud-sun"></i> <span id="temperature">...</span></div></div>
         <div id="fullscreen-hint">Double press wallpaper for fullscreen</div>
         <div id="clock" class="draggable-item"><div id="hours">00</div><div id="minutes">00</div></div>
-        <div id="youtube-music-btn" class="draggable-item app-icon"><a href="https://music.youtube.com/" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="50" fill="#FF0000"/><circle cx="50" cy="50" r="23" fill="none" stroke="white" stroke-width="4"/><polygon points="43,38 62,50 43,62" fill="white"/></svg></a></div>
-        <div id="youtube-btn" class="draggable-item app-icon"><a href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="50" fill="#FF0000"/><path d="M 35,29 A 10,10 0 0 0 25,39 V 61 A 10,10 0 0 0 35,71 H 65 A 10,10 0 0 0 75,61 V 39 A 10,10 0 0 0 65,29 Z" fill="white"/><polygon points="45,42 62,50 45,58" fill="#FF0000"/></svg></a></div>
+        <div id="youtube-music-btn" class="draggable-item app-icon" role="button" tabindex="0" aria-label="Open YouTube Music"><a href="https://music.youtube.com/" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="50" fill="#FF0000"/><circle cx="50" cy="50" r="23" fill="none" stroke="white" stroke-width="4"/><polygon points="43,38 62,50 43,62" fill="white"/></svg></a></div>
+        <div id="youtube-btn" class="draggable-item app-icon" role="button" tabindex="0" aria-label="Open YouTube"><a href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="50" fill="#FF0000"/><path d="M 35,29 A 10,10 0 0 0 25,39 V 61 A 10,10 0 0 0 35,71 H 65 A 10,10 0 0 0 75,61 V 39 A 10,10 0 0 0 65,29 Z" fill="white"/><polygon points="45,42 62,50 45,58" fill="#FF0000"/></svg></a></div>
         
         <!-- Widgets -->
         <div id="stock-widget" class="draggable-item widget" title="Single-click to trigger effect | Double-click to edit"></div>
@@ -209,7 +209,7 @@
         </div>
         <div id="gif-widget" class="draggable-item" title="Click to add GIF | Double-click to choose">
             <i id="gif-widget-placeholder" class="fa-solid fa-image"></i>
-            <img id="gif-display">
+            <img id="gif-display" alt="Selected GIF">
             <div id="remove-gif-btn">×</div>
         </div>
 
@@ -229,11 +229,11 @@
         <button id="webcam-portrait-btn" style="position: absolute; opacity: 0; pointer-events: none; transition: opacity 0.5s; z-index: 20; background: rgba(0,0,0,0.7); color: #fff; border: none; border-radius: 8px; padding: 8px 18px; font-size: 1.1em;">9:16</button>
 
         <!-- NEW: Webcam Toggle Button -->
-        <div id="webcam-toggle-btn" class="draggable-item app-icon hidden" title="Toggle Rear Seat Cam">
+        <div id="webcam-toggle-btn" class="draggable-item app-icon hidden" title="Toggle Rear Seat Cam" role="button" tabindex="0" aria-label="Toggle Rear Seat Cam">
             <i class="fa-solid fa-video-slash"></i>
         </div>
 
-        <div id="settings-btn" class="draggable-item app-icon" title="Open settings menu"><svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="7.5" fill="rgba(80, 80, 80, 0.6)"/><circle cx="8" cy="8" r="4" fill="none" stroke="var(--icon-stroke-color)" stroke-width="1.5"/></svg></div>
+        <div id="settings-btn" class="draggable-item app-icon" title="Open settings menu" role="button" tabindex="0" aria-label="Open settings"><svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="7.5" fill="rgba(80, 80, 80, 0.6)"/><circle cx="8" cy="8" r="4" fill="none" stroke="var(--icon-stroke-color)" stroke-width="1.5"/></svg></div>
         <div id="fun-stock-name-display" class="draggable-item"></div>
         <div id="unlock-prompt">Press to unlock</div>
     </div>
@@ -347,6 +347,7 @@
                 const closeSettingsBtn = document.getElementById('close-settings-btn');
                 const fullscreenHint = document.getElementById('fullscreen-hint');
                 const unlockPrompt = document.getElementById('unlock-prompt');
+                let wallpaperReady = false;
                 
                 const advancedSettingsView = document.getElementById('advanced-settings-view');
                 const advancedSettingsFooter = document.getElementById('advanced-settings-footer');
@@ -547,7 +548,7 @@
                     
                     noteWidget.addEventListener('dblclick', (e) => {
                         if (noteWidget.isEditing) return;
-                        if (!e.target.hasMoved) {
+                        if (noteWidget.dataset.justDragged !== 'true') {
                             enterNoteEditMode();
                         }
                     });
@@ -606,8 +607,10 @@
                         },
                         updateAlbumArt(artUrl) {
                             if (artUrl) this.currentArtworkUrl = artUrl;
-                            this.elements.art.innerHTML = '';
-                            this.elements.art.style.backgroundImage = `url('${this.currentArtworkUrl}')`;
+                            // Don't show wallpaper in music widget - keep default music icon
+                            this.elements.art.innerHTML = '<i class="fa-solid fa-headphones"></i>';
+                            this.elements.art.style.backgroundImage = 'none';
+                            // Still send artwork to media session API for system controls
                             if (this.currentStationIndex !== -1 && 'mediaSession' in navigator) {
                                 const station = this.stations[this.currentStationIndex];
                                 navigator.mediaSession.metadata = new MediaMetadata({
@@ -747,8 +750,8 @@
                         window.startPolling(`gif_session_${Date.now()}`, 'gif');
                     });
 
-                    gifWidget.addEventListener('click', (e) => { if (!e.target.hasMoved && !gifWidget.classList.contains('has-gif')) window.startPolling(`gif_session_${Date.now()}`, 'gif'); });
-                    gifWidget.addEventListener('dblclick', (e) => { if (!e.target.hasMoved) openGifChooser(); });
+                    gifWidget.addEventListener('click', (e) => { if (gifWidget.dataset.justDragged !== 'true' && !gifWidget.classList.contains('has-gif')) window.startPolling(`gif_session_${Date.now()}`, 'gif'); });
+                    gifWidget.addEventListener('dblclick', (e) => { if (gifWidget.dataset.justDragged !== 'true') openGifChooser(); });
                     closeGifChooserBtn.addEventListener('click', () => gifChooserMenu.classList.remove('visible'));
                     window.addGif = addGif;
                     renderCurrentGif();
@@ -1033,7 +1036,11 @@
                         updateWebcamCursor();
                     }
 
-                    // --- SIMPLIFIED DOUBLE-CLICK TO ENTER/EXIT MODE ---
+                    // --- IMPROVED DOUBLE-CLICK/TAP TO ENTER/EXIT MODE ---
+                    let webcamTapCount = 0;
+                    let webcamTapTimer = null;
+                    
+                    // Mouse double-click
                     webcamWidget.addEventListener('dblclick', (e) => {
                         if (e.target.closest('#webcam-controls, #webcam-portrait-btn')) return;
                         e.preventDefault();
@@ -1041,8 +1048,27 @@
                         toggleWebcamPanZoomMode();
                     });
 
+                    // Improved touch double-tap detection
+                    webcamWidget.addEventListener('touchstart', (e) => {
+                        if (e.target.closest('#webcam-controls, #webcam-portrait-btn')) return;
+                        if (e.touches.length !== 1) return; // Only single finger taps
+                        
+                        webcamTapCount++;
+                        
+                        if (webcamTapCount === 1) {
+                            webcamTapTimer = setTimeout(() => {
+                                webcamTapCount = 0; // Reset if second tap doesn't come
+                            }, 400); // 400ms window for double tap
+                        } else if (webcamTapCount === 2) {
+                            clearTimeout(webcamTapTimer);
+                            webcamTapCount = 0;
+                            e.preventDefault();
+                            e.stopPropagation();
+                            toggleWebcamPanZoomMode();
+                        }
+                    });
+
                     let resizeGestureState = {}; // Declare here for use in touchend handler
-                    let webcamLastTap = 0; // For touch double-tap detection
                     
                     webcamWidget.addEventListener('touchend', (e) => {
                         if (e.target.closest('#webcam-controls, #webcam-portrait-btn')) return;
@@ -1050,17 +1076,6 @@
                         // Handle pinch resize end
                         if (e.touches.length < 2) {
                             resizeGestureState = {};
-                        }
-                        
-                        // Improved double-tap for touch - handle both fast and normal taps
-                        if (e.touches.length === 0 && !resizeGestureState.initialDist) {
-                            const now = Date.now();
-                            if (now - webcamLastTap < 300) { // Increased from 200ms to 300ms for better reliability
-                                toggleWebcamPanZoomMode();
-                                webcamLastTap = 0; // Reset to prevent triple tap
-                            } else {
-                                webcamLastTap = now;
-                            }
                         }
                     });
 
@@ -1383,7 +1398,7 @@
                     initializeWidgetToggles();
                     webcamToggleBtn.addEventListener('click', (e) => {
                         const btn = e.currentTarget;
-                        if (btn.hasMoved) return;
+                        if (btn.dataset.justDragged === 'true') return;
                         if (window.webcamPlayer.stream) {
                             window.webcamPlayer.stop();
                         } else {
@@ -1395,9 +1410,9 @@
                     const weatherElems = { t: document.getElementById('temperature'), i: document.getElementById('weather-icon') };
                     const weatherLocationInput = document.getElementById('weather-location-input');
                     let clockScale = 1;
-                    const getweatherLocation = () => localStorage.getItem('lockscreenWeatherLocation') || '';
+                    const getWeatherLocation = () => localStorage.getItem('lockscreenWeatherLocation') || '';
                     const fetchWeather = () => {
-                        const location = getweatherLocation();
+                        const location = getWeatherLocation();
                         weatherLocationInput.value = location;
                         const url = `https://wttr.in/${location || 'Trondheim'}?format=j1`;
                         const iM = { 'sunny': 'fa-sun', 'clear': 'fa-sun', 'partly cloudy': 'fa-cloud-sun', 'cloudy': 'fa-cloud', 'overcast': 'fa-cloud', 'mist': 'fa-smog', 'fog': 'fa-smog', 'patchy rain': 'fa-cloud-rain', 'rain': 'fa-cloud-showers-heavy', 'drizzle': 'fa-cloud-rain', 'patchy snow': 'fa-snowflake', 'snow': 'fa-snowflake', 'sleet': 'fa-cloud-meatball', 'ice pellets': 'fa-icicles', 'thunder': 'fa-cloud-bolt', 'blizzard': 'fa-wind' };
@@ -1475,7 +1490,8 @@
                         
                         const stD = (e) => {
                             if (!isD && !isPinching) return;
-                            e.target.hasMoved = hasMoved;
+                            // Mark on element instead of event target
+                            el.dataset.justDragged = hasMoved ? 'true' : 'false';
                             if (el.id === 'fun-stock-name-display' && el.classList.contains('visible')) { 
                                 stockNameFadeOutTimer = setTimeout(() => { el.classList.remove('visible'); }, 3000); 
                             }
@@ -1508,7 +1524,7 @@
                             
                             isD = true; 
                             hasMoved = false; 
-                            e.target.hasMoved = false;
+                            el.dataset.justDragged = 'false';
                             
                             let cX, cY;
                             if (e.touches && e.touches.length > 0) {
@@ -1539,11 +1555,12 @@
                         }
                         if(el.id === 'settings-btn') { 
                             el.addEventListener('click', (e) => { if (!hasMoved) { showWallpaperSettings(); settingsMenu.classList.add('visible'); } }); 
+                            el.addEventListener('keydown', (e) => { if ((e.key === 'Enter' || e.key === ' ') && !hasMoved) { e.preventDefault(); showWallpaperSettings(); settingsMenu.classList.add('visible'); } });
                         }
                     };
                     
                     stockWidget.addEventListener('click', (e) => {
-                        if (e.target.hasMoved) return;
+                        if (stockWidget.dataset.justDragged === 'true') return;
                         clearTimeout(stockWidgetClickTimer);
                         stockWidgetClickTimer = setTimeout(() => {
                             if (!getStockFlashState()) return;
@@ -1624,24 +1641,53 @@
 
                 const renderWpChoices = () => { const cont = document.getElementById('wallpaper-choices'); cont.innerHTML = ''; getWps().forEach(wp => { const thumb = document.createElement('div'); thumb.className = 'wallpaper-thumbnail'; thumb.style.backgroundImage = `url('${wp.url}')`; const rmvBtn = document.createElement('span'); rmvBtn.className = 'remove-thumb-btn'; rmvBtn.title = 'Remove wallpaper'; rmvBtn.addEventListener('click', (e) => { e.stopPropagation(); const newWps = getWps().filter(w => w.url !== wp.url); saveWps(newWps); renderWpChoices(); }); thumb.appendChild(rmvBtn); thumb.addEventListener('click', () => { setWp(wp); localStorage.setItem('lockscreenLastSelectedWp', wp.url); settingsMenu.classList.remove('visible'); }); cont.appendChild(thumb); }); };
                 document.getElementById('wallpaper-url-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') { const url = e.target.value.trim(); if(url.toLowerCase().endsWith('.gif')) { alert('Please use the GIF widget to add GIFs.'); e.target.value = ''; return; } if (url.match(/\.(jpeg|jpg|gif|png|webp)$/i)) { const wps = getWps(); if (!wps.some(w => w.url === url)) { const newWp = { url: url, position: 'center center' }; wps.push(newWp); saveWps(wps); setWp(newWp); localStorage.setItem('lockscreenLastSelectedWp', newWp.url); renderWpChoices(); } e.target.value = ''; settingsMenu.classList.remove('visible'); } else { alert('Invalid URL.'); } } });
-                function exitPanningMode() { if (!isPanningMode) return; isPanningMode = false; lockScreen.classList.remove('panning-active'); const url = currentWallpaperImg.src; const wps = getWps(); const idx = wps.findIndex(w => w.url === url); if (idx > -1) { wps[idx].position = lockScreen.style.backgroundPosition; saveWps(wps); } }
+                function exitPanningMode() { exitPanningModeCompletely(); }
 
                 const resetInactivityPrompts = () => { clearTimeout(inactivityTimer); unlockPrompt.classList.remove('visible'); fullscreenHint.classList.remove('visible'); inactivityTimer = setTimeout(() => { if (document.fullscreenElement) { unlockPrompt.classList.add('visible'); } else { fullscreenHint.classList.add('visible'); } }, 60000); };
                 ['mousemove', 'mousedown', 'keydown'].forEach(evt => document.addEventListener(evt, resetInactivityPrompts));
                 resetInactivityPrompts();
                 unlockPrompt.addEventListener('click', () => { if (document.fullscreenElement) document.exitFullscreen(); });
                 
-                lockScreen.addEventListener('dblclick', (e) => { if (e.target.closest('.draggable-item')) return; if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); });
+                lockScreen.addEventListener('dblclick', (e) => { 
+                    if (e.target.closest('.draggable-item')) return; 
+                    if (isPanningMode) {
+                        exitPanningModeCompletely();
+                        return;
+                    }
+                    if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); 
+                });
                 
                 let isDraggingWp = false, sPanX, sPanY, sBgX, sBgY, startX, startY;
+                let panModeTimeout = null;
+                
                 const panMove = (e) => { if (!isDraggingWp) return; hasMovedWp = true; e.preventDefault(); const cX = e.touches ? e.touches[0].clientX : e.clientX; const cY = e.touches ? e.touches[0].clientY : e.clientY; const dX = cX - sPanX, dY = cY - sPanY; let nBgX = sBgX + dX, nBgY = sBgY + dY; const sW = lockScreen.clientWidth, sH = lockScreen.clientHeight; const iW = currentWallpaperImg.naturalWidth, iH = currentWallpaperImg.naturalHeight; const sR = sW / sH, iR = iW / iH; let scW, scH; if (iR > sR) { scH = sH; scW = sH * iR; } else { scW = sW; scH = sW / iR; } const minX = sW - scW, minY = sH - scH; nBgX = Math.max(minX, Math.min(0, nBgX)); nBgY = Math.max(minY, Math.min(0, nBgY)); lockScreen.style.backgroundPosition = `${nBgX}px ${nBgY}px`; };
+                
+                const exitPanningModeCompletely = () => {
+                    if (!isPanningMode) return;
+                    isPanningMode = false;
+                    isDraggingWp = false;
+                    lockScreen.classList.remove('panning-active');
+                    document.removeEventListener('mousemove', panMove); 
+                    document.removeEventListener('touchmove', panMove);
+                    clearTimeout(panModeTimeout);
+                    const url = currentWallpaperImg.src;
+                    const wps = getWps();
+                    const idx = wps.findIndex(w => w.url === url);
+                    if (idx > -1) {
+                        wps[idx].position = lockScreen.style.backgroundPosition;
+                        saveWps(wps);
+                    }
+                };
+                
                 const interactionEnd = () => { 
                     clearTimeout(pressHoldTimer); 
-                    if (isPanningMode) { 
+                    if (isPanningMode && isDraggingWp) { 
+                        // Only stop dragging, but keep pan mode active for 3 seconds
                         isDraggingWp = false; 
-                        lockScreen.classList.remove('panning-active');
                         document.removeEventListener('mousemove', panMove); 
-                        document.removeEventListener('touchmove', panMove); 
+                        document.removeEventListener('touchmove', panMove);
+                        
+                        // Save position after dragging ends
                         const url = currentWallpaperImg.src;
                         const wps = getWps();
                         const idx = wps.findIndex(w => w.url === url);
@@ -1649,6 +1695,10 @@
                             wps[idx].position = lockScreen.style.backgroundPosition;
                             saveWps(wps);
                         }
+                        
+                        // Keep pan mode active for 3 more seconds
+                        clearTimeout(panModeTimeout);
+                        panModeTimeout = setTimeout(exitPanningModeCompletely, 3000);
                     } 
                     document.removeEventListener('mouseup', interactionEnd); 
                     document.removeEventListener('touchend', interactionEnd); 
@@ -1666,6 +1716,26 @@
                     document.addEventListener('mouseup', interactionEnd);
                     document.addEventListener('touchend', interactionEnd);
                     clearTimeout(pressHoldTimer);
+                    
+                    // If already in pan mode, start dragging immediately
+                    if (isPanningMode && !isDraggingWp) {
+                        isDraggingWp = true;
+                        const bgPos = window.getComputedStyle(lockScreen).backgroundPosition.split(' ');
+                        sBgX = parseFloat(bgPos[0]);
+                        sBgY = parseFloat(bgPos[1]);
+                        sPanX = startX;
+                        sPanY = startY;
+                        document.addEventListener('mousemove', panMove);
+                        document.addEventListener('touchmove', panMove);
+                        clearTimeout(panModeTimeout); // Cancel auto-exit since user is actively panning
+                        return;
+                    }
+                    
+                    // Improved press and hold logic for better touchscreen experience
+                    const isTouch = !!e.touches;
+                    const holdDelay = isTouch ? 400 : 300; // Longer delay for touch devices
+                    const moveThreshold = isTouch ? 25 : 15; // More forgiving movement threshold for touch
+                    
                     pressHoldTimer = setTimeout(() => {
                         isPanningMode = true;
                         isDraggingWp = true;
@@ -1677,11 +1747,20 @@
                         sPanY = startY;
                         document.addEventListener('mousemove', panMove);
                         document.addEventListener('touchmove', panMove);
-                    }, 250);
+                        
+                        // Visual feedback for successful pan mode activation
+                        lockScreen.style.filter = 'brightness(1.1)';
+                        setTimeout(() => lockScreen.style.filter = '', 150);
+                        
+                        // Set auto-exit timer for pan mode
+                        clearTimeout(panModeTimeout);
+                        panModeTimeout = setTimeout(exitPanningModeCompletely, 10000); // 10 seconds if no activity
+                    }, holdDelay);
+                    
                     const moveCheck = (ev) => {
                         const mX = ev.touches ? ev.touches[0].clientX : ev.clientX;
                         const mY = ev.touches ? ev.touches[0].clientY : ev.clientY;
-                        if (Math.abs(mX - startX) > 10 || Math.abs(mY - startY) > 10) {
+                        if (Math.abs(mX - startX) > moveThreshold || Math.abs(mY - startY) > moveThreshold) {
                             clearTimeout(pressHoldTimer);
                             document.removeEventListener('mousemove', moveCheck);
                             document.removeEventListener('touchmove', moveCheck);
@@ -1690,8 +1769,34 @@
                     document.addEventListener('mousemove', moveCheck);
                     document.addEventListener('touchmove', moveCheck);
                 };
+                // Add touch double-tap to exit pan mode
+                let wallpaperTapCount = 0;
+                let wallpaperTapTimer = null;
+                
+                lockScreen.addEventListener('touchstart', (e) => {
+                    if (e.target.closest('.draggable-item')) return;
+                    if (isPanningMode && e.touches.length === 1) {
+                        wallpaperTapCount++;
+                        
+                        if (wallpaperTapCount === 1) {
+                            wallpaperTapTimer = setTimeout(() => {
+                                wallpaperTapCount = 0;
+                            }, 400);
+                        } else if (wallpaperTapCount === 2) {
+                            clearTimeout(wallpaperTapTimer);
+                            wallpaperTapCount = 0;
+                            e.preventDefault();
+                            e.stopPropagation();
+                            exitPanningModeCompletely();
+                            return;
+                        }
+                    }
+                    
+                    // Call the normal interaction start
+                    interactionStart(e);
+                }, { passive: false });
+
                 lockScreen.addEventListener('mousedown', interactionStart);
-                lockScreen.addEventListener('touchstart', interactionStart, { passive: false });
                 
                 const themeToggle = document.getElementById('theme-toggle');
                 const clockColorInput = document.getElementById('clock-color-input');
@@ -1725,6 +1830,8 @@
                     localStorage.removeItem('lockscreenNoteFontSize');
                     localStorage.removeItem('lockscreenGifUrls_v2');
                     localStorage.removeItem('lockscreenLastGif');
+                    localStorage.removeItem('webcamFullState');
+                    localStorage.removeItem('webcamPanZoomState');
                     window.radioPlayer.reset();
                     window.webcamPlayer.stop();
                     document.getElementById('gif-display').src = '';
@@ -1732,7 +1839,7 @@
                         const el = document.getElementById(id);
                         if (el) el.style.cssText = '';
                     });
-                    const applyClockScale = (scale) => { clockScale = scale; const baseSizeVW = 15; const newSize = baseSizeVW * scale; document.getElementById('hours').style.fontSize = `clamp(${newSize * 0.4}rem, ${newSize}vw, ${newSize * 0.8}rem)`; document.getElementById('minutes').style.fontSize = `clamp(${newSize * 0.4}rem, ${newSize}vw, ${newSize * 0.8}rem)`; };
+                    // Use existing applyClockScale
                     applyClockScale(1);
                     settingsMenu.classList.remove('visible');
                 });
