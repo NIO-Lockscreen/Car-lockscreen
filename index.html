@@ -2,13 +2,14 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Dynamic Lockscreen</title>
     <!-- MODIFIED: Favicons for Car Dash / Browser Tabs -->
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%232c2c2e'/%3E%3Ccircle cx='50' cy='50' r='30' fill='none' stroke='white' stroke-width='8'/%3E%3C/svg%3E">
     <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%232c2c2e'/%3E%3Ccircle cx='50' cy='50' r='30' fill='none' stroke='white' stroke-width='8'/%3E%3C/svg%3E">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/music-metadata-browser/dist/music-metadata-browser.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@700&family=Roboto+Mono:wght@500&family=Roboto:wght@400;500&family=Playfair+Display:wght@700&family=Source+Code+Pro:wght@700&family=Inter:wght@400;500&family=Lora:wght@400;500&display=swap');
         :root {
@@ -173,16 +174,49 @@
         #lock-screen.light-theme #status-bar, #lock-screen.light-theme #unlock-prompt, #lock-screen.light-theme #fullscreen-hint, #lock-screen.light-theme #fun-stock-name-display { color: var(--text-color-light); text-shadow: var(--text-shadow-light); }
         #lock-screen.light-theme .widget, #lock-screen.light-theme #weather-info { background-color: var(--widget-bg-light); color: var(--text-color-light); text-shadow: var(--text-shadow-light); }
         #lock-screen.light-theme #note-textarea, #lock-screen.light-theme #note-display { color: var(--text-color-light); }
+        
+        /* MP3 Player */
+        #mp3-player-widget {
+          width: 320px; display:flex; flex-direction:column; gap:10px;
+          background: rgba(0,0,0,0.2); border-radius: 12px; padding:12px; color:#fff;
+          backdrop-filter: blur(5px);
+        }
+        #mp3-player-widget .mp3-info { display:flex; gap:12px; align-items:center; }
+        #mp3-album-art {
+          width:60px; height:60px; border-radius:8px; background:#0003;
+          display:flex; align-items:center; justify-content:center; font-size:1.6rem; background-size:cover; background-position:center;
+        }
+        #mp3-title { font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        #mp3-artist { font-size:.9rem; color:#ccc; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        #mp3-progress { width:100%; }
+        #mp3-player-widget .mp3-ctrls { display:flex; align-items:center; justify-content:space-around; }
+        #mp3-player-widget .mp3-ctrls i { font-size:1.3rem; cursor:pointer; }
+
+        /* Visualizer */
+        #music-visualizer-widget {
+          top: 70%; left: 10%; width: 320px; height: 140px; position: absolute; overflow:hidden; border-radius:12px;
+          background: transparent; backdrop-filter: none; -webkit-backdrop-filter: none; touch-action: none; resize: both; min-width: 180px; min-height: 90px;
+        }
+        #music-visualizer-canvas { width:100%; height:100%; display:block; }
+        #music-visualizer-overlay {
+          position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
+          color:#fff; background: transparent; pointer-events: none;
+        }
+        /* Match index.html circle mode visuals */
+        #music-visualizer-widget.circle-mode { background-color: transparent !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; border-radius: 50%; }
+        #music-visualizer-widget.circle-mode #music-visualizer-canvas { border-radius: 50%; }
+        #music-visualizer-widget.circle-mode #music-visualizer-overlay { background-color: transparent; }
     </style>
 </head>
 <body>
     <audio id="audio-player" preload="none"></audio>
+    <audio id="mp3-audio-player" preload="metadata"></audio>
     <div id="lock-screen">
         <div id="status-bar"><div id="weather-info"><span id="date"></span> <i id="weather-icon" class="fa-solid fa-cloud-sun"></i> <span id="temperature">...</span></div></div>
         <div id="fullscreen-hint">Double press wallpaper for fullscreen</div>
         <div id="clock" class="draggable-item"><div id="hours">00</div><div id="minutes">00</div></div>
-        <div id="youtube-music-btn" class="draggable-item app-icon" role="button" tabindex="0" aria-label="Open YouTube Music"><a href="https://music.youtube.com/" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="50" fill="#FF0000"/><circle cx="50" cy="50" r="23" fill="none" stroke="white" stroke-width="4"/><polygon points="43,38 62,50 43,62" fill="white"/></svg></a></div>
-        <div id="youtube-btn" class="draggable-item app-icon" role="button" tabindex="0" aria-label="Open YouTube"><a href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="50" fill="#FF0000"/><path d="M 35,29 A 10,10 0 0 0 25,39 V 61 A 10,10 0 0 0 35,71 H 65 A 10,10 0 0 0 75,61 V 39 A 10,10 0 0 0 65,29 Z" fill="white"/><polygon points="45,42 62,50 45,58" fill="#FF0000"/></svg></a></div>
+        <div id="youtube-music-btn" class="draggable-item app-icon"><a href="https://music.youtube.com/" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="50" fill="#FF0000"/><circle cx="50" cy="50" r="23" fill="none" stroke="white" stroke-width="4"/><polygon points="43,38 62,50 43,62" fill="white"/></svg></a></div>
+        <div id="youtube-btn" class="draggable-item app-icon"><a href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="50" fill="#FF0000"/><path d="M 35,29 A 10,10 0 0 0 25,39 V 61 A 10,10 0 0 0 35,71 H 65 A 10,10 0 0 0 75,61 V 39 A 10,10 0 0 0 65,29 Z" fill="white"/><polygon points="45,42 62,50 45,58" fill="#FF0000"/></svg></a></div>
         
         <!-- Widgets -->
         <div id="stock-widget" class="draggable-item widget" title="Single-click to trigger effect | Double-click to edit"></div>
@@ -191,6 +225,33 @@
             <div id="note-display"></div>
             <textarea id="note-textarea" placeholder="Type a note..."></textarea>
             <div id="note-settings-btn" title="Edit note style"><i class="fa-solid fa-cog"></i></div>
+        </div>
+
+        <!-- Visualizer -->
+        <div id="music-visualizer-widget" class="draggable-item widget" title="Tap to start mic; pinch to resize; double‑tap to switch bars/sphere">
+          <canvas id="music-visualizer-canvas"></canvas>
+          <div id="music-visualizer-overlay">
+            <i class="fa-solid fa-microphone"></i>
+            <span>Tap to start</span>
+          </div>
+          <div id="music-visualizer-resize-box" style="display:none;"><i class="fa-solid fa-up-right-and-down-left-from-center"></i></div>
+        </div>
+
+        <!-- MP3 Player -->
+        <div id="mp3-player-widget" class="draggable-item widget" title="Double‑click to manage playlist (long‑press to toggle Radio/MP3)">
+          <div class="mp3-info">
+            <div id="mp3-album-art"><i class="fa-solid fa-music"></i></div>
+            <div class="mp3-details">
+              <div id="mp3-title">No Track</div>
+              <div id="mp3-artist">Double‑click to add</div>
+            </div>
+          </div>
+          <input id="mp3-progress" type="range" min="0" max="100" value="0">
+          <div class="mp3-ctrls">
+            <i id="mp3-prev" class="fa-solid fa-backward-step"></i>
+            <i id="mp3-play-pause" class="fa-solid fa-play"></i>
+            <i id="mp3-next" class="fa-solid fa-forward-step"></i>
+          </div>
         </div>
 
         <div id="music-widget" class="draggable-item widget no-station" title="Double-click to select radio">
@@ -209,7 +270,7 @@
         </div>
         <div id="gif-widget" class="draggable-item" title="Click to add GIF | Double-click to choose">
             <i id="gif-widget-placeholder" class="fa-solid fa-image"></i>
-            <img id="gif-display" alt="Selected GIF">
+            <img id="gif-display">
             <div id="remove-gif-btn">×</div>
         </div>
 
@@ -229,11 +290,11 @@
         <button id="webcam-portrait-btn" style="position: absolute; opacity: 0; pointer-events: none; transition: opacity 0.5s; z-index: 20; background: rgba(0,0,0,0.7); color: #fff; border: none; border-radius: 8px; padding: 8px 18px; font-size: 1.1em;">9:16</button>
 
         <!-- NEW: Webcam Toggle Button -->
-        <div id="webcam-toggle-btn" class="draggable-item app-icon hidden" title="Toggle Rear Seat Cam" role="button" tabindex="0" aria-label="Toggle Rear Seat Cam">
+        <div id="webcam-toggle-btn" class="draggable-item app-icon hidden" title="Toggle Rear Seat Cam">
             <i class="fa-solid fa-video-slash"></i>
         </div>
 
-        <div id="settings-btn" class="draggable-item app-icon" title="Open settings menu" role="button" tabindex="0" aria-label="Open settings"><svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="7.5" fill="rgba(80, 80, 80, 0.6)"/><circle cx="8" cy="8" r="4" fill="none" stroke="var(--icon-stroke-color)" stroke-width="1.5"/></svg></div>
+        <div id="settings-btn" class="draggable-item app-icon" title="Open settings menu"><svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="7.5" fill="rgba(80, 80, 80, 0.6)"/><circle cx="8" cy="8" r="4" fill="none" stroke="var(--icon-stroke-color)" stroke-width="1.5"/></svg></div>
         <div id="fun-stock-name-display" class="draggable-item"></div>
         <div id="unlock-prompt">Press to unlock</div>
     </div>
@@ -247,6 +308,8 @@
                     <div class="setting-toggle"><label for="toggle-stock-widget">Stock Widget</label><input type="checkbox" id="toggle-stock-widget"></div>
                     <div class="setting-toggle"><label for="toggle-note-widget">Note Widget</label><input type="checkbox" id="toggle-note-widget"></div>
                     <div class="setting-toggle"><label for="toggle-music-widget">Music Widget</label><input type="checkbox" id="toggle-music-widget"></div>
+                    <div class="setting-toggle"><label for="toggle-mp3-player-widget">MP3 Player</label><input type="checkbox" id="toggle-mp3-player-widget"></div>
+                    <div class="setting-toggle"><label for="toggle-music-visualizer-widget">Music Visualizer</label><input type="checkbox" id="toggle-music-visualizer-widget"></div>
                     <div class="setting-toggle"><label for="toggle-gif-widget">GIF Widget</label><input type="checkbox" id="toggle-gif-widget"></div>
                     <div class="setting-toggle"><label for="toggle-webcam-widget">Rear Seat Cam</label><input type="checkbox" id="toggle-webcam-widget"></div>
                 </div>
@@ -293,6 +356,14 @@
     <div id="note-editor-menu"><div class="menu-content"><button id="close-note-editor-btn">×</button><h2>Edit Note Style</h2><div class="settings-section"><label for="note-font-select">Font Family</label><select id="note-font-select"><option value="'Roboto', sans-serif">Roboto (Default)</option><option value="'Lora', serif">Lora</option><option value="'Inter', sans-serif">Inter</option><option value="'Source Code Pro', monospace">Source Code Pro</option></select></div><div class="settings-section"><label for="note-font-size-input">Font Size (px)</label><input type="text" id="note-font-size-input" inputmode="numeric" pattern="[0-9]*" value="16"></div></div></div>
     <div id="radio-menu"><div class="menu-content"><button id="close-radio-btn">×</button><h2>Select a Radio Station</h2><div id="radio-channel-list"></div></div></div>
     <div id="gif-chooser-menu"><div class="menu-content"><button id="close-gif-chooser-btn">×</button><h2>Choose a GIF</h2><div id="gif-choices"></div><button id="add-new-gif-btn"><i class="fa-solid fa-plus"></i> Add New GIF</button></div></div>
+    <div id="mp3-menu"><div class="menu-content" id="mp3-menu-content" style="max-width:520px;">
+        <h2 style="text-align:center;">MP3 Playlist</h2>
+        <div class="actions" style="display:flex; gap:10px; margin:10px auto 14px; flex-wrap: wrap; justify-content:center;">
+            <button id="mp3-add-qr-btn" class="mp3-mode-btn" style="background:#0a84ff; color:#fff; border:none; padding:8px 12px; border-radius:8px; cursor:pointer;">Add via Phone (Dropbox)</button>
+            <button id="mp3-clear-btn" class="mp3-mode-btn" style="background:#e74c3c; color:#fff; border:none; padding:8px 12px; border-radius:8px; cursor:pointer;">Clear All</button>
+        </div>
+        <div id="mp3-track-list" class="track-list" style="max-height:55vh; overflow:auto;"></div>
+    </div></div>
     <div id="qr-modal"><div id="qr-modal-content"><h2>Scan with your phone</h2><div id="qr-code"></div><p>Scan to send an image URL from your phone.</p></div></div>
     <div id="upload-view"><div id="phone-upload-container"><h2>Add Wallpaper from Phone</h2><label for="file-input" id="upload-label">Tap to Upload Image</label><input type="file" id="file-input" accept="image/*" style="display: none;"><p class="separator-text">... or ...</p><p>Paste an image URL below</p><input type="url" id="phone-url-input" placeholder="https://example.com/image.jpg"><button id="phone-url-submit">Use this URL</button><h2 id="upload-status"></h2></div></div>
     <div id="flash-top" class="flash-overlay"></div>
@@ -347,7 +418,6 @@
                 const closeSettingsBtn = document.getElementById('close-settings-btn');
                 const fullscreenHint = document.getElementById('fullscreen-hint');
                 const unlockPrompt = document.getElementById('unlock-prompt');
-                let wallpaperReady = false;
                 
                 const advancedSettingsView = document.getElementById('advanced-settings-view');
                 const advancedSettingsFooter = document.getElementById('advanced-settings-footer');
@@ -548,7 +618,7 @@
                     
                     noteWidget.addEventListener('dblclick', (e) => {
                         if (noteWidget.isEditing) return;
-                        if (noteWidget.dataset.justDragged !== 'true') {
+                        if (!e.target.hasMoved) {
                             enterNoteEditMode();
                         }
                     });
@@ -750,8 +820,8 @@
                         window.startPolling(`gif_session_${Date.now()}`, 'gif');
                     });
 
-                    gifWidget.addEventListener('click', (e) => { if (gifWidget.dataset.justDragged !== 'true' && !gifWidget.classList.contains('has-gif')) window.startPolling(`gif_session_${Date.now()}`, 'gif'); });
-                    gifWidget.addEventListener('dblclick', (e) => { if (gifWidget.dataset.justDragged !== 'true') openGifChooser(); });
+                    gifWidget.addEventListener('click', (e) => { if (!e.target.hasMoved && !gifWidget.classList.contains('has-gif')) window.startPolling(`gif_session_${Date.now()}`, 'gif'); });
+                    gifWidget.addEventListener('dblclick', (e) => { if (!e.target.hasMoved) openGifChooser(); });
                     closeGifChooserBtn.addEventListener('click', () => gifChooserMenu.classList.remove('visible'));
                     window.addGif = addGif;
                     renderCurrentGif();
@@ -1354,11 +1424,13 @@
                 
                 (function setupBaseFeatures() {
                     const webcamToggleBtn = document.getElementById('webcam-toggle-btn');
-                    const DRAGGABLE_ELEMENT_IDS = ['clock', 'youtube-music-btn', 'youtube-btn', 'stock-widget', 'settings-btn', 'fun-stock-name-display', 'note-widget', 'music-widget', 'gif-widget', 'webcam-widget', 'webcam-toggle-btn'];
+                    const DRAGGABLE_ELEMENT_IDS = ['clock', 'youtube-music-btn', 'youtube-btn', 'stock-widget', 'settings-btn', 'fun-stock-name-display', 'note-widget', 'music-widget', 'music-visualizer-widget', 'mp3-player-widget', 'gif-widget', 'webcam-widget', 'webcam-toggle-btn'];
                     const WIDGETS = {
                         stock: { el: document.getElementById('stock-widget'), toggle: document.getElementById('toggle-stock-widget'), default: true },
                         note: { el: document.getElementById('note-widget'), toggle: document.getElementById('toggle-note-widget'), default: false },
                         music: { el: document.getElementById('music-widget'), toggle: document.getElementById('toggle-music-widget'), default: false },
+                        mp3: { el: document.getElementById('mp3-player-widget'), toggle: document.getElementById('toggle-mp3-player-widget'), default: false },
+                        visualizer: { el: document.getElementById('music-visualizer-widget'), toggle: document.getElementById('toggle-music-visualizer-widget'), default: true },
                         gif: { el: document.getElementById('gif-widget'), toggle: document.getElementById('toggle-gif-widget'), default: false },
                         webcam: { el: document.getElementById('webcam-widget'), toggle: document.getElementById('toggle-webcam-widget'), default: false },
                     };
@@ -1366,11 +1438,11 @@
                     function initializeWidgetToggles() {
                         for(const key in WIDGETS) {
                             const widget = WIDGETS[key];
-                            const savedState = localStorage.getItem(`widget_${key}_visible`);
+                            const savedState = widget.toggle ? localStorage.getItem(`widget_${key}_visible`) : null;
                             const isVisible = savedState === null ? widget.default : savedState === 'true';
                             
                             widget.el.classList.toggle('hidden', !isVisible);
-                            widget.toggle.checked = isVisible;
+                            if (widget.toggle) widget.toggle.checked = isVisible;
 
                             if (key === 'webcam') {
                                 webcamToggleBtn.classList.toggle('hidden', !isVisible);
@@ -1379,7 +1451,7 @@
                                 }
                             }
 
-                            widget.toggle.addEventListener('change', () => {
+                            if (widget.toggle) widget.toggle.addEventListener('change', () => {
                                 const isChecked = widget.toggle.checked;
                                 widget.el.classList.toggle('hidden', !isChecked);
                                 localStorage.setItem(`widget_${key}_visible`, isChecked);
@@ -1398,7 +1470,7 @@
                     initializeWidgetToggles();
                     webcamToggleBtn.addEventListener('click', (e) => {
                         const btn = e.currentTarget;
-                        if (btn.dataset.justDragged === 'true') return;
+                        if (btn.hasMoved) return;
                         if (window.webcamPlayer.stream) {
                             window.webcamPlayer.stop();
                         } else {
@@ -1410,9 +1482,9 @@
                     const weatherElems = { t: document.getElementById('temperature'), i: document.getElementById('weather-icon') };
                     const weatherLocationInput = document.getElementById('weather-location-input');
                     let clockScale = 1;
-                    const getWeatherLocation = () => localStorage.getItem('lockscreenWeatherLocation') || '';
+                    const getweatherLocation = () => localStorage.getItem('lockscreenWeatherLocation') || '';
                     const fetchWeather = () => {
-                        const location = getWeatherLocation();
+                        const location = getweatherLocation();
                         weatherLocationInput.value = location;
                         const url = `https://wttr.in/${location || 'Trondheim'}?format=j1`;
                         const iM = { 'sunny': 'fa-sun', 'clear': 'fa-sun', 'partly cloudy': 'fa-cloud-sun', 'cloudy': 'fa-cloud', 'overcast': 'fa-cloud', 'mist': 'fa-smog', 'fog': 'fa-smog', 'patchy rain': 'fa-cloud-rain', 'rain': 'fa-cloud-showers-heavy', 'drizzle': 'fa-cloud-rain', 'patchy snow': 'fa-snowflake', 'snow': 'fa-snowflake', 'sleet': 'fa-cloud-meatball', 'ice pellets': 'fa-icicles', 'thunder': 'fa-cloud-bolt', 'blizzard': 'fa-wind' };
@@ -1478,11 +1550,7 @@
                             }
                             
                             let nX = cX - oX, nY = cY - oY;
-                            const sR = lockScreen;
-                            const maxX = sR.clientWidth - el.offsetWidth;
-                            const maxY = sR.clientHeight - el.offsetHeight;
-                            nX = Math.max(0, Math.min(nX, maxX));
-                            nY = Math.max(0, Math.min(nY, maxY));
+                            // Allow moving the widget outside of the screen bounds
                             el.style.left = `${nX}px`; 
                             el.style.top = `${nY}px`;
                             if(['clock', 'stock-widget'].indexOf(el.id) === -1) el.style.transform = 'none';
@@ -1490,8 +1558,7 @@
                         
                         const stD = (e) => {
                             if (!isD && !isPinching) return;
-                            // Mark on element instead of event target
-                            el.dataset.justDragged = hasMoved ? 'true' : 'false';
+                            e.target.hasMoved = hasMoved;
                             if (el.id === 'fun-stock-name-display' && el.classList.contains('visible')) { 
                                 stockNameFadeOutTimer = setTimeout(() => { el.classList.remove('visible'); }, 3000); 
                             }
@@ -1513,7 +1580,7 @@
                                 return;
                             }
                             if (el.isEditing) return;
-                            if (e.target.closest('#music-controls, #remove-gif-btn, #webcam-controls, #note-settings-btn, #webcam-portrait-btn')) return;
+                            if (e.target.closest('#music-controls, .mp3-ctrls, #mp3-progress, #remove-gif-btn, #webcam-controls, #note-settings-btn, #webcam-portrait-btn, #music-visualizer-resize-box')) return;
                             if (e.touches && e.touches.length === 2 && el.id === 'clock') { 
                                 isPinching = true; 
                                 isD = false; 
@@ -1524,7 +1591,7 @@
                             
                             isD = true; 
                             hasMoved = false; 
-                            el.dataset.justDragged = 'false';
+                            e.target.hasMoved = false;
                             
                             let cX, cY;
                             if (e.touches && e.touches.length > 0) {
@@ -1555,12 +1622,11 @@
                         }
                         if(el.id === 'settings-btn') { 
                             el.addEventListener('click', (e) => { if (!hasMoved) { showWallpaperSettings(); settingsMenu.classList.add('visible'); } }); 
-                            el.addEventListener('keydown', (e) => { if ((e.key === 'Enter' || e.key === ' ') && !hasMoved) { e.preventDefault(); showWallpaperSettings(); settingsMenu.classList.add('visible'); } });
                         }
                     };
                     
                     stockWidget.addEventListener('click', (e) => {
-                        if (stockWidget.dataset.justDragged === 'true') return;
+                        if (e.target.hasMoved) return;
                         clearTimeout(stockWidgetClickTimer);
                         stockWidgetClickTimer = setTimeout(() => {
                             if (!getStockFlashState()) return;
@@ -1830,16 +1896,14 @@
                     localStorage.removeItem('lockscreenNoteFontSize');
                     localStorage.removeItem('lockscreenGifUrls_v2');
                     localStorage.removeItem('lockscreenLastGif');
-                    localStorage.removeItem('webcamFullState');
-                    localStorage.removeItem('webcamPanZoomState');
                     window.radioPlayer.reset();
                     window.webcamPlayer.stop();
                     document.getElementById('gif-display').src = '';
-                    ['clock', 'youtube-music-btn', 'youtube-btn', 'stock-widget', 'settings-btn', 'fun-stock-name-display', 'note-widget', 'music-widget', 'gif-widget', 'webcam-widget', 'webcam-toggle-btn'].forEach(id => {
+                    ['clock', 'youtube-music-btn', 'youtube-btn', 'stock-widget', 'settings-btn', 'fun-stock-name-display', 'note-widget', 'music-widget', 'gif-widget', 'webcam-widget', 'webcam-toggle-btn', 'music-visualizer-widget', 'mp3-player-widget'].forEach(id => {
                         const el = document.getElementById(id);
                         if (el) el.style.cssText = '';
                     });
-                    // Use existing applyClockScale
+                    const applyClockScale = (scale) => { clockScale = scale; const baseSizeVW = 15; const newSize = baseSizeVW * scale; document.getElementById('hours').style.fontSize = `clamp(${newSize * 0.4}rem, ${newSize}vw, ${newSize * 0.8}rem)`; document.getElementById('minutes').style.fontSize = `clamp(${newSize * 0.4}rem, ${newSize}vw, ${newSize * 0.8}rem)`; };
                     applyClockScale(1);
                     settingsMenu.classList.remove('visible');
                 });
@@ -1913,6 +1977,361 @@
                 });
             }
         });
+    </script>
+    <script>
+    (function() {
+      // ===== MP3 Player (standalone) =====
+      const mp3Player = {
+        audio: document.getElementById('mp3-audio-player'),
+        els: {
+          root: document.getElementById('mp3-player-widget'),
+          art: document.getElementById('mp3-album-art'),
+          title: document.getElementById('mp3-title'),
+          artist: document.getElementById('mp3-artist'),
+          progress: document.getElementById('mp3-progress'),
+          playPause: document.getElementById('mp3-play-pause'),
+          prev: document.getElementById('mp3-prev'),
+          next: document.getElementById('mp3-next'),
+          menu: document.getElementById('mp3-menu'),
+          addQrBtn: document.getElementById('mp3-add-qr-btn'),
+          clearBtn: document.getElementById('mp3-clear-btn'),
+          list: document.getElementById('mp3-track-list'),
+        },
+        playlist: JSON.parse(localStorage.getItem('lockscreenMp3Playlist') || '[]'),
+        index: parseInt(localStorage.getItem('lockscreenMp3Index') || '-1', 10),
+        mode: 'mp3',
+        init() {
+          const { root, playPause, prev, next, progress } = this.els;
+          if (!root) return;
+          root.addEventListener('dblclick', () => this.openMenu());
+          let lpTimer = null, active = false, sx = 0, sy = 0;
+          root.addEventListener('touchstart', e => {
+            if (e.touches.length !== 1) return;
+            active = true; sx = e.touches[0].clientX; sy = e.touches[0].clientY;
+            lpTimer = setTimeout(() => { if (active) this.setMode(this.mode === 'mp3' ? 'radio' : 'mp3'); }, 600);
+          }, { passive: true });
+          root.addEventListener('touchmove', e => {
+            if (!active) return; const t = e.touches[0]; if (Math.hypot(t.clientX - sx, t.clientY - sy) > 18) { clearTimeout(lpTimer); active = false; }
+          }, { passive: true });
+          root.addEventListener('touchend', () => { clearTimeout(lpTimer); active = false; }, { passive: true });
+
+          playPause && playPause.addEventListener('click', () => this.togglePlay());
+          prev && prev.addEventListener('click', () => this.prev());
+          next && next.addEventListener('click', () => this.next());
+          progress && progress.addEventListener('input', () => this.seek());
+
+          this.audio && this.audio.addEventListener('play', () => this.updatePlayIcon(true));
+          this.audio && this.audio.addEventListener('pause', () => this.updatePlayIcon(false));
+          this.audio && this.audio.addEventListener('timeupdate', () => this.updateProgress());
+          this.audio && this.audio.addEventListener('ended', () => this.next());
+
+          this.updateNowPlaying({ title: 'No Track', artist: 'Double‑click to add', art: null });
+          if (this.els.menu) {
+            this.els.menu.addEventListener('click', (e) => { if (e.target === this.els.menu) this.els.menu.classList.remove('visible'); });
+            this.els.addQrBtn && this.els.addQrBtn.addEventListener('click', () => { this.els.menu.classList.remove('visible'); window.startPolling(`mp3_session_${Date.now()}`, 'mp3'); });
+            this.els.clearBtn && this.els.clearBtn.addEventListener('click', () => this.clear());
+          }
+          if (this.playlist.length > 0) { if (this.index < 0 || this.index >= this.playlist.length) this.index = 0; this.load(this.index, false); }
+        },
+        openMenu() { if (!this.els.menu) return; this.renderList(); this.els.menu.classList.add('visible'); },
+        renderList() {
+          const list = this.els.list; if (!list) return; list.innerHTML = '';
+          if (this.playlist.length === 0) { list.innerHTML = '<p style="text-align:center;color:#aaa;">No tracks yet. Use "Add via Phone".</p>'; return; }
+          this.playlist.forEach((url, i) => {
+            const row = document.createElement('div');
+            row.className = 'radio-channel-item';
+            const name = decodeURIComponent((url.split('/').pop() || '').split('?')[0]) || `Track ${i+1}`;
+            row.innerHTML = `<div class="name">${name}</div><div class="genre" style="display:flex;gap:8px;align-items:center;"><button data-i="${i}" class="mp3-play-btn" style="background:none;border:1px solid #555;color:#fff;padding:4px 8px;border-radius:6px;cursor:pointer;">Play</button><button data-i="${i}" class="mp3-del-btn" style="background:#e74c3c;border:none;color:#fff;padding:4px 8px;border-radius:6px;cursor:pointer;">Delete</button></div>`;
+            list.appendChild(row);
+          });
+          list.querySelectorAll('.mp3-play-btn').forEach(btn => btn.addEventListener('click', (e) => { const i = parseInt(e.currentTarget.getAttribute('data-i'), 10); this.load(i, true); this.els.menu.classList.remove('visible'); }));
+          list.querySelectorAll('.mp3-del-btn').forEach(btn => btn.addEventListener('click', (e) => { const i = parseInt(e.currentTarget.getAttribute('data-i'), 10); this.playlist.splice(i, 1); if (this.index >= this.playlist.length) this.index = this.playlist.length - 1; this.persist(); this.renderList(); }));
+        },
+        persist() { localStorage.setItem('lockscreenMp3Playlist', JSON.stringify(this.playlist)); localStorage.setItem('lockscreenMp3Index', String(this.index)); },
+        clear() { this.playlist = []; this.index = -1; if (this.audio) { this.audio.pause(); this.audio.src=''; } this.updateNowPlaying({ title: 'No Track', artist: 'Double‑click to add', art: null }); this.persist(); this.renderList && this.renderList(); },
+        normalizeDropbox(u) {
+          try { const url = new URL(u); if (url.hostname.endsWith('dropbox.com')) { url.searchParams.set('raw','1'); url.searchParams.delete('dl'); return `https://dl.dropboxusercontent.com${url.pathname}` + (url.search || '?raw=1'); } } catch {}
+          return u;
+        },
+        setMode(m) {
+          this.mode = m;
+          if (this.els.progress) this.els.progress.style.display = (m === 'radio') ? 'none' : '';
+        },
+        addTracks(urls) {
+          const cleaned = urls.map(u => this.normalizeDropbox(u)).filter(Boolean);
+          cleaned.forEach(u => { if (!this.playlist.includes(u)) this.playlist.push(u); });
+          if (this.index === -1 && this.playlist.length > 0) this.load(0, false);
+        },
+        
+        async load(i, autoplay = true) {
+          if (i < 0 || i >= this.playlist.length) return;
+          this.index = i;
+          const url = this.playlist[i];
+          if (this.audio) this.audio.src = url;
+          this.updateNowPlaying({ title: 'Loading...', artist: '', art: null });
+          try { await this.loadTags(url); } catch {}
+          if (autoplay && this.audio) this.audio.play().catch(()=>{});
+        },
+        next() { if (!this.playlist.length) return; this.load((this.index + 1) % this.playlist.length, true); },
+        prev() { if (!this.playlist.length) return; this.load((this.index - 1 + this.playlist.length) % this.playlist.length, true); },
+        togglePlay() {
+          if (!this.audio) return;
+          if (!this.audio.src) { if (this.playlist.length) this.load(this.index === -1 ? 0 : this.index, true); return; }
+          this.audio.paused ? this.audio.play() : this.audio.pause();
+        },
+        updatePlayIcon(isPlaying) { if (this.els.playPause) this.els.playPause.className = `fa-solid ${isPlaying ? 'fa-pause' : 'fa-play'}`; },
+        updateProgress() {
+          if (!this.audio) return;
+          if (!isFinite(this.audio.duration) || this.audio.duration <= 0) { if (this.els.progress) this.els.progress.value = 0; return; }
+          if (this.els.progress) this.els.progress.value = Math.floor((this.audio.currentTime / this.audio.duration) * 100) || 0;
+        },
+        seek() {
+          if (!this.audio) return;
+          if (!isFinite(this.audio.duration) || this.audio.duration <= 0) return;
+          const p = parseInt(this.els.progress.value, 10) / 100;
+          this.audio.currentTime = p * this.audio.duration;
+        },
+        updateNowPlaying({ title, artist, art }) {
+          if (this.els.title) this.els.title.textContent = title || 'Unknown Title';
+          if (this.els.artist) this.els.artist.textContent = artist || '';
+          if (this.els.art) {
+            if (art) { this.els.art.style.backgroundImage = `url('${art}')`; this.els.art.innerHTML = ''; }
+            else { this.els.art.style.backgroundImage = 'none'; this.els.art.innerHTML = '<i class="fa-solid fa-music"></i>'; }
+          }
+          if ('mediaSession' in navigator) {
+            navigator.mediaSession.metadata = new MediaMetadata({
+              title: this.els.title ? this.els.title.textContent : '', artist: this.els.artist ? this.els.artist.textContent : '',
+              artwork: art ? [{ src: art, sizes: '512x512', type: 'image/jpeg' }] : []
+            });
+          }
+        },
+        async loadTags(url) {
+          if (!window.musicMetadata) { this.updateNowPlaying({ title: this.fileName(url), artist: '', art: null }); return; }
+          try {
+            const md = await window.musicMetadata.fetchFromUrl(url, { duration: false });
+            const c = md.common || {};
+            let artUrl = null;
+            if (c.picture && c.picture.length) {
+              const pic = c.picture[0];
+              const blob = new Blob([pic.data], { type: pic.format || 'image/jpeg' });
+              artUrl = URL.createObjectURL(blob);
+            }
+            this.updateNowPlaying({ title: c.title || this.fileName(url), artist: c.artist || c.album || '', art: artUrl });
+          } catch {
+            this.updateNowPlaying({ title: this.fileName(url), artist: '', art: null });
+          }
+        },
+        fileName(u) { try { return decodeURIComponent((new URL(u)).pathname.split('/').pop()).replace(/\.[^/.]+$/, ''); } catch { return 'Track'; } }
+      };
+      window.mp3Player = mp3Player;
+      mp3Player.init();
+
+      // ===== Microphone Visualizer (standalone) =====
+      const visualizer = {
+        els: {
+          root: document.getElementById('music-visualizer-widget'),
+          canvas: document.getElementById('music-visualizer-canvas'),
+          overlay: document.getElementById('music-visualizer-overlay')
+        },
+        audioCtx: null, analyser: null, data: null, time: null, raf: null,
+        level: 0, mode: (localStorage.getItem('musicVisualizerMode') || 'circle'), pinch: null,
+        init() {
+          const w = this.els.root; if (!w) return;
+          // Apply saved mode class immediately
+          if (this.mode === 'circle') { w.classList.add('circle-mode'); }
+          w.addEventListener('click', () => { if (!this.audioCtx) this.start(); });
+          w.addEventListener('dblclick', (e) => { e.preventDefault(); this.toggleMode(); });
+          const getDist = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+          // Mouse long-press to set mute arc
+          let lpTimer = null, lpStart = {x:0,y:0}, lpMoved = false;
+          w.addEventListener('mousedown', (e) => {
+            if (e.button !== 0) return;
+            if (this.mode !== 'circle') return;
+            lpStart = { x: e.clientX, y: e.clientY };
+            lpMoved = false;
+            const move = (ev) => { if (Math.hypot(ev.clientX - lpStart.x, ev.clientY - lpStart.y) > 8) { lpMoved = true; clearTimeout(lpTimer); document.removeEventListener('mousemove', move); } };
+            const up = () => { clearTimeout(lpTimer); document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', up); };
+            document.addEventListener('mousemove', move);
+            document.addEventListener('mouseup', up, { once: true });
+            clearTimeout(lpTimer);
+            lpTimer = setTimeout(() => { if (!lpMoved) this.handleLongPress(lpStart.x, lpStart.y); }, 600);
+          });
+          // Touch long-press to set mute arc
+          w.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 2) {
+              e.preventDefault();
+              this.pinch = { d0: getDist(e.touches), w0: w.offsetWidth, h0: w.offsetHeight, l0: w.offsetLeft, t0: w.offsetTop };
+            } else if (e.touches.length === 1 && this.mode === 'circle') {
+              const t = e.touches[0];
+              lpStart = { x: t.clientX, y: t.clientY }; lpMoved = false;
+              clearTimeout(lpTimer);
+              lpTimer = setTimeout(() => { if (!lpMoved) this.handleLongPress(lpStart.x, lpStart.y); }, 600);
+            }
+          }, { passive:false });
+          w.addEventListener('touchmove', (e) => {
+            if (e.touches.length === 2) {
+              if (!this.pinch) return;
+              e.preventDefault();
+              const r = getDist(e.touches) / Math.max(1, this.pinch.d0);
+              if (this.mode === 'circle') {
+                const base = Math.min(this.pinch.w0, this.pinch.h0);
+                const ns = Math.max(80, Math.min(2000, Math.round(base * r)));
+                const dW = ns - this.pinch.w0, dH = ns - this.pinch.h0;
+                w.style.width = ns + 'px'; w.style.height = ns + 'px';
+                w.style.left = (this.pinch.l0 - dW/2) + 'px'; w.style.top = (this.pinch.t0 - dH/2) + 'px';
+              } else {
+                const nW = Math.max(120, Math.min(3000, Math.round(this.pinch.w0 * r)));
+                const nH = Math.max(90, Math.min(2000, Math.round(this.pinch.h0 * r)));
+                const dW = nW - this.pinch.w0, dH = nH - this.pinch.h0;
+                w.style.width = nW + 'px'; w.style.height = nH + 'px';
+                w.style.left = (this.pinch.l0 - dW/2) + 'px'; w.style.top = (this.pinch.t0 - dH/2) + 'px';
+              }
+              this.resizeCanvas();
+            } else if (e.touches.length === 1 && this.mode === 'circle') {
+              const t = e.touches[0];
+              if (Math.hypot(t.clientX - lpStart.x, t.clientY - lpStart.y) > 15) { lpMoved = true; clearTimeout(lpTimer); }
+            }
+          }, { passive:false });
+          w.addEventListener('touchend', () => { this.pinch = null; clearTimeout(lpTimer); }, { passive:true });
+
+          window.addEventListener('resize', () => this.resizeCanvas());
+          this.resizeCanvas();
+        },
+        toggleMode() {
+          this.mode = this.mode === 'circle' ? 'bars' : 'circle';
+          localStorage.setItem('musicVisualizerMode', this.mode);
+          if (this.els.root) {
+            this.els.root.classList.toggle('circle-mode', this.mode === 'circle');
+          }
+          // When entering circle, enforce square while keeping center
+          if (this.mode === 'circle') {
+            const w = this.els.root.offsetWidth || 200;
+            const h = this.els.root.offsetHeight || 200;
+            const oldLeft = this.els.root.offsetLeft;
+            const oldTop = this.els.root.offsetTop;
+            const size = Math.min(w, h);
+            const dW = size - w;
+            const dH = size - h;
+            this.els.root.style.width = `${size}px`;
+            this.els.root.style.height = `${size}px`;
+            this.els.root.style.left = `${oldLeft - dW / 2}px`;
+            this.els.root.style.top = `${oldTop - dH / 2}px`;
+          }
+          this.resizeCanvas();
+        },
+        resizeCanvas() {
+          const c = this.els.canvas; if (!c) return;
+          const w = c.clientWidth, h = c.clientHeight;
+          if (w && h && (c.width !== w || c.height !== h)) { c.width = w; c.height = h; }
+        },
+        async start() {
+          if (!this.els.overlay) return;
+          if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { this.setOverlay('Mic not available'); return; }
+          if (!window.isSecureContext) { this.setOverlay('Requires HTTPS'); return; }
+          try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation:true, noiseSuppression:true, autoGainControl:false } });
+            this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const src = this.audioCtx.createMediaStreamSource(stream);
+            this.analyser = this.audioCtx.createAnalyser();
+            this.analyser.fftSize = 1024; this.analyser.smoothingTimeConstant = 0.3;
+            src.connect(this.analyser);
+            this.data = new Uint8Array(this.analyser.frequencyBinCount);
+            this.time = new Uint8Array(this.analyser.fftSize);
+            this.els.overlay.style.display = 'none';
+            this.draw();
+          } catch { this.setOverlay('Mic blocked'); }
+        },
+        // ====== Mute arc helpers (circle mode) ======
+        normalizeAngle(a) { while (a < 0) a += Math.PI*2; while (a >= Math.PI*2) a -= Math.PI*2; return a; },
+        isAngleMuted(angle) {
+          if (typeof this.muteArcStart !== 'number' || typeof this.muteArcEnd !== 'number' || this.muteArcStart === this.muteArcEnd) return false;
+          const s = this.normalizeAngle(this.muteArcStart); const e = this.normalizeAngle(this.muteArcEnd); const x = this.normalizeAngle(angle);
+          return e > s ? (x >= s && x <= e) : (x >= s || x <= e);
+        },
+        handleLongPress(px, py) {
+          if (this.mode !== 'circle') return;
+          const rect = this.els.canvas.getBoundingClientRect();
+          const cx = rect.left + rect.width/2, cy = rect.top + rect.height/2;
+          const angle = Math.atan2(py - cy, px - cx);
+          if (typeof this.muteArcStart !== 'number' || typeof this.muteArcEnd !== 'number') {
+            this.muteArcStart = angle; this.muteArcEnd = angle;
+          } else {
+            const distS = Math.abs(this.normalizeAngle(angle - this.muteArcStart));
+            const distE = Math.abs(this.normalizeAngle(angle - this.muteArcEnd));
+            if (distS < distE) this.muteArcStart = angle; else this.muteArcEnd = angle;
+          }
+          try { localStorage.setItem('musicVisualizerMuteArc', JSON.stringify({ start: this.muteArcStart, end: this.muteArcEnd })); } catch {}
+        },
+        setOverlay(t) { if (!this.els.overlay) return; this.els.overlay.style.display = 'flex'; const s = this.els.overlay.querySelector('span'); if (s) s.textContent = t; },
+        draw() {
+          this.resizeCanvas();
+          const c = this.els.canvas; if (!c) return; const ctx = c.getContext('2d');
+          this.raf = requestAnimationFrame(() => this.draw());
+          if (!this.analyser) return;
+          this.analyser.getByteTimeDomainData(this.time);
+          let sumSq=0; for (let i=0;i<this.time.length;i++){ const x=(this.time[i]-128)/128; sumSq+=x*x; }
+          const rms = Math.sqrt(sumSq/this.time.length);
+          const linear = Math.max(0, (rms - 0.008) * 6.0);
+          const target = Math.min(1, Math.pow(linear, 0.7));
+          this.level += (target - this.level) * (target > this.level ? 0.7 : 0.12);
+
+          this.analyser.getByteFrequencyData(this.data);
+          ctx.clearRect(0,0,c.width,c.height);
+
+          if (this.mode === 'circle') this.drawCircle(ctx, c.width, c.height);
+          else this.drawBars(ctx, c.width, c.height);
+        },
+        drawBars(ctx, w, h) {
+          const bars = 60, slice = Math.max(1, Math.floor(this.data.length / bars));
+          const barW = w / bars, g = 0.25 + 1.1 * this.level, t = performance.now() * 0.002;
+          for (let i=0;i<bars;i++){
+            const base = this.data[i*slice] / 255;
+            const wave = 0.35 * (0.5 + 0.5 * Math.sin(t + i * 0.5));
+            const v = Math.min(1, base * 0.75 + wave * 0.9) * g;
+            const bh = v * h;
+            ctx.fillStyle = 'rgba(255,255,255,1)';
+            ctx.fillRect(i * barW, h - bh, barW - 2, bh);
+          }
+        },
+        drawCircle(ctx, w, h) {
+          const cx = w/2, cy=h/2, r = Math.min(cx, cy) * 0.58;
+          const bars = 80, slice = Math.max(1, Math.floor(this.data.length / bars));
+          const t = performance.now() * 0.0025, g = 0.3 + 1.3 * this.level;
+          const isMutedArcActive = (typeof this.muteArcStart === 'number' && typeof this.muteArcEnd === 'number' && this.muteArcStart !== this.muteArcEnd);
+          // Skip center fill when muted arc is active to avoid any gray background
+          if (!isMutedArcActive) {
+            ctx.beginPath(); ctx.arc(cx, cy, r*(0.85+0.15*this.level), 0, Math.PI*2);
+            ctx.fillStyle = `rgba(255,255,255,${(0.05+0.15*this.level).toFixed(3)})`; ctx.fill();
+          }
+          ctx.save(); ctx.translate(cx, cy);
+          for (let i=0;i<bars;i++){
+            const ang = (i/bars)*Math.PI*2;
+            const base = this.data[i*slice]/255;
+            const wave = 0.4*(0.5+0.5*Math.sin(t+i*0.55));
+            const v = Math.min(1, base*0.8 + wave*1.0)*g;
+            const len = v * r;
+            if (!this.isAngleMuted(ang)) {
+              ctx.save(); ctx.rotate(ang);
+              ctx.fillStyle='rgba(255,255,255,1)';
+              const wBar = Math.max(2, r*0.02);
+              ctx.fillRect(r*0.55, -wBar/2, len, wBar);
+              ctx.restore();
+            }
+          }
+          ctx.restore();
+          // Skip outer glow as well when muted arc is active to keep background fully clean
+          if (!isMutedArcActive) {
+            const glowA = 0.08 + 0.25*this.level;
+            ctx.beginPath(); ctx.arc(cx, cy, r*(1.55+0.15*this.level), 0, Math.PI*2);
+            ctx.strokeStyle = `rgba(255,255,255,${glowA.toFixed(3)})`;
+            ctx.lineWidth = Math.max(2, r*0.03); ctx.stroke();
+          }
+          // Do not draw shaded muted arc overlay; muting still applies via isAngleMuted
+        }
+      };
+      window.musicVisualizer = visualizer;
+      visualizer.init();
+    })();
     </script>
 </body>
 </html>
