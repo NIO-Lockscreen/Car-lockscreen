@@ -98,6 +98,19 @@
             color: white;
         }
 
+        /* Trinket Widget */
+        #trinket-widget { top: 52%; left: 10%; width: 300px; display: flex; gap: 10px; align-items: center; overflow: hidden; transition: width 0.25s ease, height 0.25s ease, padding 0.25s ease; }
+        #trinket-art { width: 64px; height: 64px; border-radius: 8px; background-size: cover; background-position: center; background-color: rgba(0,0,0,0.2); flex-shrink: 0; }
+        #trinket-fields { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+        #trinket-album, #trinket-song { width: 100%; background: transparent; border: 1px solid #555; color: var(--text-color); border-radius: 6px; padding: 6px 8px; font-size: 0.9rem; }
+        #trinket-star { font-size: 28px; color: #fff; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; }
+        #trinket-widget.collapsed { width: 84px; height: 84px; padding: 8px; justify-content: center; }
+        #trinket-widget.collapsed #trinket-fields, #trinket-widget.collapsed #trinket-art { display: none; }
+        #trinket-widget.collapsed #trinket-star { display: flex; }
+        #trinket-widget.expanded { width: 320px; padding: 10px 12px; }
+        #trinket-widget.expanded #trinket-fields, #trinket-widget.expanded #trinket-art { display: flex; }
+        #trinket-widget.expanded #trinket-star { display: none; }
+
         #lock-screen.light-theme #music-artist { color: #555; }
         #settings-btn { top: 80%; left: 50px; }
         #settings-btn svg circle:nth-child(2) { stroke: var(--icon-stroke-color); }
@@ -216,6 +229,15 @@
                 <i id="music-next" class="fa-solid fa-forward-step"></i>
             </div>
         </div>
+        
+        <div id="trinket-widget" class="draggable-item widget collapsed" title="Tap to expand | Double‑click star: add image via QR | Double‑click background: push to Media Session">
+            <div id="trinket-art"></div>
+            <div id="trinket-fields">
+                <input id="trinket-song" placeholder="Song" value="Hello World">
+                <input id="trinket-album" placeholder="Album" value="Hello">
+            </div>
+            <div id="trinket-star"><i class="fa-solid fa-star"></i></div>
+        </div>
         <div id="gif-widget" class="draggable-item" title="Click to add GIF | Double-click to choose">
             <i id="gif-widget-placeholder" class="fa-solid fa-image"></i>
             <img id="gif-display">
@@ -256,6 +278,7 @@
                     <div class="setting-toggle"><label for="toggle-stock-widget">Stock Widget</label><input type="checkbox" id="toggle-stock-widget"></div>
                     <div class="setting-toggle"><label for="toggle-note-widget">Note Widget</label><input type="checkbox" id="toggle-note-widget"></div>
                     <div class="setting-toggle"><label for="toggle-music-widget">Music Widget</label><input type="checkbox" id="toggle-music-widget"></div>
+                    <div class="setting-toggle"><label for="toggle-trinket-widget">Trinket Widget</label><input type="checkbox" id="toggle-trinket-widget"></div>
                     <div class="setting-toggle"><label for="toggle-gif-widget">GIF Widget</label><input type="checkbox" id="toggle-gif-widget"></div>
                     <div class="setting-toggle"><label for="toggle-webcam-widget">Rear Seat Cam</label><input type="checkbox" id="toggle-webcam-widget"></div>
                 </div>
@@ -581,11 +604,11 @@
                     // Music Widget
                     const radioPlayer = {
                         stations: [
-                            { name: 'Lofi Girl', genre: 'Beats to relax/study to', streamUrl: 'https://play.streamafrica.net/lofiradio' },
-                            { name: 'SomaFM: Groove Salad', genre: 'Ambient Downtempo', streamUrl: 'https://ice1.somafm.com/groovesalad-128-mp3' },
-                            { name: 'SomaFM: Underground 80s', genre: 'Early 80s UK Synthpop', streamUrl: 'https://ice2.somafm.com/u80s-128-mp3' },
                             { name: 'Phonk', genre: 'Classic & Modern Phonk', streamUrl: 'https://stream.laut.fm/phonk' },
-                            { name: 'SomaFM: Vaporwaves', genre: 'Hypnagogic Retro', streamUrl: 'https://ice1.somafm.com/vaporwaves-128-mp3' }
+                            { name: 'Chillstep', genre: 'Chillstep & Future Garage', streamUrl: 'https://icecast.ravepartyradio.org/chillstep-192.mp3' },
+                            { name: 'Classic Rock 109', genre: 'Classic Rock', streamUrl: 'https://streaming.live365.com/a51466' },
+                            { name: 'Synthwave', genre: 'RetroSynth / Outrun', streamUrl: 'https://streams.radiomast.io/2c0d9f35-c1a0-4a8f-ae45-7b3d75b8c4af' },
+                            { name: 'Lo‑Fi Beats', genre: 'Lo‑Fi Beats & Chill', streamUrl: 'https://streams.radiomast.io/5828c1a7-0d69-4b7c-9f3c-4a2dc0f9f9e8' }
                         ],
                         currentStationIndex: -1,
                         currentArtworkUrl: '',
@@ -1363,11 +1386,12 @@
                 
                 (function setupBaseFeatures() {
                     const webcamToggleBtn = document.getElementById('webcam-toggle-btn');
-                    const DRAGGABLE_ELEMENT_IDS = ['clock', 'youtube-music-btn', 'youtube-btn', 'stock-widget', 'settings-btn', 'fun-stock-name-display', 'note-widget', 'music-widget', 'gif-widget', 'webcam-widget', 'webcam-toggle-btn'];
+                    const DRAGGABLE_ELEMENT_IDS = ['clock', 'youtube-music-btn', 'youtube-btn', 'stock-widget', 'settings-btn', 'fun-stock-name-display', 'note-widget', 'music-widget', 'trinket-widget', 'gif-widget', 'webcam-widget', 'webcam-toggle-btn'];
                     const WIDGETS = {
                         stock: { el: document.getElementById('stock-widget'), toggle: document.getElementById('toggle-stock-widget'), default: true },
                         note: { el: document.getElementById('note-widget'), toggle: document.getElementById('toggle-note-widget'), default: false },
                         music: { el: document.getElementById('music-widget'), toggle: document.getElementById('toggle-music-widget'), default: false },
+                        trinket: { el: document.getElementById('trinket-widget'), toggle: document.getElementById('toggle-trinket-widget'), default: true },
                         gif: { el: document.getElementById('gif-widget'), toggle: document.getElementById('toggle-gif-widget'), default: false },
                         webcam: { el: document.getElementById('webcam-widget'), toggle: document.getElementById('toggle-webcam-widget'), default: false },
                     };
@@ -1507,6 +1531,11 @@
                                 if (el.id === 'webcam-widget') {
                                     setTimeout(() => webcamPlayer.saveAllWebcamState(), 50);
                                 }
+                                // If trinket moved, push current data to Media Session again
+                                if (el.id === 'trinket-widget') {
+                                    setTimeout(() => { if (window.pushTrinketToMediaSession) window.pushTrinketToMediaSession(); }, 0);
+                                    if (window.trinketScheduleInactivity) window.trinketScheduleInactivity();
+                                }
                             }
                             document.removeEventListener('mousemove', mv); 
                             document.removeEventListener('touchmove', mv);
@@ -1517,7 +1546,7 @@
                                 return;
                             }
                             if (el.isEditing) return;
-                            if (e.target.closest('#music-controls, #remove-gif-btn, #webcam-controls, #note-settings-btn, #webcam-portrait-btn')) return;
+                            if (e.target.closest('#music-controls, #remove-gif-btn, #webcam-controls, #note-settings-btn, #webcam-portrait-btn, #trinket-album, #trinket-song')) return;
                             if (e.touches && e.touches.length === 2 && el.id === 'clock') { 
                                 isPinching = true; 
                                 isD = false; 
@@ -1529,6 +1558,7 @@
                             isD = true; 
                             hasMoved = false; 
                             e.target.hasMoved = false;
+                            if (el.id === 'trinket-widget' && window.trinketCancelInactivity) window.trinketCancelInactivity();
                             
                             let cX, cY;
                             if (e.touches && e.touches.length > 0) {
@@ -1871,7 +1901,7 @@
                     window.radioPlayer.reset();
                     window.webcamPlayer.stop();
                     document.getElementById('gif-display').src = '';
-                    ['clock', 'youtube-music-btn', 'youtube-btn', 'stock-widget', 'settings-btn', 'fun-stock-name-display', 'note-widget', 'music-widget', 'gif-widget', 'webcam-widget', 'webcam-toggle-btn'].forEach(id => {
+                    ['clock', 'youtube-music-btn', 'youtube-btn', 'stock-widget', 'settings-btn', 'fun-stock-name-display', 'note-widget', 'music-widget', 'trinket-widget', 'gif-widget', 'webcam-widget', 'webcam-toggle-btn'].forEach(id => {
                         const el = document.getElementById(id);
                         if (el) el.style.cssText = '';
                     });
@@ -1900,6 +1930,10 @@
 
                                     if (type === 'gif') {
                                         window.addGif(newUrl);
+                                    } else if (type === 'trinket') {
+                                        try { localStorage.setItem('trinketArtUrl', newUrl); } catch {}
+                                        const art = document.getElementById('trinket-art');
+                                        if (art) art.style.backgroundImage = `url('${newUrl}')`;
                                     } else {
                                         const newWp = { url: newUrl, position: 'center center' };
                                         const wps = getWps();
@@ -1947,6 +1981,194 @@
                         triggerStockFlashEffect(isUp, isSuper, symbol);
                     }
                 });
+                
+                // Trinket Widget logic
+                (function setupTrinket(){
+                    const artEl = document.getElementById('trinket-art');
+                    const albumInput = document.getElementById('trinket-album');
+                    const songInput = document.getElementById('trinket-song');
+                    const widget = document.getElementById('trinket-widget');
+                    const starBtn = document.getElementById('trinket-star');
+                    if (!artEl || !albumInput || !songInput || !widget || !starBtn) return;
+                    let trinketInactivityTimer = null;
+                    let trinketSquareCache = { src: '', data: null };
+                    window.trinketCancelInactivity = () => { if (trinketInactivityTimer) { clearTimeout(trinketInactivityTimer); trinketInactivityTimer = null; } };
+                    window.trinketScheduleInactivity = () => {
+                        window.trinketCancelInactivity();
+                        trinketInactivityTimer = setTimeout(() => {
+                            // Collapse if expanded
+                            if (widget.classList.contains('expanded')) {
+                                widget.classList.remove('expanded');
+                                widget.classList.add('collapsed');
+                                try { savePos(); } catch {}
+                            }
+                            // Push current info to Media Session
+                            if (window.pushTrinketToMediaSession) window.pushTrinketToMediaSession();
+                        }, 5000);
+                    };
+                    const getArt = () => localStorage.getItem('trinketArtUrl') || '';
+                    const setArt = (url) => {
+                        try { localStorage.setItem('trinketArtUrl', url); } catch {}
+                        artEl.style.backgroundImage = url ? `url('${url}')` : 'none';
+                        trinketSquareCache = { src: '', data: null };
+                        // Precompute squared crop to improve reliability
+                        squareImageFromUrl(url).then((sq) => {
+                            if (sq) trinketSquareCache = { src: url, data: sq };
+                            if (window.pushTrinketToMediaSession) window.pushTrinketToMediaSession();
+                        });
+                    };
+                    setArt(getArt());
+                    // Load saved values
+                    try {
+                        const savedAlbum = localStorage.getItem('trinketAlbum');
+                        const savedSong = localStorage.getItem('trinketSong');
+                        if (savedAlbum) albumInput.value = savedAlbum;
+                        if (savedSong) songInput.value = savedSong;
+            } catch {}
+                    const persist = () => {
+                        try { localStorage.setItem('trinketAlbum', albumInput.value.trim()); localStorage.setItem('trinketSong', songInput.value.trim()); } catch {}
+                        window.trinketScheduleInactivity();
+                    };
+                    albumInput.addEventListener('input', persist);
+                    songInput.addEventListener('input', persist);
+                    
+                    const squareImageFromUrl = (url) => new Promise((resolve) => {
+                        if (!url) { resolve(null); return; }
+                        const finishDraw = (source) => {
+                            try {
+                                const size = 512;
+                                const canvas = document.createElement('canvas');
+                                canvas.width = size; canvas.height = size;
+                                const ctx = canvas.getContext('2d');
+                                const sw = source.naturalWidth || source.width || 0;
+                                const sh = source.naturalHeight || source.height || 0;
+                                if (!sw || !sh) { resolve(null); return; }
+                                const sr = sw / sh;
+                                let sx = 0, sy = 0, sWidth = sw, sHeight = sh;
+                                if (sr > 1) { sWidth = sh; sx = (sw - sWidth) / 2; }
+                                else if (sr < 1) { sHeight = sw; sy = (sh - sHeight) / 2; }
+                                ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+                                ctx.drawImage(source, sx, sy, sWidth, sHeight, 0, 0, size, size);
+                                let dataUrl = null;
+                                try { dataUrl = canvas.toDataURL('image/png'); } catch { dataUrl = null; }
+                                resolve(dataUrl);
+                            } catch { resolve(null); }
+                        };
+                        // If already a data URL, load directly
+                        if (url.startsWith('data:')) {
+                            const img = new Image();
+                            img.onload = () => finishDraw(img);
+                            img.onerror = () => resolve(null);
+                            img.src = url;
+                            return;
+                        }
+                        // Try fetch -> blob -> object URL to maximize CORS success
+                        fetch(url, { mode: 'cors', cache: 'no-cache', credentials: 'omit', referrerPolicy: 'no-referrer' }).then(r => {
+                            if (!r.ok) throw new Error('bad status');
+                            return r.blob();
+                        }).then(blob => {
+                            const objUrl = URL.createObjectURL(blob);
+                            const img = new Image();
+                            img.onload = () => { URL.revokeObjectURL(objUrl); finishDraw(img); };
+                            img.onerror = () => { URL.revokeObjectURL(objUrl); resolve(null); };
+                            // Avoid referrer issues
+                            try { img.referrerPolicy = 'no-referrer'; } catch {}
+                            img.src = objUrl;
+                        }).catch(() => {
+                            // Fallback to direct image load with CORS hint
+                            const img = new Image();
+                            try { img.crossOrigin = 'anonymous'; img.referrerPolicy = 'no-referrer'; } catch {}
+                            img.onload = () => finishDraw(img);
+                            img.onerror = () => resolve(null);
+                            img.src = url;
+                        });
+                    });
+
+                    const safeSetMediaMetadata = (meta) => {
+                        try { navigator.mediaSession.metadata = new MediaMetadata(meta); } catch {}
+                        // Attempt to trigger play/pause/next/prev handlers like radio does
+                        try {
+                            if ('mediaSession' in navigator) {
+                                navigator.mediaSession.setActionHandler('play', () => {});
+                                navigator.mediaSession.setActionHandler('pause', () => {});
+                                navigator.mediaSession.setActionHandler('nexttrack', () => {});
+                                navigator.mediaSession.setActionHandler('previoustrack', () => {});
+                            }
+                        } catch {}
+                    };
+                    const pushToMediaSession = async () => {
+                        if (!('mediaSession' in navigator)) return;
+                        const title = songInput.value.trim() || 'Hello World';
+                        const artist = albumInput.value.trim() || 'Hello';
+                        const artUrl = getArt();
+                        // Always push basic metadata first
+                        safeSetMediaMetadata({ title, artist, artwork: [] });
+                        // If we have a cached squared for this source, use it immediately
+                        if (artUrl && trinketSquareCache.src === artUrl && trinketSquareCache.data) {
+                            safeSetMediaMetadata({ title, artist, artwork: [{ src: trinketSquareCache.data, sizes: '512x512', type: 'image/png' }] });
+                            return;
+                        }
+                        // Otherwise, try to create a squared image; only if that fails, fall back to unsquared once
+                        let squared = await squareImageFromUrl(artUrl);
+                        if (squared) {
+                            trinketSquareCache = { src: artUrl, data: squared };
+                            safeSetMediaMetadata({ title, artist, artwork: [{ src: squared, sizes: '512x512', type: 'image/png' }] });
+                        } else if (artUrl) {
+                            safeSetMediaMetadata({ title, artist, artwork: [{ src: artUrl, sizes: '512x512', type: 'image/png' }] });
+                        }
+                    };
+                    // Click behavior: if collapsed -> expand; if expanded -> open QR (unless clicking inputs)
+                    widget.addEventListener('click', (e) => {
+                        if (e.target.hasMoved) return;
+                        if (e.target.closest('#trinket-star')) return;
+                        const clickedInput = e.target.closest('#trinket-album, #trinket-song');
+                        if (widget.classList.contains('collapsed')) {
+                            widget.classList.remove('collapsed');
+                            widget.classList.add('expanded');
+                            setTimeout(() => { try { savePos(); } catch {} }, 0);
+                            window.trinketScheduleInactivity();
+                        } else if (!clickedInput) {
+                            window.startPolling(`trinket_session_${Date.now()}`, 'trinket');
+                            window.trinketScheduleInactivity();
+                        }
+                    });
+                    // Double-click background pushes to Media Session
+                    widget.addEventListener('dblclick', (e) => {
+                        if (e.target.closest('#trinket-star')) return; // star dblclick handled separately
+                        if (e.target.hasMoved) return;
+                        pushToMediaSession();
+                        window.trinketScheduleInactivity();
+                    });
+                    // Star: click or double-click -> QR flow to set image
+                    starBtn.addEventListener('click', (e) => {
+                        if (e.target.hasMoved) return;
+                        e.stopPropagation();
+                        if (widget.classList.contains('collapsed')) {
+                            widget.classList.remove('collapsed');
+                            widget.classList.add('expanded');
+                            setTimeout(() => { try { savePos(); } catch {} }, 0);
+                        }
+                        if (window.pushTrinketToMediaSession) window.pushTrinketToMediaSession();
+                        window.trinketScheduleInactivity();
+                    });
+                    starBtn.addEventListener('dblclick', (e) => {
+                        if (e.target.hasMoved) return;
+                        e.stopPropagation();
+                        if (widget.classList.contains('collapsed')) {
+                            widget.classList.remove('collapsed');
+                            widget.classList.add('expanded');
+                            setTimeout(() => { try { savePos(); } catch {} }, 0);
+                        }
+                        if (window.pushTrinketToMediaSession) window.pushTrinketToMediaSession();
+                        window.trinketScheduleInactivity();
+                    });
+                    // Initial push with defaults
+                    pushToMediaSession();
+                    window.trinketScheduleInactivity();
+
+                    // Expose for move callback
+                    window.pushTrinketToMediaSession = pushToMediaSession;
+    })();
             }
         });
     </script>
