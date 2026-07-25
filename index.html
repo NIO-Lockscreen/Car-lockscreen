@@ -469,7 +469,8 @@
                     stockFlashIndex = (stockFlashIndex + 1) % symbols.length;
 
                     fetch(`https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${FINNHUB_API_KEY}`)
-                        .then(r => r.json()).then(data => handleStockData(data, symbol))
+                        .then(r => { if (!r.ok) throw new Error(`Finnhub ${r.status}`); return r.json(); })
+                        .then(data => handleStockData(data, symbol))
                         .catch(err => console.error(`Stock Flash fetch error for ${symbol}:`, err));
                 }
 
@@ -482,7 +483,8 @@
                         row.innerHTML = `<div class="stock-info"><i class="fa-solid"></i> ${symbol}</div><span class="stock-price">...</span>`;
                         stockWidget.appendChild(row);
                         fetch(`https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${FINNHUB_API_KEY}`)
-                            .then(r => r.json()).then(data => {
+                            .then(r => { if (!r.ok) throw new Error(`Finnhub ${r.status}`); return r.json(); })
+                            .then(data => {
                                 if (!data || typeof data.c === 'undefined' || data.o === 0) { row.querySelector('.stock-price').textContent = 'N/A'; return; }
                                 const priceEl = row.querySelector('.stock-price');
                                 const iconEl = row.querySelector('i');
@@ -493,6 +495,11 @@
                                 } else if (data.c < data.o) {
                                     iconEl.classList.add('fa-caret-down');
                                 }
+                            })
+                            .catch(err => {
+                                const priceEl = row.querySelector('.stock-price');
+                                if (priceEl) priceEl.textContent = 'N/A';
+                                console.error(`Stock fetch error for ${symbol}:`, err);
                             });
                     });
                 }
@@ -1422,7 +1429,7 @@
                         weatherLocationInput.value = location;
                         const url = `https://wttr.in/${location || 'Trondheim'}?format=j1`;
                         const iM = { 'sunny': 'fa-sun', 'clear': 'fa-sun', 'partly cloudy': 'fa-cloud-sun', 'cloudy': 'fa-cloud', 'overcast': 'fa-cloud', 'mist': 'fa-smog', 'fog': 'fa-smog', 'patchy rain': 'fa-cloud-rain', 'rain': 'fa-cloud-showers-heavy', 'drizzle': 'fa-cloud-rain', 'patchy snow': 'fa-snowflake', 'snow': 'fa-snowflake', 'sleet': 'fa-cloud-meatball', 'ice pellets': 'fa-icicles', 'thunder': 'fa-cloud-bolt', 'blizzard': 'fa-wind' };
-                        fetch(url).then(r => r.json()).then(d => { const c = d.current_condition[0]; weatherElems.t.textContent = `${c.temp_C}°C`; const ds = c.weatherDesc[0].value.toLowerCase(); let ic = 'fa-cloud-sun'; for (const k in iM) { if (ds.includes(k)) { ic = iM[k]; break; } } weatherElems.i.className = `fa-solid ${ic}`; }).catch(e => { weatherElems.t.textContent = 'N/A'; });
+                        fetch(url).then(r => { if (!r.ok) throw new Error(`wttr ${r.status}`); return r.json(); }).then(d => { const c = d.current_condition[0]; weatherElems.t.textContent = `${c.temp_C}°C`; const ds = c.weatherDesc[0].value.toLowerCase(); let ic = 'fa-cloud-sun'; for (const k in iM) { if (ds.includes(k)) { ic = iM[k]; break; } } weatherElems.i.className = `fa-solid ${ic}`; }).catch(e => { weatherElems.t.textContent = 'N/A'; });
                     };
                     weatherLocationInput.addEventListener('change', () => { localStorage.setItem('lockscreenWeatherLocation', weatherLocationInput.value.trim()); fetchWeather(); });
                     const updateTime = () => { const n = new Date(); timeElems.h.textContent = String(n.getHours()).padStart(2, '0'); timeElems.m.textContent = String(n.getMinutes()).padStart(2, '0'); timeElems.d.textContent = n.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }); };
