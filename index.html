@@ -300,7 +300,14 @@
     
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const NPOINT_BIN_ID = 'f76d79c771a62c1ce33a';
+            // --- Phone -> Lockscreen relay ---
+            // The old npoint.io bin expired, which broke all image/GIF uploads.
+            // Swapped to ntfy.sh: a free, no-signup, CORS-enabled pub/sub relay.
+            // Each QR session gets its own ntfy "topic" (no bin/bucket to pre-create).
+            // Intentionally a quick, unsecured fix: topic names are derived from the
+            // session id, so anyone who knows a live session id could read/write it.
+            const RELAY_TOPIC_PREFIX = 'nio-carlock-9f3a2b-';
+            const relayTopic = (session) => `${RELAY_TOPIC_PREFIX}${session}`.replace(/[^a-zA-Z0-9_-]/g, '');
             const lockScreen = document.getElementById('lock-screen');
             const clock = document.getElementById('clock');
             const qrModal = document.getElementById('qr-modal');
@@ -334,7 +341,7 @@
                     statusElem.textContent = 'Sending to PC...';
                     fileInput.disabled = true; urlInput.disabled = true; urlSubmitBtn.disabled = true;
                     uploadLabel.style.backgroundColor = '#555';
-                    fetch(`https://api.npoint.io/${NPOINT_BIN_ID}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ [session]: imageUrl }) })
+                    fetch(`https://ntfy.sh/${relayTopic(session)}`, { method: 'POST', body: imageUrl })
                     .then(r => { if (!r.ok) throw new Error('Failed to update PC.'); statusElem.textContent = 'Success! You can close this window.'; })
                     .catch(e => { statusElem.textContent = `Error: ${e.message}`; fileInput.disabled = false; urlInput.disabled = false; urlSubmitBtn.disabled = false; uploadLabel.style.backgroundColor = '#34c759'; });
                 };
@@ -1848,14 +1855,22 @@
                     new QRCode(qrCodeContainer, { text: uploadUrl, width: 200, height: 200 });
 
                     pollingInterval = setInterval(() => {
-                        fetch(`https://api.npoint.io/${NPOINT_BIN_ID}`, { cache: 'no-cache' })
-                            .then(r => r.json())
-                            .then(data => {
-                                if (data && data[session]) {
+                        // ntfy returns cached messages as newline-delimited JSON (one per line).
+                        // ?poll=1 = don't keep the connection open; since=all = include cached msgs.
+                        fetch(`https://ntfy.sh/${relayTopic(session)}/json?poll=1&since=all`, { cache: 'no-cache' })
+                            .then(r => r.text())
+                            .then(text => {
+                                let newUrl = null;
+                                text.trim().split('\n').filter(Boolean).forEach(line => {
+                                    try {
+                                        const m = JSON.parse(line);
+                                        if (m.event === 'message' && m.message) newUrl = m.message.trim();
+                                    } catch (e) { /* ignore keepalive/non-JSON lines */ }
+                                });
+                                if (newUrl) {
                                     clearInterval(pollingInterval);
                                     pollingInterval = null;
                                     qrModal.style.display = 'none';
-                                    const newUrl = data[session];
 
                                     if (type === 'gif') {
                                         window.addGif(newUrl);
