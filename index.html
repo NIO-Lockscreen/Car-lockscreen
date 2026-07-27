@@ -101,14 +101,14 @@
         #lock-screen.light-theme #music-artist { color: #555; }
         #settings-btn { top: 80%; left: 50px; }
         #settings-btn svg circle:nth-child(2) { stroke: var(--icon-stroke-color); }
-        #settings-menu, #stock-editor-menu, #note-editor-menu, #radio-menu, #gif-chooser-menu { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); display: none; justify-content: center; align-items: center; z-index: 1000; opacity: 0; transition: opacity 0.3s ease; }
-        #settings-menu.visible, #stock-editor-menu.visible, #note-editor-menu.visible, #radio-menu.visible, #gif-chooser-menu.visible { display: flex; opacity: 1; }
+        #settings-menu, #stock-editor-menu, #note-editor-menu, #radio-menu, #gif-chooser-menu, #taxi-settings-menu, #taxi-history-menu { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); display: none; justify-content: center; align-items: center; z-index: 1000; opacity: 0; transition: opacity 0.3s ease; }
+        #settings-menu.visible, #stock-editor-menu.visible, #note-editor-menu.visible, #radio-menu.visible, #gif-chooser-menu.visible, #taxi-settings-menu.visible, #taxi-history-menu.visible { display: flex; opacity: 1; }
         .menu-content { background-color: #2c2c2e; padding: 30px; border-radius: 20px; width: 90%; max-width: 500px; color: #f2f2f7; text-align: left; position: relative; box-shadow: 0 5px 25px rgba(0,0,0,0.5); transform: scale(0.95); transition: transform 0.3s ease; }
         #radio-menu .menu-content, #gif-chooser-menu .menu-content { max-height: 80vh; overflow-y: auto; }
         #stock-editor-menu .menu-content { text-align: center; }
-        #settings-menu.visible .menu-content, #stock-editor-menu.visible .menu-content, #note-editor-menu.visible .menu-content, #radio-menu.visible .menu-content, #gif-chooser-menu.visible .menu-content { transform: scale(1); }
+        #settings-menu.visible .menu-content, #stock-editor-menu.visible .menu-content, #note-editor-menu.visible .menu-content, #radio-menu.visible .menu-content, #gif-chooser-menu.visible .menu-content, #taxi-settings-menu.visible .menu-content, #taxi-history-menu.visible .menu-content { transform: scale(1); }
         .menu-content h2 {text-align: center;}
-        #close-settings-btn, #close-stock-editor-btn, #close-note-editor-btn, #close-radio-btn, #close-gif-chooser-btn { position: absolute; top: 10px; right: 15px; background: none; border: none; color: #aaa; font-size: 2rem; cursor: pointer; line-height: 1; z-index: 5; }
+        #close-settings-btn, #close-stock-editor-btn, #close-note-editor-btn, #close-radio-btn, #close-gif-chooser-btn, #close-taxi-settings-btn, #close-taxi-history-btn { position: absolute; top: 10px; right: 15px; background: none; border: none; color: #aaa; font-size: 2rem; cursor: pointer; line-height: 1; z-index: 5; }
         #wallpaper-url-input, #stock-symbols-input, #weather-location-input, #font-select, #clock-color-input, #note-font-select, #note-font-size-input { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 10px; border: 1px solid #555; background-color: #3a3a3c; color: white; font-size: 1rem; outline: none; }
         #note-font-size-input { -moz-appearance: textfield; } #note-font-size-input::-webkit-outer-spin-button, #note-font-size-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
         #clock-color-input { padding: 5px; height: 50px; }
@@ -168,6 +168,113 @@
         @keyframes rise-anim { from { transform: translateY(110vh) rotate(0deg); opacity: 1; } to { transform: translateY(-10vh) rotate(720deg); opacity: 0; } }
         #fun-stock-name-display { position: absolute; bottom: 20vh; right: 5vw; font-size: 2.5rem; font-family: 'Oswald', sans-serif; color: var(--text-color); text-shadow: var(--text-shadow); opacity: 0; transition: opacity 1.5s ease-in-out; pointer-events: none; }
         #fun-stock-name-display.visible { opacity: 1; pointer-events: auto; }
+        /* =====================================================
+           TAXI METER WIDGET
+           ===================================================== */
+        #taxi-widget {
+            top: 20%; left: 6%; width: 270px;
+            padding: 0; overflow: hidden;
+            border-radius: 22px;
+            background: linear-gradient(160deg, rgba(38,38,42,0.80) 0%, rgba(12,12,14,0.86) 100%);
+            border: 1px solid rgba(255,255,255,0.10);
+            box-shadow: 0 12px 34px rgba(0,0,0,0.45);
+            backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+            color: #fff; font-family: 'Roboto', sans-serif;
+            transition: box-shadow .45s ease, border-color .45s ease;
+        }
+        #taxi-widget.running { border-color: rgba(255,212,59,0.55); box-shadow: 0 12px 38px rgba(0,0,0,0.5), 0 0 30px rgba(255,193,7,0.22); }
+        #taxi-widget.paused  { border-color: rgba(255,214,10,0.30); }
+        #taxi-widget.stopping { animation: taxi-settle .5s ease; }
+        @keyframes taxi-settle { 0% { transform: scale(1); } 35% { transform: scale(0.972); } 100% { transform: scale(1); } }
+
+        #taxi-sheen { position: absolute; inset: 0; pointer-events: none; overflow: hidden; border-radius: 22px; opacity: 0; transition: opacity .5s ease; }
+        #taxi-widget.running #taxi-sheen { opacity: 1; }
+        #taxi-sheen::after { content: ''; position: absolute; top: 0; left: -60%; width: 45%; height: 100%; background: linear-gradient(100deg, transparent, rgba(255,212,59,0.10), transparent); animation: taxi-sheen-move 4.2s ease-in-out infinite; }
+        @keyframes taxi-sheen-move { 0% { left: -60%; } 55% { left: 125%; } 100% { left: 125%; } }
+
+        #taxi-head { display: flex; align-items: center; gap: 10px; padding: 13px 15px 6px; position: relative; z-index: 1; }
+        #taxi-badge { width: 30px; height: 30px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 0.92rem; color: #17171a; background: linear-gradient(145deg, #ffe066, #f59f00); box-shadow: 0 3px 10px rgba(245,159,0,0.35); flex-shrink: 0; }
+        #taxi-widget.running #taxi-badge { animation: taxi-badge-glow 2.4s ease-in-out infinite; }
+        @keyframes taxi-badge-glow { 0%,100% { box-shadow: 0 3px 10px rgba(245,159,0,0.35); } 50% { box-shadow: 0 3px 18px rgba(255,212,59,0.75); } }
+        #taxi-title { font-size: 0.72rem; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(255,255,255,0.62); font-weight: 500; text-shadow: none; }
+        #taxi-status { margin-left: auto; display: flex; align-items: center; gap: 6px; font-size: 0.62rem; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255,255,255,0.55); }
+        #taxi-status-dot { width: 8px; height: 8px; border-radius: 50%; background: #8e8e93; transition: background .3s ease; }
+        #taxi-widget.running #taxi-status-dot { background: #32d74b; animation: taxi-ping 1.8s ease-out infinite; }
+        #taxi-widget.paused #taxi-status-dot { background: #ffd60a; animation: taxi-blink 1.4s ease-in-out infinite; }
+        @keyframes taxi-ping { 0% { box-shadow: 0 0 0 0 rgba(50,215,75,0.55); } 70% { box-shadow: 0 0 0 9px rgba(50,215,75,0); } 100% { box-shadow: 0 0 0 0 rgba(50,215,75,0); } }
+        @keyframes taxi-blink { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+        #taxi-fare-wrap { display: flex; align-items: baseline; justify-content: center; gap: 7px; padding: 2px 15px 0; position: relative; z-index: 1; }
+        #taxi-cur { font-size: 0.85rem; font-weight: 500; letter-spacing: 0.12em; color: #ffd43b; text-transform: uppercase; text-shadow: none; }
+        #taxi-fare { font-family: 'Oswald', sans-serif; font-weight: 700; font-size: 2.7rem; line-height: 1.05; font-variant-numeric: tabular-nums; text-shadow: 0 2px 12px rgba(0,0,0,0.5); transition: color .3s ease; }
+        #taxi-fare.tick { animation: taxi-fare-tick .5s cubic-bezier(.22,1,.36,1); }
+        @keyframes taxi-fare-tick { 0% { transform: translateY(0) scale(1); } 28% { transform: translateY(-3px) scale(1.05); color: #ffd43b; text-shadow: 0 0 22px rgba(255,212,59,0.6); } 100% { transform: translateY(0) scale(1); } }
+
+        #taxi-progress { height: 3px; margin: 11px 15px 0; border-radius: 3px; background: rgba(255,255,255,0.10); overflow: hidden; position: relative; z-index: 1; }
+        #taxi-progress-fill { height: 100%; width: 0%; border-radius: 3px; background: linear-gradient(90deg, #f59f00, #ffe066); box-shadow: 0 0 10px rgba(255,212,59,0.5); transition: width .25s linear; }
+
+        #taxi-meta { display: flex; justify-content: space-between; align-items: center; padding: 9px 15px 0; font-family: 'Roboto Mono', monospace; font-size: 0.72rem; color: rgba(255,255,255,0.55); position: relative; z-index: 1; text-shadow: none; }
+        #taxi-elapsed { font-variant-numeric: tabular-nums; }
+        #taxi-rate { text-align: right; }
+
+        #taxi-controls { display: flex; align-items: center; justify-content: center; gap: 11px; padding: 12px 15px 15px; position: relative; z-index: 2; }
+        .taxi-btn { position: relative; width: 42px; height: 42px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.07); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 0.95rem; cursor: pointer; overflow: hidden; -webkit-tap-highlight-color: transparent; transition: transform .2s cubic-bezier(.34,1.56,.64,1), background-color .2s, box-shadow .25s, opacity .25s; }
+        .taxi-btn:hover { background: rgba(255,255,255,0.15); transform: translateY(-2px); }
+        .taxi-btn:active { transform: scale(0.88); }
+        .taxi-btn.primary { width: 54px; height: 54px; font-size: 1.15rem; color: #17171a; border-color: transparent; background: linear-gradient(145deg, #ffe066, #f59f00); box-shadow: 0 6px 18px rgba(245,159,0,0.38); }
+        .taxi-btn.primary:hover { box-shadow: 0 8px 24px rgba(245,159,0,0.55); }
+        #taxi-widget.running .taxi-btn.primary { background: linear-gradient(145deg, #f8f9fa, #ced4da); }
+        .taxi-btn.stop { color: #ff6b6b; }
+        .taxi-btn.stop:hover { background: rgba(255,107,107,0.18); }
+        .taxi-btn.is-disabled { opacity: 0.3; pointer-events: none; }
+        .taxi-btn .ripple { position: absolute; border-radius: 50%; background: rgba(255,255,255,0.45); transform: scale(0); animation: taxi-ripple .55s ease-out forwards; pointer-events: none; }
+        .taxi-btn.primary .ripple { background: rgba(0,0,0,0.22); }
+        @keyframes taxi-ripple { to { transform: scale(2.6); opacity: 0; } }
+
+        #taxi-toast { position: absolute; top: 0; left: 0; right: 0; transform: translateY(-100%); opacity: 0; padding: 9px 14px; text-align: center; background: linear-gradient(180deg, #3a3212 0%, #16161a 100%); border-bottom: 1px solid rgba(255,212,59,0.45); font-size: 0.78rem; letter-spacing: 0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; z-index: 3; text-shadow: none; transition: transform .4s cubic-bezier(.22,1,.36,1), opacity .3s ease; }
+        #taxi-toast.show { transform: translateY(0); opacity: 1; }
+
+        /* Taxi menus */
+        #taxi-settings-menu .menu-content, #taxi-history-menu .menu-content { max-height: 88vh; overflow-y: auto; }
+        .taxi-field { margin-bottom: 14px; }
+        .taxi-field > label { display: block; margin-bottom: 6px; font-size: 0.92rem; color: #d6d6d8; }
+        .taxi-input { width: 100%; padding: 12px 14px; border-radius: 10px; border: 1px solid #555; background-color: #3a3a3c; color: #fff; font-size: 1.05rem; font-family: 'Roboto Mono', monospace; outline: none; transition: border-color .2s, box-shadow .2s; }
+        .taxi-input:focus { border-color: #ffd43b; box-shadow: 0 0 0 3px rgba(255,212,59,0.18); }
+        .taxi-input:disabled { opacity: 0.4; }
+        .taxi-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 9px; }
+        .taxi-chip { padding: 7px 14px; border-radius: 20px; border: 1px solid #4b4b4d; background: #2f2f31; color: #d6d6d8; font-size: 0.85rem; cursor: pointer; transition: transform .18s cubic-bezier(.34,1.56,.64,1), background-color .2s, border-color .2s, color .2s; }
+        .taxi-chip:hover { background: #3d3d40; transform: translateY(-2px); }
+        .taxi-chip.active { background: rgba(255,212,59,0.16); border-color: #ffd43b; color: #ffd43b; }
+        #taxi-estimate { margin-top: 6px; padding: 14px; border-radius: 12px; background: #1c1c1e; text-align: center; }
+        #taxi-estimate .est-amount { font-family: 'Oswald', sans-serif; font-size: 1.7rem; color: #ffd43b; transition: opacity .2s ease; }
+        #taxi-estimate .est-label { font-size: 0.78rem; color: #8e8e93; margin-top: 5px; }
+        .taxi-switch-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 4px 0 10px; }
+        .taxi-switch-row label { font-size: 0.95rem; }
+        .taxi-switch-row input[type="checkbox"] { width: 20px; height: 20px; accent-color: #ffd43b; flex-shrink: 0; }
+
+        #taxi-history-summary { display: flex; gap: 10px; margin: 18px 0 4px; }
+        .taxi-sum-card { flex: 1; background: #1c1c1e; border-radius: 14px; padding: 13px 8px; text-align: center; }
+        .taxi-sum-card .v { font-family: 'Oswald', sans-serif; font-size: 1.45rem; color: #ffd43b; }
+        .taxi-sum-card .k { font-size: 0.66rem; letter-spacing: 0.1em; text-transform: uppercase; color: #8e8e93; margin-top: 3px; }
+        #taxi-history-list { max-height: 44vh; overflow-y: auto; margin-top: 12px; }
+        #taxi-history-empty { text-align: center; color: #8e8e93; padding: 30px 10px; }
+        #taxi-history-empty i { font-size: 2.2rem; display: block; margin-bottom: 12px; opacity: 0.5; }
+        .taxi-trip { display: flex; align-items: center; gap: 12px; padding: 12px 6px; border-bottom: 1px solid #3a3a3c; animation: taxi-row-in .38s cubic-bezier(.22,1,.36,1) both; }
+        .taxi-trip:last-child { border-bottom: none; }
+        @keyframes taxi-row-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+        .taxi-trip .idx { width: 30px; height: 30px; border-radius: 9px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: rgba(255,212,59,0.14); color: #ffd43b; font-size: 0.8rem; }
+        .taxi-trip .when { font-size: 0.92rem; }
+        .taxi-trip .sub { font-size: 0.74rem; color: #8e8e93; margin-top: 2px; }
+        .taxi-trip .amt { margin-left: auto; font-family: 'Roboto Mono', monospace; font-size: 1rem; font-weight: 500; white-space: nowrap; }
+        .taxi-trip .del { width: 26px; height: 26px; border-radius: 50%; border: none; background: transparent; color: #6e6e73; cursor: pointer; flex-shrink: 0; transition: background-color .2s, color .2s; }
+        .taxi-trip .del:hover { background: rgba(231,76,60,0.18); color: #ff6b6b; }
+        .taxi-trip.removing { animation: taxi-row-out .3s ease forwards; }
+        @keyframes taxi-row-out { to { opacity: 0; transform: translateX(24px); height: 0; padding: 0; margin: 0; } }
+        #taxi-clear-history-btn { width: 100%; margin-top: 16px; background: none; border: 1px solid rgba(231,76,60,0.5); color: #ff6b6b; padding: 12px; border-radius: 10px; cursor: pointer; font-size: 0.95rem; transition: background-color .2s; }
+        #taxi-clear-history-btn:hover { background: rgba(231,76,60,0.15); }
+
+        #lock-screen.light-theme #taxi-widget { box-shadow: 0 12px 34px rgba(0,0,0,0.28); }
+
         #lock-screen.light-theme { --icon-stroke-color: #333; }
         #lock-screen.light-theme #clock { color: #333; filter: drop-shadow(0 0 10px rgba(255,255,255,0.3));}
         #lock-screen.light-theme #status-bar, #lock-screen.light-theme #unlock-prompt, #lock-screen.light-theme #fullscreen-hint, #lock-screen.light-theme #fun-stock-name-display { color: var(--text-color-light); text-shadow: var(--text-shadow-light); }
@@ -213,6 +320,25 @@
             <div id="remove-gif-btn">×</div>
         </div>
 
+        <div id="taxi-widget" class="draggable-item" title="Double-click to open taxi meter settings">
+            <div id="taxi-sheen"></div>
+            <div id="taxi-head">
+                <div id="taxi-badge"><i class="fa-solid fa-taxi"></i></div>
+                <div id="taxi-title">Taxi Meter</div>
+                <div id="taxi-status"><span id="taxi-status-dot"></span><span id="taxi-status-text">Idle</span></div>
+            </div>
+            <div id="taxi-fare-wrap"><span id="taxi-cur">kr</span><span id="taxi-fare">0,00</span></div>
+            <div id="taxi-progress"><div id="taxi-progress-fill"></div></div>
+            <div id="taxi-meta"><span id="taxi-elapsed">00:00</span><span id="taxi-rate">10 kr/min</span></div>
+            <div id="taxi-controls">
+                <button class="taxi-btn" id="taxi-settings-btn" title="Meter settings"><i class="fa-solid fa-sliders"></i></button>
+                <button class="taxi-btn stop is-disabled" id="taxi-stop-btn" title="Stop and save trip"><i class="fa-solid fa-stop"></i></button>
+                <button class="taxi-btn primary" id="taxi-start-btn" title="Start trip"><i class="fa-solid fa-play"></i></button>
+                <button class="taxi-btn" id="taxi-history-btn" title="Trip history"><i class="fa-solid fa-clock-rotate-left"></i></button>
+            </div>
+            <div id="taxi-toast"></div>
+        </div>
+
         <div id="webcam-widget" class="draggable-item widget" title="Long-press feed to mirror | Dbl-click feed for pan/zoom">
             <div class="webcam-video-wrapper">
                 <canvas id="webcam-canvas"></canvas>
@@ -249,6 +375,7 @@
                     <div class="setting-toggle"><label for="toggle-music-widget">Music Widget</label><input type="checkbox" id="toggle-music-widget"></div>
                     <div class="setting-toggle"><label for="toggle-gif-widget">GIF Widget</label><input type="checkbox" id="toggle-gif-widget"></div>
                     <div class="setting-toggle"><label for="toggle-webcam-widget">Rear Seat Cam</label><input type="checkbox" id="toggle-webcam-widget"></div>
+                    <div class="setting-toggle"><label for="toggle-taxi-widget">Taxi Meter</label><input type="checkbox" id="toggle-taxi-widget"></div>
                 </div>
                 <div class="settings-section">
                     <h3>Theme & Style</h3>
@@ -293,6 +420,61 @@
     <div id="note-editor-menu"><div class="menu-content"><button id="close-note-editor-btn">×</button><h2>Edit Note Style</h2><div class="settings-section"><label for="note-font-select">Font Family</label><select id="note-font-select"><option value="'Roboto', sans-serif">Roboto (Default)</option><option value="'Lora', serif">Lora</option><option value="'Inter', sans-serif">Inter</option><option value="'Source Code Pro', monospace">Source Code Pro</option></select></div><div class="settings-section"><label for="note-font-size-input">Font Size (px)</label><input type="text" id="note-font-size-input" inputmode="numeric" pattern="[0-9]*" value="16"></div></div></div>
     <div id="radio-menu"><div class="menu-content"><button id="close-radio-btn">×</button><h2>Select a Radio Station</h2><div id="radio-channel-list"></div></div></div>
     <div id="gif-chooser-menu"><div class="menu-content"><button id="close-gif-chooser-btn">×</button><h2>Choose a GIF</h2><div id="gif-choices"></div><button id="add-new-gif-btn"><i class="fa-solid fa-plus"></i> Add New GIF</button></div></div>
+    <div id="taxi-settings-menu">
+        <div class="menu-content">
+            <button id="close-taxi-settings-btn">×</button>
+            <h2>Taxi Meter Settings</h2>
+            <div class="settings-section">
+                <div class="taxi-field">
+                    <label for="taxi-rate-input">Price per minute (NOK)</label>
+                    <input type="text" id="taxi-rate-input" class="taxi-input" inputmode="decimal" value="10">
+                    <div class="taxi-chips" id="taxi-rate-chips">
+                        <button class="taxi-chip" data-rate="0.5">0,50</button>
+                        <button class="taxi-chip" data-rate="5">5</button>
+                        <button class="taxi-chip" data-rate="10">10</button>
+                        <button class="taxi-chip" data-rate="15">15</button>
+                        <button class="taxi-chip" data-rate="20">20</button>
+                    </div>
+                </div>
+            </div>
+            <div class="settings-section">
+                <div class="taxi-switch-row">
+                    <label for="taxi-base-toggle">Use a base price (start fee)</label>
+                    <input type="checkbox" id="taxi-base-toggle">
+                </div>
+                <div class="taxi-field">
+                    <label for="taxi-base-input">Base price (NOK)</label>
+                    <input type="text" id="taxi-base-input" class="taxi-input" inputmode="decimal" value="100" disabled>
+                    <div class="taxi-chips" id="taxi-base-chips">
+                        <button class="taxi-chip" data-base="50">50</button>
+                        <button class="taxi-chip" data-base="100">100</button>
+                        <button class="taxi-chip" data-base="150">150</button>
+                        <button class="taxi-chip" data-base="200">200</button>
+                    </div>
+                </div>
+                <p style="color:#8e8e93;font-size:0.82rem;">The base price is added the moment a trip starts, then the per-minute rate runs on top of it.</p>
+            </div>
+            <div class="settings-section">
+                <div id="taxi-estimate">
+                    <div class="est-amount" id="taxi-estimate-amount">kr 250,00</div>
+                    <div class="est-label" id="taxi-estimate-label">A 15 minute trip</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="taxi-history-menu">
+        <div class="menu-content">
+            <button id="close-taxi-history-btn">×</button>
+            <h2>Trip History</h2>
+            <div id="taxi-history-summary">
+                <div class="taxi-sum-card"><div class="v" id="taxi-total-trips">0</div><div class="k">Trips</div></div>
+                <div class="taxi-sum-card"><div class="v" id="taxi-total-earned">kr 0</div><div class="k">Earned</div></div>
+                <div class="taxi-sum-card"><div class="v" id="taxi-total-time">0m</div><div class="k">On the clock</div></div>
+            </div>
+            <div id="taxi-history-list"></div>
+            <button id="taxi-clear-history-btn"><i class="fa-solid fa-trash"></i> Clear all trips</button>
+        </div>
+    </div>
     <div id="qr-modal"><div id="qr-modal-content"><h2>Scan with your phone</h2><div id="qr-code"></div><p>Scan to send an image URL from your phone.</p></div></div>
     <div id="upload-view"><div id="phone-upload-container"><h2>Add Wallpaper from Phone</h2><label for="file-input" id="upload-label">Tap to Upload Image</label><input type="file" id="file-input" accept="image/*" style="display: none;"><p class="separator-text">... or ...</p><p>Paste an image URL below</p><input type="url" id="phone-url-input" placeholder="https://example.com/image.jpg"><button id="phone-url-submit">Use this URL</button><h2 id="upload-status"></h2></div></div>
     <div id="flash-top" class="flash-overlay"></div>
@@ -769,6 +951,471 @@
                     window.addGif = addGif;
                     renderCurrentGif();
                     
+                    // =================================================================
+                    // TAXI METER WIDGET
+                    // =================================================================
+                    const taxiMeter = {
+                        SETTINGS_KEY: 'taxiMeterSettings_v1',
+                        HISTORY_KEY: 'taxiMeterHistory_v1',
+                        LIVE_KEY: 'taxiMeterLive_v1',
+                        MAX_HISTORY: 100,
+                        settings: { ratePerMin: 10, basePrice: 100, baseEnabled: false },
+                        // status: 'idle' | 'running' | 'paused'
+                        state: { status: 'idle', startedAt: null, accumulatedMs: 0, tripStartedAt: null, base: 0, rate: 10 },
+                        rafId: null,
+                        lastTextUpdate: 0,
+                        lastWholeKrone: 0,
+                        lastProgress: 0,
+                        toastTimer: null,
+                        fareOverride: null,
+                        el: {
+                            widget: document.getElementById('taxi-widget'),
+                            fare: document.getElementById('taxi-fare'),
+                            elapsed: document.getElementById('taxi-elapsed'),
+                            rate: document.getElementById('taxi-rate'),
+                            statusText: document.getElementById('taxi-status-text'),
+                            progressFill: document.getElementById('taxi-progress-fill'),
+                            startBtn: document.getElementById('taxi-start-btn'),
+                            stopBtn: document.getElementById('taxi-stop-btn'),
+                            historyBtn: document.getElementById('taxi-history-btn'),
+                            settingsBtn: document.getElementById('taxi-settings-btn'),
+                            toast: document.getElementById('taxi-toast'),
+                            settingsMenu: document.getElementById('taxi-settings-menu'),
+                            historyMenu: document.getElementById('taxi-history-menu'),
+                            rateInput: document.getElementById('taxi-rate-input'),
+                            baseInput: document.getElementById('taxi-base-input'),
+                            baseToggle: document.getElementById('taxi-base-toggle'),
+                            rateChips: document.getElementById('taxi-rate-chips'),
+                            baseChips: document.getElementById('taxi-base-chips'),
+                            estimateAmount: document.getElementById('taxi-estimate-amount'),
+                            estimateLabel: document.getElementById('taxi-estimate-label'),
+                            historyList: document.getElementById('taxi-history-list'),
+                            totalTrips: document.getElementById('taxi-total-trips'),
+                            totalEarned: document.getElementById('taxi-total-earned'),
+                            totalTime: document.getElementById('taxi-total-time'),
+                            clearHistoryBtn: document.getElementById('taxi-clear-history-btn'),
+                        },
+
+                        // ---------- formatting helpers ----------
+                        money(value, decimals = 2) {
+                            return value.toLocaleString('nb-NO', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+                        },
+                        formatDuration(ms) {
+                            const total = Math.floor(ms / 1000);
+                            const h = Math.floor(total / 3600);
+                            const m = Math.floor((total % 3600) / 60);
+                            const s = total % 60;
+                            const pad = (n) => String(n).padStart(2, '0');
+                            return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
+                        },
+                        formatDurationLong(ms) {
+                            const totalMin = Math.floor(ms / 60000);
+                            const h = Math.floor(totalMin / 60);
+                            const m = totalMin % 60;
+                            if (h > 0) return `${h}t ${m}m`;
+                            const s = Math.floor(ms / 1000) % 60;
+                            return totalMin > 0 ? `${m}m ${s}s` : `${s}s`;
+                        },
+
+                        // ---------- persistence ----------
+                        loadSettings() {
+                            try {
+                                const saved = JSON.parse(localStorage.getItem(this.SETTINGS_KEY));
+                                if (saved) {
+                                    if (Number.isFinite(saved.ratePerMin)) this.settings.ratePerMin = saved.ratePerMin;
+                                    if (Number.isFinite(saved.basePrice)) this.settings.basePrice = saved.basePrice;
+                                    if (typeof saved.baseEnabled === 'boolean') this.settings.baseEnabled = saved.baseEnabled;
+                                }
+                            } catch (e) { /* keep defaults */ }
+                        },
+                        saveSettings() { localStorage.setItem(this.SETTINGS_KEY, JSON.stringify(this.settings)); },
+                        getHistory() {
+                            try { return JSON.parse(localStorage.getItem(this.HISTORY_KEY)) || []; } catch (e) { return []; }
+                        },
+                        saveHistory(trips) { localStorage.setItem(this.HISTORY_KEY, JSON.stringify(trips.slice(0, this.MAX_HISTORY))); },
+                        saveLive() {
+                            if (this.state.status === 'idle') { localStorage.removeItem(this.LIVE_KEY); return; }
+                            localStorage.setItem(this.LIVE_KEY, JSON.stringify(this.state));
+                        },
+                        loadLive() {
+                            try {
+                                const saved = JSON.parse(localStorage.getItem(this.LIVE_KEY));
+                                if (!saved || !saved.status || saved.status === 'idle') return;
+                                if (!Number.isFinite(saved.accumulatedMs)) return;
+                                this.state = {
+                                    status: saved.status,
+                                    startedAt: Number.isFinite(saved.startedAt) ? saved.startedAt : null,
+                                    accumulatedMs: saved.accumulatedMs,
+                                    tripStartedAt: saved.tripStartedAt || Date.now(),
+                                    base: Number.isFinite(saved.base) ? saved.base : 0,
+                                    rate: Number.isFinite(saved.rate) ? saved.rate : this.settings.ratePerMin,
+                                };
+                                // A meter left running keeps ticking across reloads.
+                                if (this.state.status === 'running' && !this.state.startedAt) this.state.startedAt = Date.now();
+                            } catch (e) { /* start fresh */ }
+                        },
+
+                        // ---------- meter maths ----------
+                        elapsedMs() {
+                            const { status, startedAt, accumulatedMs } = this.state;
+                            return status === 'running' && startedAt ? accumulatedMs + (Date.now() - startedAt) : accumulatedMs;
+                        },
+                        fare(ms = this.elapsedMs()) {
+                            return this.state.base + (ms / 60000) * this.state.rate;
+                        },
+
+                        // ---------- rendering ----------
+                        render() {
+                            const ms = this.elapsedMs();
+                            const fare = this.fareOverride !== null ? this.fareOverride : this.fare(ms);
+
+                            this.el.fare.textContent = this.money(fare);
+                            this.el.elapsed.textContent = this.formatDuration(ms);
+
+                            const whole = Math.floor(fare);
+                            if (whole !== this.lastWholeKrone) {
+                                this.lastWholeKrone = whole;
+                                if (this.state.status === 'running') {
+                                    this.el.fare.classList.remove('tick');
+                                    void this.el.fare.offsetWidth; // restart the animation
+                                    this.el.fare.classList.add('tick');
+                                }
+                            }
+
+                            // Sweeps once per billed minute.
+                            const progress = this.state.status === 'idle' ? 0 : ((ms % 60000) / 60000) * 100;
+                            if (progress < this.lastProgress) {
+                                this.el.progressFill.style.transition = 'none';
+                                this.el.progressFill.style.width = '0%';
+                                void this.el.progressFill.offsetWidth;
+                                this.el.progressFill.style.transition = '';
+                            }
+                            this.lastProgress = progress;
+                            this.el.progressFill.style.width = `${progress}%`;
+                        },
+                        renderChrome() {
+                            const { status } = this.state;
+                            this.el.widget.classList.toggle('running', status === 'running');
+                            this.el.widget.classList.toggle('paused', status === 'paused');
+                            this.el.statusText.textContent = status === 'running' ? 'On trip' : (status === 'paused' ? 'Paused' : 'Idle');
+                            this.el.startBtn.innerHTML = status === 'running'
+                                ? '<i class="fa-solid fa-pause"></i>'
+                                : '<i class="fa-solid fa-play"></i>';
+                            this.el.startBtn.title = status === 'running' ? 'Pause meter' : (status === 'paused' ? 'Resume meter' : 'Start trip');
+                            this.el.stopBtn.classList.toggle('is-disabled', status === 'idle');
+                            const rate = status === 'idle' ? this.settings.ratePerMin : this.state.rate;
+                            const base = status === 'idle' ? (this.settings.baseEnabled ? this.settings.basePrice : 0) : this.state.base;
+                            this.el.rate.textContent = base > 0
+                                ? `${this.money(base, 0)} + ${this.money(rate, rate % 1 === 0 ? 0 : 2)} kr/min`
+                                : `${this.money(rate, rate % 1 === 0 ? 0 : 2)} kr/min`;
+                        },
+                        startLoop() {
+                            if (this.rafId) return;
+                            const loop = () => {
+                                this.rafId = requestAnimationFrame(loop);
+                                const now = performance.now();
+                                if (now - this.lastTextUpdate < 100) return; // ~10 fps is plenty for a meter
+                                this.lastTextUpdate = now;
+                                this.render();
+                            };
+                            this.rafId = requestAnimationFrame(loop);
+                        },
+                        stopLoop() {
+                            if (this.rafId) cancelAnimationFrame(this.rafId);
+                            this.rafId = null;
+                        },
+
+                        // ---------- controls ----------
+                        toggleStartPause() {
+                            if (this.state.status === 'running') {
+                                this.state.accumulatedMs = this.elapsedMs();
+                                this.state.startedAt = null;
+                                this.state.status = 'paused';
+                                this.stopLoop();
+                                this.render();
+                                this.showToast('Meter paused');
+                            } else if (this.state.status === 'paused') {
+                                this.state.startedAt = Date.now();
+                                this.state.status = 'running';
+                                this.startLoop();
+                                this.showToast('Meter running');
+                            } else {
+                                this.fareOverride = null;
+                                this.state = {
+                                    status: 'running',
+                                    startedAt: Date.now(),
+                                    accumulatedMs: 0,
+                                    tripStartedAt: Date.now(),
+                                    base: this.settings.baseEnabled ? this.settings.basePrice : 0,
+                                    rate: this.settings.ratePerMin,
+                                };
+                                this.lastWholeKrone = Math.floor(this.state.base);
+                                this.lastProgress = 0;
+                                this.startLoop();
+                                this.showToast(this.state.base > 0 ? `Trip started · kr ${this.money(this.state.base)} base` : 'Trip started');
+                            }
+                            this.renderChrome();
+                            this.render();
+                            this.saveLive();
+                        },
+                        stopTrip() {
+                            if (this.state.status === 'idle') return;
+                            const durationMs = this.elapsedMs();
+                            const fare = this.fare(durationMs);
+
+                            if (durationMs >= 1000) {
+                                const trips = this.getHistory();
+                                trips.unshift({
+                                    id: Date.now(),
+                                    startedAt: this.state.tripStartedAt,
+                                    endedAt: Date.now(),
+                                    durationMs,
+                                    fare,
+                                    base: this.state.base,
+                                    rate: this.state.rate,
+                                });
+                                this.saveHistory(trips);
+                                this.showToast(`Trip saved · kr ${this.money(fare)}`);
+                            } else {
+                                this.showToast('Trip discarded');
+                            }
+
+                            this.stopLoop();
+                            this.state = { status: 'idle', startedAt: null, accumulatedMs: 0, tripStartedAt: null, base: 0, rate: this.settings.ratePerMin };
+                            this.saveLive();
+                            this.renderChrome();
+
+                            this.el.widget.classList.add('stopping');
+                            setTimeout(() => this.el.widget.classList.remove('stopping'), 520);
+                            this.el.progressFill.style.width = '0%';
+                            this.lastProgress = 0;
+                            this.animateFareTo(fare, 0, 700);
+                        },
+                        // Winds the fare back down to zero after a trip ends.
+                        animateFareTo(from, to, duration) {
+                            const startTime = performance.now();
+                            const step = (now) => {
+                                const t = Math.min(1, (now - startTime) / duration);
+                                const eased = 1 - Math.pow(1 - t, 3);
+                                this.fareOverride = from + (to - from) * eased;
+                                this.el.fare.textContent = this.money(this.fareOverride);
+                                if (t < 1) {
+                                    requestAnimationFrame(step);
+                                } else {
+                                    this.fareOverride = null;
+                                    this.lastWholeKrone = 0;
+                                    this.render();
+                                }
+                            };
+                            requestAnimationFrame(step);
+                        },
+                        showToast(message) {
+                            this.el.toast.textContent = message;
+                            this.el.toast.classList.add('show');
+                            clearTimeout(this.toastTimer);
+                            this.toastTimer = setTimeout(() => this.el.toast.classList.remove('show'), 2200);
+                        },
+                        ripple(btn, e) {
+                            const rect = btn.getBoundingClientRect();
+                            const size = Math.max(rect.width, rect.height);
+                            const span = document.createElement('span');
+                            span.className = 'ripple';
+                            span.style.width = span.style.height = `${size}px`;
+                            const cx = (e && e.clientX ? e.clientX : rect.left + rect.width / 2) - rect.left - size / 2;
+                            const cy = (e && e.clientY ? e.clientY : rect.top + rect.height / 2) - rect.top - size / 2;
+                            span.style.left = `${cx}px`;
+                            span.style.top = `${cy}px`;
+                            btn.appendChild(span);
+                            setTimeout(() => span.remove(), 600);
+                        },
+
+                        // ---------- settings menu ----------
+                        openSettings() {
+                            this.el.rateInput.value = String(this.settings.ratePerMin).replace('.', ',');
+                            this.el.baseInput.value = String(this.settings.basePrice).replace('.', ',');
+                            this.el.baseToggle.checked = this.settings.baseEnabled;
+                            this.el.baseInput.disabled = !this.settings.baseEnabled;
+                            this.syncChips();
+                            this.updateEstimate();
+                            this.el.settingsMenu.classList.add('visible');
+                        },
+                        parseAmount(raw) {
+                            const value = parseFloat(String(raw).replace(',', '.').replace(/[^0-9.]/g, ''));
+                            return Number.isFinite(value) && value >= 0 ? Math.min(value, 100000) : null;
+                        },
+                        syncChips() {
+                            this.el.rateChips.querySelectorAll('.taxi-chip').forEach(chip => {
+                                chip.classList.toggle('active', parseFloat(chip.dataset.rate) === this.settings.ratePerMin);
+                            });
+                            this.el.baseChips.querySelectorAll('.taxi-chip').forEach(chip => {
+                                chip.classList.toggle('active', this.settings.baseEnabled && parseFloat(chip.dataset.base) === this.settings.basePrice);
+                            });
+                        },
+                        updateEstimate() {
+                            const base = this.settings.baseEnabled ? this.settings.basePrice : 0;
+                            const total = base + this.settings.ratePerMin * 15;
+                            this.el.estimateAmount.textContent = `kr ${this.money(total)}`;
+                            this.el.estimateLabel.textContent = base > 0
+                                ? `A 15 minute trip · kr ${this.money(base, 0)} base + 15 × kr ${this.money(this.settings.ratePerMin)}`
+                                : 'A 15 minute trip';
+                        },
+                        commitSettings() {
+                            this.saveSettings();
+                            this.syncChips();
+                            this.updateEstimate();
+                            this.renderChrome();
+                            // A live trip keeps the prices it started with; only idle meters pick up new rates.
+                            if (this.state.status === 'idle') this.render();
+                        },
+
+                        // ---------- history menu ----------
+                        openHistory() {
+                            this.renderHistory();
+                            this.el.historyMenu.classList.add('visible');
+                        },
+                        renderHistory() {
+                            const trips = this.getHistory();
+                            const list = this.el.historyList;
+                            list.innerHTML = '';
+
+                            const totals = trips.reduce((acc, t) => {
+                                acc.fare += t.fare || 0;
+                                acc.ms += t.durationMs || 0;
+                                return acc;
+                            }, { fare: 0, ms: 0 });
+                            this.el.totalTrips.textContent = trips.length;
+                            this.el.totalEarned.textContent = `kr ${this.money(totals.fare, 0)}`;
+                            this.el.totalTime.textContent = this.formatDurationLong(totals.ms);
+                            this.el.clearHistoryBtn.style.display = trips.length ? 'block' : 'none';
+
+                            if (!trips.length) {
+                                list.innerHTML = '<div id="taxi-history-empty"><i class="fa-solid fa-route"></i>No trips yet.<br>Press start to run the meter.</div>';
+                                return;
+                            }
+
+                            trips.forEach((trip, index) => {
+                                const when = new Date(trip.endedAt);
+                                const row = document.createElement('div');
+                                row.className = 'taxi-trip';
+                                row.style.animationDelay = `${Math.min(index, 12) * 35}ms`;
+                                const rateText = trip.base > 0
+                                    ? `kr ${this.money(trip.base, 0)} + kr ${this.money(trip.rate)}/min`
+                                    : `kr ${this.money(trip.rate)}/min`;
+                                row.innerHTML = `
+                                    <div class="idx"><i class="fa-solid fa-taxi"></i></div>
+                                    <div>
+                                        <div class="when">${when.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} · ${when.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</div>
+                                        <div class="sub">${this.formatDurationLong(trip.durationMs)} · ${rateText}</div>
+                                    </div>
+                                    <div class="amt">kr ${this.money(trip.fare)}</div>
+                                    <button class="del" title="Delete trip"><i class="fa-solid fa-xmark"></i></button>`;
+                                row.querySelector('.del').addEventListener('click', () => {
+                                    row.classList.add('removing');
+                                    this.saveHistory(this.getHistory().filter(t => t.id !== trip.id));
+                                    setTimeout(() => this.renderHistory(), 280);
+                                });
+                                list.appendChild(row);
+                            });
+                        },
+
+                        // ---------- wiring ----------
+                        init() {
+                            this.loadSettings();
+                            this.loadLive();
+                            this.lastWholeKrone = Math.floor(this.fare());
+                            this.renderChrome();
+                            this.render();
+                            if (this.state.status === 'running') this.startLoop();
+
+                            const wire = (btn, handler) => {
+                                btn.addEventListener('click', (e) => {
+                                    e.stopPropagation();
+                                    if (btn.classList.contains('is-disabled')) return;
+                                    this.ripple(btn, e);
+                                    handler();
+                                });
+                            };
+                            wire(this.el.startBtn, () => this.toggleStartPause());
+                            wire(this.el.stopBtn, () => this.stopTrip());
+                            wire(this.el.historyBtn, () => this.openHistory());
+                            wire(this.el.settingsBtn, () => this.openSettings());
+
+                            this.el.widget.addEventListener('dblclick', (e) => {
+                                if (e.target.closest('#taxi-controls')) return;
+                                if (e.target.hasMoved) return;
+                                this.openSettings();
+                            });
+
+                            // Settings menu
+                            document.getElementById('close-taxi-settings-btn').addEventListener('click', () => this.el.settingsMenu.classList.remove('visible'));
+                            this.el.settingsMenu.addEventListener('click', (e) => { if (e.target === this.el.settingsMenu) this.el.settingsMenu.classList.remove('visible'); });
+                            document.getElementById('close-taxi-history-btn').addEventListener('click', () => this.el.historyMenu.classList.remove('visible'));
+                            this.el.historyMenu.addEventListener('click', (e) => { if (e.target === this.el.historyMenu) this.el.historyMenu.classList.remove('visible'); });
+
+                            this.el.rateInput.addEventListener('input', () => {
+                                const value = this.parseAmount(this.el.rateInput.value);
+                                if (value === null) return;
+                                this.settings.ratePerMin = value;
+                                this.commitSettings();
+                            });
+                            this.el.baseInput.addEventListener('input', () => {
+                                const value = this.parseAmount(this.el.baseInput.value);
+                                if (value === null) return;
+                                this.settings.basePrice = value;
+                                this.commitSettings();
+                            });
+                            this.el.baseToggle.addEventListener('change', () => {
+                                this.settings.baseEnabled = this.el.baseToggle.checked;
+                                this.el.baseInput.disabled = !this.settings.baseEnabled;
+                                this.commitSettings();
+                            });
+                            this.el.rateChips.addEventListener('click', (e) => {
+                                const chip = e.target.closest('.taxi-chip');
+                                if (!chip) return;
+                                this.settings.ratePerMin = parseFloat(chip.dataset.rate);
+                                this.el.rateInput.value = String(this.settings.ratePerMin).replace('.', ',');
+                                this.commitSettings();
+                            });
+                            this.el.baseChips.addEventListener('click', (e) => {
+                                const chip = e.target.closest('.taxi-chip');
+                                if (!chip) return;
+                                this.settings.basePrice = parseFloat(chip.dataset.base);
+                                this.el.baseInput.value = String(this.settings.basePrice);
+                                if (!this.settings.baseEnabled) {
+                                    this.settings.baseEnabled = true;
+                                    this.el.baseToggle.checked = true;
+                                    this.el.baseInput.disabled = false;
+                                }
+                                this.commitSettings();
+                            });
+
+                            this.el.clearHistoryBtn.addEventListener('click', () => {
+                                if (!confirm('Delete all saved trips?')) return;
+                                this.saveHistory([]);
+                                this.renderHistory();
+                            });
+
+                            // Keep the meter honest if the tab was throttled or suspended.
+                            document.addEventListener('visibilitychange', () => {
+                                if (!document.hidden && this.state.status === 'running') this.render();
+                            });
+                            window.addEventListener('beforeunload', () => this.saveLive());
+                            setInterval(() => this.saveLive(), 5000);
+                        },
+                        reset() {
+                            this.stopLoop();
+                            this.state = { status: 'idle', startedAt: null, accumulatedMs: 0, tripStartedAt: null, base: 0, rate: this.settings.ratePerMin };
+                            this.fareOverride = null;
+                            this.lastWholeKrone = 0;
+                            this.lastProgress = 0;
+                            localStorage.removeItem(this.LIVE_KEY);
+                            this.renderChrome();
+                            this.render();
+                        }
+                    };
+                    window.taxiMeter = taxiMeter;
+                    taxiMeter.init();
+
                     // =================================================================
                     // CORRECTED WEBCAM WIDGET LOGIC
                     // =================================================================
@@ -1367,13 +2014,14 @@
                 
                 (function setupBaseFeatures() {
                     const webcamToggleBtn = document.getElementById('webcam-toggle-btn');
-                    const DRAGGABLE_ELEMENT_IDS = ['clock', 'youtube-music-btn', 'youtube-btn', 'stock-widget', 'settings-btn', 'fun-stock-name-display', 'note-widget', 'music-widget', 'gif-widget', 'webcam-widget', 'webcam-toggle-btn'];
+                    const DRAGGABLE_ELEMENT_IDS = ['clock', 'youtube-music-btn', 'youtube-btn', 'stock-widget', 'settings-btn', 'fun-stock-name-display', 'note-widget', 'music-widget', 'gif-widget', 'webcam-widget', 'webcam-toggle-btn', 'taxi-widget'];
                     const WIDGETS = {
                         stock: { el: document.getElementById('stock-widget'), toggle: document.getElementById('toggle-stock-widget'), default: true },
                         note: { el: document.getElementById('note-widget'), toggle: document.getElementById('toggle-note-widget'), default: false },
                         music: { el: document.getElementById('music-widget'), toggle: document.getElementById('toggle-music-widget'), default: false },
                         gif: { el: document.getElementById('gif-widget'), toggle: document.getElementById('toggle-gif-widget'), default: false },
                         webcam: { el: document.getElementById('webcam-widget'), toggle: document.getElementById('toggle-webcam-widget'), default: false },
+                        taxi: { el: document.getElementById('taxi-widget'), toggle: document.getElementById('toggle-taxi-widget'), default: false },
                     };
                     
                     function initializeWidgetToggles() {
@@ -1525,7 +2173,7 @@
                                 return;
                             }
                             if (el.isEditing) return;
-                            if (e.target.closest('#music-controls, #remove-gif-btn, #webcam-controls, #note-settings-btn, #webcam-portrait-btn')) return;
+                            if (e.target.closest('#music-controls, #remove-gif-btn, #webcam-controls, #note-settings-btn, #webcam-portrait-btn, #taxi-controls')) return;
                             if (e.touches && e.touches.length === 2 && el.id === 'clock') { 
                                 isPinching = true; 
                                 isD = false; 
@@ -1844,7 +2492,7 @@
                     window.radioPlayer.reset();
                     window.webcamPlayer.stop();
                     document.getElementById('gif-display').src = '';
-                    ['clock', 'youtube-music-btn', 'youtube-btn', 'stock-widget', 'settings-btn', 'fun-stock-name-display', 'note-widget', 'music-widget', 'gif-widget', 'webcam-widget', 'webcam-toggle-btn'].forEach(id => {
+                    ['clock', 'youtube-music-btn', 'youtube-btn', 'stock-widget', 'settings-btn', 'fun-stock-name-display', 'note-widget', 'music-widget', 'gif-widget', 'webcam-widget', 'webcam-toggle-btn', 'taxi-widget'].forEach(id => {
                         const el = document.getElementById(id);
                         if (el) el.style.cssText = '';
                     });
