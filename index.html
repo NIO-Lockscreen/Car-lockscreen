@@ -455,6 +455,13 @@
                 <p style="color:#8e8e93;font-size:0.82rem;">The base price is added the moment a trip starts, then the per-minute rate runs on top of it.</p>
             </div>
             <div class="settings-section">
+                <div class="taxi-switch-row">
+                    <label for="taxi-decimals-toggle">Hide decimals</label>
+                    <input type="checkbox" id="taxi-decimals-toggle">
+                </div>
+                <p style="color:#8e8e93;font-size:0.82rem;">Show whole kroner only — kr 148 instead of kr 148,25.</p>
+            </div>
+            <div class="settings-section">
                 <div id="taxi-estimate">
                     <div class="est-amount" id="taxi-estimate-amount">kr 250,00</div>
                     <div class="est-label" id="taxi-estimate-label">A 15 minute trip</div>
@@ -959,7 +966,7 @@
                         HISTORY_KEY: 'taxiMeterHistory_v1',
                         LIVE_KEY: 'taxiMeterLive_v1',
                         MAX_HISTORY: 100,
-                        settings: { ratePerMin: 10, basePrice: 100, baseEnabled: false },
+                        settings: { ratePerMin: 10, basePrice: 100, baseEnabled: false, hideDecimals: false },
                         // status: 'idle' | 'running' | 'paused'
                         state: { status: 'idle', startedAt: null, accumulatedMs: 0, tripStartedAt: null, base: 0, rate: 10 },
                         rafId: null,
@@ -968,6 +975,7 @@
                         lastProgress: 0,
                         toastTimer: null,
                         fareOverride: null,
+                        fareAnimToken: 0,
                         el: {
                             widget: document.getElementById('taxi-widget'),
                             fare: document.getElementById('taxi-fare'),
@@ -987,6 +995,7 @@
                             baseToggle: document.getElementById('taxi-base-toggle'),
                             rateChips: document.getElementById('taxi-rate-chips'),
                             baseChips: document.getElementById('taxi-base-chips'),
+                            decimalsToggle: document.getElementById('taxi-decimals-toggle'),
                             estimateAmount: document.getElementById('taxi-estimate-amount'),
                             estimateLabel: document.getElementById('taxi-estimate-label'),
                             historyList: document.getElementById('taxi-history-list'),
@@ -1000,6 +1009,8 @@
                         money(value, decimals = 2) {
                             return value.toLocaleString('nb-NO', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
                         },
+                        // Fare amounts follow the "hide decimals" setting; rates always keep their øre.
+                        fareText(value) { return this.money(value, this.settings.hideDecimals ? 0 : 2); },
                         formatDuration(ms) {
                             const total = Math.floor(ms / 1000);
                             const h = Math.floor(total / 3600);
@@ -1025,6 +1036,7 @@
                                     if (Number.isFinite(saved.ratePerMin)) this.settings.ratePerMin = saved.ratePerMin;
                                     if (Number.isFinite(saved.basePrice)) this.settings.basePrice = saved.basePrice;
                                     if (typeof saved.baseEnabled === 'boolean') this.settings.baseEnabled = saved.baseEnabled;
+                                    if (typeof saved.hideDecimals === 'boolean') this.settings.hideDecimals = saved.hideDecimals;
                                 }
                             } catch (e) { /* keep defaults */ }
                         },
@@ -1069,11 +1081,11 @@
                             const ms = this.elapsedMs();
                             const fare = this.fareOverride !== null ? this.fareOverride : this.fare(ms);
 
-                            this.el.fare.textContent = this.money(fare);
+                            this.el.fare.textContent = this.fareText(fare);
                             this.el.elapsed.textContent = this.formatDuration(ms);
 
                             const whole = Math.floor(fare);
-                            if (whole !== this.lastWholeKrone) {
+                            if (whole !== this.lastWholeKrone && this.fareOverride === null) {
                                 this.lastWholeKrone = whole;
                                 if (this.state.status === 'running') {
                                     this.el.fare.classList.remove('tick');
@@ -1152,7 +1164,9 @@
                                 this.lastWholeKrone = Math.floor(this.state.base);
                                 this.lastProgress = 0;
                                 this.startLoop();
-                                this.showToast(this.state.base > 0 ? `Trip started · kr ${this.money(this.state.base)} base` : 'Trip started');
+                                // Roll the meter up from zero over the base fee instead of snapping to it.
+                                if (this.state.base > 0) this.animateFareTo(0, this.state.base, 900);
+                                this.showToast(this.state.base > 0 ? `Trip started · kr ${this.fareText(this.state.base)} base` : 'Trip started');
                             }
                             this.renderChrome();
                             this.render();
@@ -1175,7 +1189,7 @@
                                     rate: this.state.rate,
                                 });
                                 this.saveHistory(trips);
-                                this.showToast(`Trip saved · kr ${this.money(fare)}`);
+                                this.showToast(`Trip saved · kr ${this.fareText(fare)}`);
                             } else {
                                 this.showToast('Trip discarded');
                             }
@@ -1191,19 +1205,24 @@
                             this.lastProgress = 0;
                             this.animateFareTo(fare, 0, 700);
                         },
-                        // Winds the fare back down to zero after a trip ends.
+                        // Rolls the fare between two amounts: up over the base fee when a trip
+                        // starts, back down to zero once it ends.
                         animateFareTo(from, to, duration) {
+                            const token = ++this.fareAnimToken;
+                            this.fareOverride = from;
+                            this.el.fare.textContent = this.fareText(from);
                             const startTime = performance.now();
                             const step = (now) => {
+                                if (token !== this.fareAnimToken) return; // a newer roll took over
                                 const t = Math.min(1, (now - startTime) / duration);
                                 const eased = 1 - Math.pow(1 - t, 3);
                                 this.fareOverride = from + (to - from) * eased;
-                                this.el.fare.textContent = this.money(this.fareOverride);
+                                this.el.fare.textContent = this.fareText(this.fareOverride);
                                 if (t < 1) {
                                     requestAnimationFrame(step);
                                 } else {
                                     this.fareOverride = null;
-                                    this.lastWholeKrone = 0;
+                                    this.lastWholeKrone = Math.floor(to);
                                     this.render();
                                 }
                             };
@@ -1235,6 +1254,7 @@
                             this.el.baseInput.value = String(this.settings.basePrice).replace('.', ',');
                             this.el.baseToggle.checked = this.settings.baseEnabled;
                             this.el.baseInput.disabled = !this.settings.baseEnabled;
+                            this.el.decimalsToggle.checked = this.settings.hideDecimals;
                             this.syncChips();
                             this.updateEstimate();
                             this.el.settingsMenu.classList.add('visible');
@@ -1254,7 +1274,7 @@
                         updateEstimate() {
                             const base = this.settings.baseEnabled ? this.settings.basePrice : 0;
                             const total = base + this.settings.ratePerMin * 15;
-                            this.el.estimateAmount.textContent = `kr ${this.money(total)}`;
+                            this.el.estimateAmount.textContent = `kr ${this.fareText(total)}`;
                             this.el.estimateLabel.textContent = base > 0
                                 ? `A 15 minute trip · kr ${this.money(base, 0)} base + 15 × kr ${this.money(this.settings.ratePerMin)}`
                                 : 'A 15 minute trip';
@@ -1264,8 +1284,9 @@
                             this.syncChips();
                             this.updateEstimate();
                             this.renderChrome();
-                            // A live trip keeps the prices it started with; only idle meters pick up new rates.
-                            if (this.state.status === 'idle') this.render();
+                            // A live trip keeps the prices it started with, but the display always
+                            // re-renders so a decimals change shows up straight away.
+                            this.render();
                         },
 
                         // ---------- history menu ----------
@@ -1307,7 +1328,7 @@
                                         <div class="when">${when.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} · ${when.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</div>
                                         <div class="sub">${this.formatDurationLong(trip.durationMs)} · ${rateText}</div>
                                     </div>
-                                    <div class="amt">kr ${this.money(trip.fare)}</div>
+                                    <div class="amt">kr ${this.fareText(trip.fare)}</div>
                                     <button class="del" title="Delete trip"><i class="fa-solid fa-xmark"></i></button>`;
                                 row.querySelector('.del').addEventListener('click', () => {
                                     row.classList.add('removing');
@@ -1367,6 +1388,10 @@
                             this.el.baseToggle.addEventListener('change', () => {
                                 this.settings.baseEnabled = this.el.baseToggle.checked;
                                 this.el.baseInput.disabled = !this.settings.baseEnabled;
+                                this.commitSettings();
+                            });
+                            this.el.decimalsToggle.addEventListener('change', () => {
+                                this.settings.hideDecimals = this.el.decimalsToggle.checked;
                                 this.commitSettings();
                             });
                             this.el.rateChips.addEventListener('click', (e) => {
