@@ -172,57 +172,62 @@
            TAXI METER WIDGET
            ===================================================== */
         #taxi-widget {
-            top: 20%; left: 6%; width: 270px;
+            --taxi-s: 1;
+            top: 20%; left: 6%;
+            width: calc(270px * var(--taxi-s));
             padding: 0; overflow: hidden;
-            border-radius: 22px;
+            border-radius: calc(22px * var(--taxi-s));
             background: linear-gradient(160deg, rgba(38,38,42,0.80) 0%, rgba(12,12,14,0.86) 100%);
             border: 1px solid rgba(255,255,255,0.10);
-            box-shadow: 0 12px 34px rgba(0,0,0,0.45);
+            box-shadow: 0 calc(12px * var(--taxi-s)) calc(34px * var(--taxi-s)) rgba(0,0,0,0.45);
             backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
             color: #fff; font-family: 'Roboto', sans-serif;
             transition: box-shadow .45s ease, border-color .45s ease;
         }
-        #taxi-widget.running { border-color: rgba(255,212,59,0.55); box-shadow: 0 12px 38px rgba(0,0,0,0.5), 0 0 30px rgba(255,193,7,0.22); }
+        /* Only the card <-> rectangle switch animates its width; slider and pinch
+           resizing stays instant so the size follows your finger exactly. */
+        #taxi-widget.layout-anim { transition: box-shadow .45s ease, border-color .45s ease, width .4s cubic-bezier(.22,1,.36,1); }
+        #taxi-widget.running { border-color: rgba(255,212,59,0.55); box-shadow: 0 calc(12px * var(--taxi-s)) calc(38px * var(--taxi-s)) rgba(0,0,0,0.5), 0 0 calc(30px * var(--taxi-s)) rgba(255,193,7,0.22); }
         #taxi-widget.paused  { border-color: rgba(255,214,10,0.30); }
         #taxi-widget.stopping { animation: taxi-settle .5s ease; }
         @keyframes taxi-settle { 0% { transform: scale(1); } 35% { transform: scale(0.972); } 100% { transform: scale(1); } }
 
-        #taxi-sheen { position: absolute; inset: 0; pointer-events: none; overflow: hidden; border-radius: 22px; opacity: 0; transition: opacity .5s ease; }
+        #taxi-sheen { position: absolute; inset: 0; pointer-events: none; overflow: hidden; border-radius: calc(22px * var(--taxi-s)); opacity: 0; transition: opacity .5s ease; }
         #taxi-widget.running #taxi-sheen { opacity: 1; }
         #taxi-sheen::after { content: ''; position: absolute; top: 0; left: -60%; width: 45%; height: 100%; background: linear-gradient(100deg, transparent, rgba(255,212,59,0.10), transparent); animation: taxi-sheen-move 4.2s ease-in-out infinite; }
         @keyframes taxi-sheen-move { 0% { left: -60%; } 55% { left: 125%; } 100% { left: 125%; } }
 
-        #taxi-head { display: flex; align-items: center; gap: 10px; padding: 13px 15px 6px; position: relative; z-index: 1; }
-        #taxi-badge { width: 30px; height: 30px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 0.92rem; color: #17171a; background: linear-gradient(145deg, #ffe066, #f59f00); box-shadow: 0 3px 10px rgba(245,159,0,0.35); flex-shrink: 0; }
+        #taxi-head { display: flex; align-items: center; gap: calc(10px * var(--taxi-s)); padding: calc(13px * var(--taxi-s)) calc(15px * var(--taxi-s)) calc(6px * var(--taxi-s)); position: relative; z-index: 1; }
+        #taxi-badge { width: calc(30px * var(--taxi-s)); height: calc(30px * var(--taxi-s)); border-radius: calc(10px * var(--taxi-s)); display: flex; align-items: center; justify-content: center; font-size: calc(15px * var(--taxi-s)); color: #17171a; background: linear-gradient(145deg, #ffe066, #f59f00); box-shadow: 0 calc(3px * var(--taxi-s)) calc(10px * var(--taxi-s)) rgba(245,159,0,0.35); flex-shrink: 0; }
         #taxi-widget.running #taxi-badge { animation: taxi-badge-glow 2.4s ease-in-out infinite; }
-        @keyframes taxi-badge-glow { 0%,100% { box-shadow: 0 3px 10px rgba(245,159,0,0.35); } 50% { box-shadow: 0 3px 18px rgba(255,212,59,0.75); } }
-        #taxi-title { font-size: 0.72rem; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(255,255,255,0.62); font-weight: 500; text-shadow: none; }
-        #taxi-status { margin-left: auto; display: flex; align-items: center; gap: 6px; font-size: 0.62rem; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255,255,255,0.55); }
-        #taxi-status-dot { width: 8px; height: 8px; border-radius: 50%; background: #8e8e93; transition: background .3s ease; }
+        @keyframes taxi-badge-glow { 0%,100% { box-shadow: 0 calc(3px * var(--taxi-s)) calc(10px * var(--taxi-s)) rgba(245,159,0,0.35); } 50% { box-shadow: 0 calc(3px * var(--taxi-s)) calc(18px * var(--taxi-s)) rgba(255,212,59,0.75); } }
+        #taxi-title { font-size: calc(11.5px * var(--taxi-s)); letter-spacing: 0.18em; text-transform: uppercase; color: rgba(255,255,255,0.62); font-weight: 500; text-shadow: none; white-space: nowrap; }
+        #taxi-status { margin-left: auto; display: flex; align-items: center; gap: calc(6px * var(--taxi-s)); font-size: calc(10px * var(--taxi-s)); letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255,255,255,0.55); white-space: nowrap; }
+        #taxi-status-dot { width: calc(8px * var(--taxi-s)); height: calc(8px * var(--taxi-s)); border-radius: 50%; background: #8e8e93; flex-shrink: 0; transition: background .3s ease; }
         #taxi-widget.running #taxi-status-dot { background: #32d74b; animation: taxi-ping 1.8s ease-out infinite; }
         #taxi-widget.paused #taxi-status-dot { background: #ffd60a; animation: taxi-blink 1.4s ease-in-out infinite; }
-        @keyframes taxi-ping { 0% { box-shadow: 0 0 0 0 rgba(50,215,75,0.55); } 70% { box-shadow: 0 0 0 9px rgba(50,215,75,0); } 100% { box-shadow: 0 0 0 0 rgba(50,215,75,0); } }
+        @keyframes taxi-ping { 0% { box-shadow: 0 0 0 0 rgba(50,215,75,0.55); } 70% { box-shadow: 0 0 0 calc(9px * var(--taxi-s)) rgba(50,215,75,0); } 100% { box-shadow: 0 0 0 0 rgba(50,215,75,0); } }
         @keyframes taxi-blink { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
 
-        #taxi-fare-wrap { display: flex; align-items: baseline; justify-content: center; gap: 7px; padding: 2px 15px 0; position: relative; z-index: 1; }
-        #taxi-cur { font-size: 0.85rem; font-weight: 500; letter-spacing: 0.12em; color: #ffd43b; text-transform: uppercase; text-shadow: none; }
-        #taxi-fare { font-family: 'Oswald', sans-serif; font-weight: 700; font-size: 2.7rem; line-height: 1.05; font-variant-numeric: tabular-nums; text-shadow: 0 2px 12px rgba(0,0,0,0.5); transition: color .3s ease; }
+        #taxi-fare-wrap { display: flex; align-items: baseline; justify-content: center; gap: calc(7px * var(--taxi-s)); padding: calc(2px * var(--taxi-s)) calc(15px * var(--taxi-s)) 0; position: relative; z-index: 1; }
+        #taxi-cur { font-size: calc(13.5px * var(--taxi-s)); font-weight: 500; letter-spacing: 0.12em; color: #ffd43b; text-transform: uppercase; text-shadow: none; }
+        #taxi-fare { font-family: 'Oswald', sans-serif; font-weight: 700; font-size: calc(43px * var(--taxi-s)); line-height: 1.05; font-variant-numeric: tabular-nums; text-shadow: 0 2px 12px rgba(0,0,0,0.5); transition: color .3s ease; }
         #taxi-fare.tick { animation: taxi-fare-tick .5s cubic-bezier(.22,1,.36,1); }
-        @keyframes taxi-fare-tick { 0% { transform: translateY(0) scale(1); } 28% { transform: translateY(-3px) scale(1.05); color: #ffd43b; text-shadow: 0 0 22px rgba(255,212,59,0.6); } 100% { transform: translateY(0) scale(1); } }
+        @keyframes taxi-fare-tick { 0% { transform: translateY(0) scale(1); } 28% { transform: translateY(calc(-3px * var(--taxi-s))) scale(1.05); color: #ffd43b; text-shadow: 0 0 22px rgba(255,212,59,0.6); } 100% { transform: translateY(0) scale(1); } }
 
-        #taxi-progress { height: 3px; margin: 11px 15px 0; border-radius: 3px; background: rgba(255,255,255,0.10); overflow: hidden; position: relative; z-index: 1; }
-        #taxi-progress-fill { height: 100%; width: 0%; border-radius: 3px; background: linear-gradient(90deg, #f59f00, #ffe066); box-shadow: 0 0 10px rgba(255,212,59,0.5); transition: width .25s linear; }
+        #taxi-progress { height: calc(3px * var(--taxi-s)); margin: calc(11px * var(--taxi-s)) calc(15px * var(--taxi-s)) 0; border-radius: calc(3px * var(--taxi-s)); background: rgba(255,255,255,0.10); overflow: hidden; position: relative; z-index: 1; }
+        #taxi-progress-fill { height: 100%; width: 0%; border-radius: inherit; background: linear-gradient(90deg, #f59f00, #ffe066); box-shadow: 0 0 calc(10px * var(--taxi-s)) rgba(255,212,59,0.5); transition: width .25s linear; }
 
-        #taxi-meta { display: flex; justify-content: space-between; align-items: center; padding: 9px 15px 0; font-family: 'Roboto Mono', monospace; font-size: 0.72rem; color: rgba(255,255,255,0.55); position: relative; z-index: 1; text-shadow: none; }
+        #taxi-meta { display: flex; justify-content: space-between; align-items: center; gap: calc(8px * var(--taxi-s)); padding: calc(9px * var(--taxi-s)) calc(15px * var(--taxi-s)) 0; font-family: 'Roboto Mono', monospace; font-size: calc(11.5px * var(--taxi-s)); color: rgba(255,255,255,0.55); position: relative; z-index: 1; text-shadow: none; white-space: nowrap; }
         #taxi-elapsed { font-variant-numeric: tabular-nums; }
         #taxi-rate { text-align: right; }
 
-        #taxi-controls { display: flex; align-items: center; justify-content: center; gap: 11px; padding: 12px 15px 15px; position: relative; z-index: 2; }
-        .taxi-btn { position: relative; width: 42px; height: 42px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.07); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 0.95rem; cursor: pointer; overflow: hidden; -webkit-tap-highlight-color: transparent; transition: transform .2s cubic-bezier(.34,1.56,.64,1), background-color .2s, box-shadow .25s, opacity .25s; }
+        #taxi-controls { display: flex; align-items: center; justify-content: center; gap: calc(11px * var(--taxi-s)); padding: calc(12px * var(--taxi-s)) calc(15px * var(--taxi-s)) calc(15px * var(--taxi-s)); position: relative; z-index: 2; }
+        .taxi-btn { position: relative; width: calc(42px * var(--taxi-s)); height: calc(42px * var(--taxi-s)); border-radius: 50%; border: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.07); color: #fff; display: flex; align-items: center; justify-content: center; font-size: calc(15px * var(--taxi-s)); cursor: pointer; overflow: hidden; flex-shrink: 0; -webkit-tap-highlight-color: transparent; transition: transform .2s cubic-bezier(.34,1.56,.64,1), background-color .2s, box-shadow .25s, opacity .25s; }
         .taxi-btn:hover { background: rgba(255,255,255,0.15); transform: translateY(-2px); }
         .taxi-btn:active { transform: scale(0.88); }
-        .taxi-btn.primary { width: 54px; height: 54px; font-size: 1.15rem; color: #17171a; border-color: transparent; background: linear-gradient(145deg, #ffe066, #f59f00); box-shadow: 0 6px 18px rgba(245,159,0,0.38); }
-        .taxi-btn.primary:hover { box-shadow: 0 8px 24px rgba(245,159,0,0.55); }
+        .taxi-btn.primary { width: calc(54px * var(--taxi-s)); height: calc(54px * var(--taxi-s)); font-size: calc(18px * var(--taxi-s)); color: #17171a; border-color: transparent; background: linear-gradient(145deg, #ffe066, #f59f00); box-shadow: 0 calc(6px * var(--taxi-s)) calc(18px * var(--taxi-s)) rgba(245,159,0,0.38); }
+        .taxi-btn.primary:hover { box-shadow: 0 calc(8px * var(--taxi-s)) calc(24px * var(--taxi-s)) rgba(245,159,0,0.55); }
         #taxi-widget.running .taxi-btn.primary { background: linear-gradient(145deg, #f8f9fa, #ced4da); }
         .taxi-btn.stop { color: #ff6b6b; }
         .taxi-btn.stop:hover { background: rgba(255,107,107,0.18); }
@@ -231,7 +236,30 @@
         .taxi-btn.primary .ripple { background: rgba(0,0,0,0.22); }
         @keyframes taxi-ripple { to { transform: scale(2.6); opacity: 0; } }
 
-        #taxi-toast { position: absolute; top: 0; left: 0; right: 0; transform: translateY(-100%); opacity: 0; padding: 9px 14px; text-align: center; background: linear-gradient(180deg, #3a3212 0%, #16161a 100%); border-bottom: 1px solid rgba(255,212,59,0.45); font-size: 0.78rem; letter-spacing: 0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; z-index: 3; text-shadow: none; transition: transform .4s cubic-bezier(.22,1,.36,1), opacity .3s ease; }
+        /* --- Rectangle (bar) layout: long and thin instead of the tall card --- */
+        #taxi-widget.layout-bar { width: calc(560px * var(--taxi-s)); display: flex; align-items: center; gap: calc(14px * var(--taxi-s)); padding: calc(13px * var(--taxi-s)) calc(16px * var(--taxi-s)) calc(14px * var(--taxi-s)); }
+        #taxi-widget.layout-bar #taxi-head { padding: 0; gap: calc(9px * var(--taxi-s)); flex: 0 0 auto; }
+        #taxi-widget.layout-bar #taxi-title { display: none; }
+        #taxi-widget.layout-bar #taxi-status { margin-left: 0; }
+        #taxi-widget.layout-bar #taxi-status-text { display: none; }
+        #taxi-widget.layout-bar #taxi-fare-wrap { padding: 0; flex: 0 0 auto; justify-content: flex-start; }
+        #taxi-widget.layout-bar #taxi-fare { font-size: calc(33px * var(--taxi-s)); }
+        #taxi-widget.layout-bar #taxi-cur { font-size: calc(12px * var(--taxi-s)); }
+        /* The middle column absorbs whatever room is left over, so a long fare
+           truncates the rate line instead of pushing the buttons out of the bar. */
+        #taxi-widget.layout-bar #taxi-meta { flex-direction: column; align-items: flex-start; justify-content: center; gap: calc(3px * var(--taxi-s)); padding: 0; flex: 1 1 auto; min-width: 0; overflow: hidden; }
+        #taxi-widget.layout-bar #taxi-meta > span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+        #taxi-widget.layout-bar #taxi-rate { text-align: left; color: rgba(255,255,255,0.42); }
+        #taxi-widget.layout-bar #taxi-controls { margin-left: auto; padding: 0; gap: calc(9px * var(--taxi-s)); flex: 0 0 auto; }
+        #taxi-widget.layout-bar .taxi-btn { width: calc(38px * var(--taxi-s)); height: calc(38px * var(--taxi-s)); font-size: calc(14px * var(--taxi-s)); }
+        #taxi-widget.layout-bar .taxi-btn.primary { width: calc(46px * var(--taxi-s)); height: calc(46px * var(--taxi-s)); font-size: calc(16px * var(--taxi-s)); }
+        /* The minute sweep becomes a hairline along the bottom edge of the bar. */
+        #taxi-widget.layout-bar #taxi-progress { position: absolute; left: 0; right: 0; bottom: 0; margin: 0; height: calc(3px * var(--taxi-s)); border-radius: 0; background: rgba(255,255,255,0.07); }
+        /* A drop-down banner would swallow a thin bar, so the toast covers it and fades. */
+        #taxi-widget.layout-bar #taxi-toast { inset: 0; padding: 0; display: flex; align-items: center; justify-content: center; transform: none; border-bottom: none; background: linear-gradient(100deg, #3a3212 0%, #16161a 70%); }
+        #taxi-widget.layout-bar #taxi-toast.show { transform: none; }
+
+        #taxi-toast { position: absolute; top: 0; left: 0; right: 0; transform: translateY(-100%); opacity: 0; padding: calc(9px * var(--taxi-s)) calc(14px * var(--taxi-s)); text-align: center; background: linear-gradient(180deg, #3a3212 0%, #16161a 100%); border-bottom: 1px solid rgba(255,212,59,0.45); font-size: calc(12.5px * var(--taxi-s)); letter-spacing: 0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; z-index: 3; text-shadow: none; transition: transform .4s cubic-bezier(.22,1,.36,1), opacity .3s ease; }
         #taxi-toast.show { transform: translateY(0); opacity: 1; }
 
         /* Taxi menus */
@@ -251,6 +279,13 @@
         .taxi-switch-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 4px 0 10px; }
         .taxi-switch-row label { font-size: 0.95rem; }
         .taxi-switch-row input[type="checkbox"] { width: 20px; height: 20px; accent-color: #ffd43b; flex-shrink: 0; }
+        #taxi-size-range { width: 100%; height: 30px; accent-color: #ffd43b; background: transparent; cursor: pointer; }
+        #taxi-size-value { text-align: center; font-family: 'Roboto Mono', monospace; color: #ffd43b; font-size: 0.95rem; margin-top: 2px; }
+        .taxi-layout-chips { display: flex; gap: 10px; margin-bottom: 14px; }
+        .taxi-layout-chips .taxi-chip { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px 8px; border-radius: 12px; }
+        .taxi-layout-chips .shape { border: 2px solid currentColor; border-radius: 4px; opacity: 0.85; }
+        .taxi-layout-chips .shape.card { width: 26px; height: 30px; }
+        .taxi-layout-chips .shape.bar { width: 42px; height: 15px; }
 
         #taxi-history-summary { display: flex; gap: 10px; margin: 18px 0 4px; }
         .taxi-sum-card { flex: 1; background: #1c1c1e; border-radius: 14px; padding: 13px 8px; text-align: center; }
@@ -460,6 +495,19 @@
                     <input type="checkbox" id="taxi-decimals-toggle">
                 </div>
                 <p style="color:#8e8e93;font-size:0.82rem;">Show whole kroner only — kr 148 instead of kr 148,25.</p>
+            </div>
+            <div class="settings-section">
+                <h3>Shape &amp; size</h3>
+                <div class="taxi-chips taxi-layout-chips" id="taxi-layout-chips">
+                    <button class="taxi-chip" data-layout="card"><span class="shape card"></span>Card</button>
+                    <button class="taxi-chip" data-layout="bar"><span class="shape bar"></span>Rectangle</button>
+                </div>
+                <div class="taxi-field">
+                    <label for="taxi-size-range">Widget size</label>
+                    <input type="range" id="taxi-size-range" min="0.6" max="2.2" step="0.05" value="1">
+                    <div id="taxi-size-value">100%</div>
+                </div>
+                <p style="color:#8e8e93;font-size:0.82rem;">Everything scales together. On a touchscreen you can also pinch the widget to resize it.</p>
             </div>
             <div class="settings-section">
                 <div id="taxi-estimate">
@@ -966,7 +1014,9 @@
                         HISTORY_KEY: 'taxiMeterHistory_v1',
                         LIVE_KEY: 'taxiMeterLive_v1',
                         MAX_HISTORY: 100,
-                        settings: { ratePerMin: 10, basePrice: 100, baseEnabled: false, hideDecimals: false },
+                        settings: { ratePerMin: 10, basePrice: 100, baseEnabled: false, hideDecimals: false, layout: 'card', scale: 1 },
+                        MIN_SCALE: 0.6,
+                        MAX_SCALE: 2.2,
                         // status: 'idle' | 'running' | 'paused'
                         state: { status: 'idle', startedAt: null, accumulatedMs: 0, tripStartedAt: null, base: 0, rate: 10 },
                         rafId: null,
@@ -996,6 +1046,9 @@
                             rateChips: document.getElementById('taxi-rate-chips'),
                             baseChips: document.getElementById('taxi-base-chips'),
                             decimalsToggle: document.getElementById('taxi-decimals-toggle'),
+                            layoutChips: document.getElementById('taxi-layout-chips'),
+                            sizeRange: document.getElementById('taxi-size-range'),
+                            sizeValue: document.getElementById('taxi-size-value'),
                             estimateAmount: document.getElementById('taxi-estimate-amount'),
                             estimateLabel: document.getElementById('taxi-estimate-label'),
                             historyList: document.getElementById('taxi-history-list'),
@@ -1037,6 +1090,8 @@
                                     if (Number.isFinite(saved.basePrice)) this.settings.basePrice = saved.basePrice;
                                     if (typeof saved.baseEnabled === 'boolean') this.settings.baseEnabled = saved.baseEnabled;
                                     if (typeof saved.hideDecimals === 'boolean') this.settings.hideDecimals = saved.hideDecimals;
+                                    if (saved.layout === 'card' || saved.layout === 'bar') this.settings.layout = saved.layout;
+                                    if (Number.isFinite(saved.scale)) this.settings.scale = this.clampScale(saved.scale);
                                 }
                             } catch (e) { /* keep defaults */ }
                         },
@@ -1120,6 +1175,49 @@
                             this.el.rate.textContent = base > 0
                                 ? `${this.money(base, 0)} + ${this.money(rate, rate % 1 === 0 ? 0 : 2)} kr/min`
                                 : `${this.money(rate, rate % 1 === 0 ? 0 : 2)} kr/min`;
+                        },
+
+                        // ---------- shape & size ----------
+                        clampScale(value) { return Math.max(this.MIN_SCALE, Math.min(this.MAX_SCALE, value)); },
+                        get scale() { return this.settings.scale; },
+                        // Every dimension in the widget CSS is a multiple of --taxi-s, so the
+                        // whole thing scales from this one number.
+                        applyAppearance() {
+                            this.el.widget.style.setProperty('--taxi-s', this.settings.scale);
+                            this.el.widget.classList.toggle('layout-bar', this.settings.layout === 'bar');
+                            this.keepOnScreen();
+                            // Re-check once any width animation has settled, since the widget
+                            // measures its old size while the transition is still running.
+                            clearTimeout(this.clampTimer);
+                            this.clampTimer = setTimeout(() => this.keepOnScreen(), 520);
+                        },
+                        setScale(value, persist = true) {
+                            this.settings.scale = this.clampScale(value);
+                            this.applyAppearance();
+                            if (this.el.sizeRange) {
+                                this.el.sizeRange.value = this.settings.scale;
+                                this.el.sizeValue.textContent = `${Math.round(this.settings.scale * 100)}%`;
+                            }
+                            if (persist) this.saveSettings();
+                        },
+                        setLayout(layout) {
+                            this.settings.layout = layout === 'bar' ? 'bar' : 'card';
+                            this.el.widget.classList.add('layout-anim');
+                            clearTimeout(this.layoutAnimTimer);
+                            this.layoutAnimTimer = setTimeout(() => this.el.widget.classList.remove('layout-anim'), 520);
+                            this.applyAppearance();
+                            this.syncChips();
+                            this.saveSettings();
+                        },
+                        // Growing the widget or switching to the wide bar can push it off the
+                        // edge of the dash; nudge it back inside.
+                        keepOnScreen() {
+                            const el = this.el.widget;
+                            if (el.classList.contains('hidden')) return;
+                            const maxX = Math.max(0, lockScreen.clientWidth - el.offsetWidth);
+                            const maxY = Math.max(0, lockScreen.clientHeight - el.offsetHeight);
+                            if (el.offsetLeft > maxX) el.style.left = `${maxX}px`;
+                            if (el.offsetTop > maxY) el.style.top = `${maxY}px`;
                         },
                         startLoop() {
                             if (this.rafId) return;
@@ -1255,6 +1353,8 @@
                             this.el.baseToggle.checked = this.settings.baseEnabled;
                             this.el.baseInput.disabled = !this.settings.baseEnabled;
                             this.el.decimalsToggle.checked = this.settings.hideDecimals;
+                            this.el.sizeRange.value = this.settings.scale;
+                            this.el.sizeValue.textContent = `${Math.round(this.settings.scale * 100)}%`;
                             this.syncChips();
                             this.updateEstimate();
                             this.el.settingsMenu.classList.add('visible');
@@ -1269,6 +1369,9 @@
                             });
                             this.el.baseChips.querySelectorAll('.taxi-chip').forEach(chip => {
                                 chip.classList.toggle('active', this.settings.baseEnabled && parseFloat(chip.dataset.base) === this.settings.basePrice);
+                            });
+                            this.el.layoutChips.querySelectorAll('.taxi-chip').forEach(chip => {
+                                chip.classList.toggle('active', chip.dataset.layout === this.settings.layout);
                             });
                         },
                         updateEstimate() {
@@ -1343,6 +1446,7 @@
                         init() {
                             this.loadSettings();
                             this.loadLive();
+                            this.applyAppearance();
                             this.lastWholeKrone = Math.floor(this.fare());
                             this.renderChrome();
                             this.render();
@@ -1394,6 +1498,11 @@
                                 this.settings.hideDecimals = this.el.decimalsToggle.checked;
                                 this.commitSettings();
                             });
+                            this.el.layoutChips.addEventListener('click', (e) => {
+                                const chip = e.target.closest('.taxi-chip');
+                                if (chip) this.setLayout(chip.dataset.layout);
+                            });
+                            this.el.sizeRange.addEventListener('input', () => this.setScale(parseFloat(this.el.sizeRange.value)));
                             this.el.rateChips.addEventListener('click', (e) => {
                                 const chip = e.target.closest('.taxi-chip');
                                 if (!chip) return;
@@ -1425,6 +1534,7 @@
                                 if (!document.hidden && this.state.status === 'running') this.render();
                             });
                             window.addEventListener('beforeunload', () => this.saveLive());
+                            window.addEventListener('resize', () => this.keepOnScreen());
                             setInterval(() => this.saveLive(), 5000);
                         },
                         reset() {
@@ -2070,6 +2180,8 @@
                                 widget.el.classList.toggle('hidden', !isChecked);
                                 localStorage.setItem(`widget_${key}_visible`, isChecked);
 
+                                if (key === 'taxi' && isChecked) window.taxiMeter.keepOnScreen();
+
                                 if (key === 'webcam') {
                                     webcamToggleBtn.classList.toggle('hidden', !isChecked);
                                     if (isChecked) {
@@ -2136,18 +2248,30 @@
                         }
                     };
                     
+                    // Widgets that can be resized with a two-finger pinch.
+                    const PINCH_TARGETS = {
+                        'clock': { get: () => clockScale, set: (s) => applyClockScale(s), min: 0.5, max: 3 },
+                        'taxi-widget': {
+                            get: () => window.taxiMeter.scale,
+                            set: (s) => window.taxiMeter.setScale(s, false),
+                            onEnd: () => window.taxiMeter.setScale(window.taxiMeter.scale, true),
+                            min: 0.6, max: 2.2
+                        },
+                    };
+
                     const makeDraggable = (el) => {
                         let oX, oY, isD, hasMoved;
                         let isPinching = false, initialPinchDist, initialScale;
+                        const pinch = PINCH_TARGETS[el.id];
                         const getDist = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
-                        
+
                         const mv = (e) => {
                             if (el.isEditing) return;
-                            if (el.id === 'clock' && isPinching && e.touches && e.touches.length === 2) {
+                            if (pinch && isPinching && e.touches && e.touches.length === 2) {
                                 e.preventDefault();
                                 const oldWidth = el.offsetWidth, oldHeight = el.offsetHeight, oldLeft = el.offsetLeft, oldTop = el.offsetTop;
-                                const newDist = getDist(e.touches); const scaleRatio = newDist / initialPinchDist; const newScale = Math.max(0.5, Math.min(initialScale * scaleRatio, 3));
-                                applyClockScale(newScale); const newWidth = el.offsetWidth, newHeight = el.offsetHeight; const deltaWidth = newWidth - oldWidth, deltaHeight = newHeight - oldHeight;
+                                const newDist = getDist(e.touches); const scaleRatio = newDist / initialPinchDist; const newScale = Math.max(pinch.min, Math.min(initialScale * scaleRatio, pinch.max));
+                                pinch.set(newScale); const newWidth = el.offsetWidth, newHeight = el.offsetHeight; const deltaWidth = newWidth - oldWidth, deltaHeight = newHeight - oldHeight;
                                 el.style.left = `${oldLeft - (deltaWidth / 2)}px`; el.style.top = `${oldTop - (deltaHeight / 2)}px`; return;
                             }
                             if (!isD) return; 
@@ -2180,7 +2304,8 @@
                             if (el.id === 'fun-stock-name-display' && el.classList.contains('visible')) { 
                                 stockNameFadeOutTimer = setTimeout(() => { el.classList.remove('visible'); }, 3000); 
                             }
-                            isD = false; 
+                            if (isPinching && pinch && pinch.onEnd) pinch.onEnd();
+                            isD = false;
                             isPinching = false;
                             if (hasMoved) {
                                 savePos();
@@ -2199,12 +2324,12 @@
                             }
                             if (el.isEditing) return;
                             if (e.target.closest('#music-controls, #remove-gif-btn, #webcam-controls, #note-settings-btn, #webcam-portrait-btn, #taxi-controls')) return;
-                            if (e.touches && e.touches.length === 2 && el.id === 'clock') { 
-                                isPinching = true; 
-                                isD = false; 
-                                initialPinchDist = getDist(e.touches); 
-                                initialScale = clockScale; 
-                                return; 
+                            if (e.touches && e.touches.length === 2 && pinch) {
+                                isPinching = true;
+                                isD = false;
+                                initialPinchDist = getDist(e.touches);
+                                initialScale = pinch.get();
+                                return;
                             }
                             
                             isD = true; 
