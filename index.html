@@ -7,10 +7,14 @@
     <!-- MODIFIED: Favicons for Car Dash / Browser Tabs -->
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%232c2c2e'/%3E%3Ccircle cx='50' cy='50' r='30' fill='none' stroke='white' stroke-width='8'/%3E%3C/svg%3E">
     <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%232c2c2e'/%3E%3Ccircle cx='50' cy='50' r='30' fill='none' stroke='white' stroke-width='8'/%3E%3C/svg%3E">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <link rel="stylesheet" href="assets/fonts/fonts.css">
+    <!-- Vendored so the page makes no third-party requests at runtime:
+         jsQR (camera decode) + node-qrcode core (frame encode). See LICENSES.md. -->
+    <script src="assets/vendor/qr-vendor.min.js"></script>
+    <script src="assets/js/optical.js"></script>
+    <script src="assets/js/optical-ui.js"></script>
+    <script src="assets/js/image-store.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@700&family=Roboto+Mono:wght@500&family=Roboto:wght@400;500&family=Playfair+Display:wght@700&family=Source+Code+Pro:wght@700&family=Inter:wght@400;500&family=Lora:wght@400;500&display=swap');
         :root {
             --widget-bg: rgba(0, 0, 0, 0.2);
             --widget-bg-light: rgba(255, 255, 255, 0.2);
@@ -22,7 +26,9 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html, body { height: 100%; width: 100%; overflow: hidden; font-family: 'Roboto', sans-serif; }
         body { background-color: #1a1a1a; color: white; text-align: center; }
-        #lock-screen { position: relative; width: 100vw; height: 100vh; background-image: url('https://images.pexels.com/photos/807598/pexels-photo-807598.jpeg'); background-size: cover; background-position: center center; overflow: hidden; transition: background-image 0.5s ease-in-out; text-align: left; --icon-stroke-color: white; }
+        /* The default wallpaper is a built-in gradient, not a hosted photo, so a
+           fresh install renders identically with no network at all. */
+        #lock-screen { position: relative; width: 100vw; height: 100vh; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 9' preserveAspectRatio='none'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23121a2b'/%3E%3Cstop offset='.55' stop-color='%231e2a45'/%3E%3Cstop offset='1' stop-color='%230b0e16'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='16' height='9' fill='url(%23g)'/%3E%3C/svg%3E"); background-size: cover; background-position: center center; overflow: hidden; transition: background-image 0.5s ease-in-out; text-align: left; --icon-stroke-color: white; }
         #lock-screen.panning-active { cursor: grab; border: 2px solid rgba(10, 132, 255, 0.6); box-shadow: inset 0 0 20px rgba(10, 132, 255, 0.3); } #lock-screen.panning-active:active { cursor: grabbing; }
         #status-bar { position: absolute; top: 20px; right: 30px; font-size: 1rem; text-shadow: var(--text-shadow); z-index: 20; color: var(--text-color); }
         #weather-info { display: flex; align-items: center; gap: 10px; user-select: none; padding: 10px 15px; border-radius: 12px; transition: background-color 0.2s; background-color: var(--widget-bg); }
@@ -33,11 +39,6 @@
         .app-icon svg { width: 100%; height: 100%; }
         #youtube-music-btn { top: 60%; left: calc(50% - 100px); } #youtube-btn { top: 60%; left: calc(50% + 30px); }
         .widget { background-color: var(--widget-bg); padding: 10px 15px; border-radius: 12px; color: var(--text-color); font-family: 'Roboto', sans-serif; text-shadow: var(--text-shadow); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); }
-        #stock-widget { top: 75%; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; gap: 8px; min-width: 190px; }
-        .stock-row { display: flex; justify-content: space-between; align-items: center; }
-        .stock-info { display: flex; align-items: center; gap: 10px; font-weight: 500; letter-spacing: 0.5px;}
-        .stock-price { font-family: 'Roboto Mono', monospace; font-weight: 500; font-size: 1.1rem; }
-        .stock-info .fa-caret-up { color: #2ecc71; } .stock-info .fa-caret-down { color: #e74c3c; }
         
         #note-widget { top: 60%; left: 75%; width: 250px; height: 180px; padding: 0; resize: both; overflow: hidden; transition: box-shadow 0.3s; }
         #note-widget.edit-mode { cursor: default; box-shadow: 0 0 15px rgba(10, 132, 255, 0.7); }
@@ -56,7 +57,7 @@
         #music-title { font-weight: 500; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
         #music-artist { font-size: 0.9em; color: #ccc; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
         #music-controls { display: flex; justify-content: space-around; align-items: center; margin-top: 12px; }
-        #music-controls i { font-size: 1.5rem; cursor: pointer; transition: transform 0.2s; }
+        #music-controls .icon { font-size: 1.5rem; cursor: pointer; transition: transform 0.2s; }
         #music-controls i:hover { transform: scale(1.1); }
         #music-widget.no-station #music-controls { display: none; }
         #gif-widget { top: 25%; left: 75%; width: 200px; height: 200px; padding: 0; background-color: transparent; backdrop-filter: none; resize: both; overflow: hidden; display: flex; align-items: center; justify-content: center; border: 2px dashed rgba(255, 255, 255, 0.2); border-radius: 12px; }
@@ -93,7 +94,7 @@
             align-items: center;
             border-radius: 50%;
         }
-        #webcam-toggle-btn i {
+        #webcam-toggle-btn .icon {
             font-size: 28px;
             color: white;
         }
@@ -101,19 +102,17 @@
         #lock-screen.light-theme #music-artist { color: #555; }
         #settings-btn { top: 80%; left: 50px; }
         #settings-btn svg circle:nth-child(2) { stroke: var(--icon-stroke-color); }
-        #settings-menu, #stock-editor-menu, #note-editor-menu, #radio-menu, #gif-chooser-menu, #taxi-settings-menu, #taxi-history-menu { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); display: none; justify-content: center; align-items: center; z-index: 1000; opacity: 0; transition: opacity 0.3s ease; }
-        #settings-menu.visible, #stock-editor-menu.visible, #note-editor-menu.visible, #radio-menu.visible, #gif-chooser-menu.visible, #taxi-settings-menu.visible, #taxi-history-menu.visible { display: flex; opacity: 1; }
+        #settings-menu, #note-editor-menu, #radio-menu, #gif-chooser-menu, #taxi-settings-menu, #taxi-history-menu { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); display: none; justify-content: center; align-items: center; z-index: 1000; opacity: 0; transition: opacity 0.3s ease; }
+        #settings-menu.visible, #note-editor-menu.visible, #radio-menu.visible, #gif-chooser-menu.visible, #taxi-settings-menu.visible, #taxi-history-menu.visible { display: flex; opacity: 1; }
         .menu-content { background-color: #2c2c2e; padding: 30px; border-radius: 20px; width: 90%; max-width: 500px; color: #f2f2f7; text-align: left; position: relative; box-shadow: 0 5px 25px rgba(0,0,0,0.5); transform: scale(0.95); transition: transform 0.3s ease; }
         #radio-menu .menu-content, #gif-chooser-menu .menu-content { max-height: 80vh; overflow-y: auto; }
-        #stock-editor-menu .menu-content { text-align: center; }
-        #settings-menu.visible .menu-content, #stock-editor-menu.visible .menu-content, #note-editor-menu.visible .menu-content, #radio-menu.visible .menu-content, #gif-chooser-menu.visible .menu-content, #taxi-settings-menu.visible .menu-content, #taxi-history-menu.visible .menu-content { transform: scale(1); }
+        #settings-menu.visible .menu-content, #note-editor-menu.visible .menu-content, #radio-menu.visible .menu-content, #gif-chooser-menu.visible .menu-content, #taxi-settings-menu.visible .menu-content, #taxi-history-menu.visible .menu-content { transform: scale(1); }
         .menu-content h2 {text-align: center;}
-        #close-settings-btn, #close-stock-editor-btn, #close-note-editor-btn, #close-radio-btn, #close-gif-chooser-btn, #close-taxi-settings-btn, #close-taxi-history-btn { position: absolute; top: 10px; right: 15px; background: none; border: none; color: #aaa; font-size: 2rem; cursor: pointer; line-height: 1; z-index: 5; }
-        #wallpaper-url-input, #stock-symbols-input, #weather-location-input, #font-select, #clock-color-input, #note-font-select, #note-font-size-input { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 10px; border: 1px solid #555; background-color: #3a3a3c; color: white; font-size: 1rem; outline: none; }
+        #close-settings-btn, #close-note-editor-btn, #close-radio-btn, #close-gif-chooser-btn, #close-taxi-settings-btn, #close-taxi-history-btn { position: absolute; top: 10px; right: 15px; background: none; border: none; color: #aaa; font-size: 2rem; cursor: pointer; line-height: 1; z-index: 5; }
+        #wallpaper-url-input, #weather-location-input, #font-select, #clock-color-input, #note-font-select, #note-font-size-input { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 10px; border: 1px solid #555; background-color: #3a3a3c; color: white; font-size: 1rem; outline: none; }
         #note-font-size-input { -moz-appearance: textfield; } #note-font-size-input::-webkit-outer-spin-button, #note-font-size-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
         #clock-color-input { padding: 5px; height: 50px; }
-        #stock-symbols-input { margin: 10px 0; text-transform: uppercase; text-align: center; }
-        #save-stocks-btn, #qr-upload-btn, #reset-positions-btn, #add-new-gif-btn { background-color: #0a84ff; color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-size: 0.9em; margin-top: 10px; }
+        #qr-upload-btn, #reset-positions-btn, #add-new-gif-btn { background-color: #0a84ff; color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-size: 0.9em; margin-top: 10px; }
         #add-new-gif-btn { width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; }
         #reset-positions-btn { background-color: #e74c3c; width: 100%; }
         .settings-section { margin-top: 25px; border-top: 1px solid #444; padding-top: 20px; }
@@ -140,34 +139,49 @@
         #unlock-prompt.visible { pointer-events: auto; }
         #unlock-prompt { position: absolute; bottom: 20%; left: 50%; transform: translateX(-50%); color: white; font-size: 1.3rem; font-weight: 500; text-shadow: 1px 1px 8px rgba(0,0,0,0.8); user-select: none; cursor: pointer; opacity: 0; pointer-events: none; transition: opacity 0.7s ease; z-index: 25; }
         .hidden { display: none !important; }
-        #qr-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); display: none; justify-content: center; align-items: center; z-index: 1001; }
-        #qr-modal-content { background: #fff; padding: 25px; border-radius: 16px; text-align: center; color: #333; }
-        #qr-code { padding: 10px; background: white; margin-bottom: 15px; display: inline-block; } #qr-code img { display: block; margin: auto; }
-        #upload-view { display: none; justify-content: center; align-items: center; width: 100%; height: 100%; padding: 20px; }
-        #phone-upload-container { display: flex; flex-direction: column; width: 90%; max-width: 400px; gap: 10px; text-align: center; }
-        #phone-upload-container h2 { color: #f2f2f7; }
+        /* --- Optical transfer: receiver (car screen) --- */
+        #qr-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(10px); display: none; justify-content: center; align-items: center; z-index: 1001; }
+        #qr-modal-content { background: #1c1c1e; padding: 22px; border-radius: 16px; text-align: center; color: #f2f2f7; width: min(92vw, 560px); max-height: 92vh; overflow-y: auto; }
+        #qr-modal-content h2 { font-size: 1.25rem; margin-bottom: 4px; }
+        #qr-modal-content .hint { color: #aeb0b5; font-size: 0.9rem; margin-bottom: 14px; }
+        #receiver-stage { position: relative; background: #000; border-radius: 12px; overflow: hidden; aspect-ratio: 4 / 3; margin-bottom: 12px; }
+        #receiver-video { width: 100%; height: 100%; object-fit: cover; display: block; }
+        /* A frame to aim with: the sender's QR should fill most of this box. */
+        #receiver-reticle { position: absolute; inset: 12%; border: 2px dashed rgba(255,255,255,0.45); border-radius: 8px; pointer-events: none; }
+        #receiver-progress-track { height: 8px; background: #3a3a3c; border-radius: 4px; overflow: hidden; margin-bottom: 8px; }
+        #receiver-progress-bar { height: 100%; width: 0%; background: #34c759; transition: width 0.2s ease-out; }
+        #receiver-status { font-size: 0.95rem; color: #f2f2f7; min-height: 1.3em; }
+        #receiver-detail { font-size: 0.8rem; color: #8e8e93; font-family: 'Roboto Mono', monospace; min-height: 1.2em; margin-top: 4px; }
+        #receiver-detail.error { color: #ff9f0a; }
+        #receiver-controls { display: flex; gap: 10px; justify-content: center; align-items: center; margin-top: 14px; flex-wrap: wrap; }
+        #receiver-camera-select { background: #3a3a3c; color: #fff; border: 1px solid #555; border-radius: 8px; padding: 8px; max-width: 220px; }
+        #receiver-pairing { margin-top: 14px; }
+        #receiver-pairing canvas { background: #fff; padding: 10px; border-radius: 10px; width: 180px; height: 180px; image-rendering: pixelated; }
+        #receiver-pairing code { display: block; margin-top: 6px; font-size: 0.7rem; color: #8e8e93; word-break: break-all; }
+        /* Icons: sized from the surrounding text, coloured by it too, so they
+           drop into buttons and labels exactly where the <i> tags used to sit. */
+        .icon { width: 1em; height: 1em; fill: currentColor; vertical-align: -0.125em; flex-shrink: 0; }
+        .optical-btn { background: #0a84ff; color: #fff; border: none; padding: 10px 18px; border-radius: 10px; cursor: pointer; font-size: 1rem; font-weight: 500; font-family: 'Roboto', sans-serif; display: inline-flex; align-items: center; gap: 8px; }
+        .optical-btn.secondary { background: #3a3a3c; }
+        .optical-btn:disabled { background: #48484a; color: #8e8e93; cursor: not-allowed; }
+
+        /* --- Optical transfer: sender (phone) --- */
+        #upload-view { display: none; justify-content: center; align-items: flex-start; width: 100%; height: 100%; padding: 16px; overflow-y: auto; }
+        #phone-upload-container { display: flex; flex-direction: column; width: 100%; max-width: 460px; gap: 12px; text-align: center; }
+        #phone-upload-container h2 { color: #f2f2f7; font-size: 1.3rem; }
         #phone-upload-container p { color: #aeb0b5; font-size: 0.9rem; margin: 0; }
-        #phone-url-input { width: 100%; padding: 15px; border-radius: 10px; border: 1px solid #555; background-color: #3a3a3c; color: white; font-size: 1rem; outline: none; }
-        #phone-url-submit { background-color: #0a84ff; color: white; border: none; padding: 15px 20px; border-radius: 10px; cursor: pointer; font-size: 1.1rem; font-weight: 500; }
-        #phone-url-submit:disabled { background-color: #555; cursor: not-allowed; }
         #upload-label { display: inline-block; background-color: #34c759; color: white; padding: 15px 20px; border-radius: 10px; cursor: pointer; font-size: 1.1rem; font-weight: 500; }
-        .separator-text { margin: 5px 0; font-style: italic; color: #888; }
-        .stock-flash-toggle { display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 20px; font-family: 'Roboto', sans-serif; }
-        #stock-flash-checkbox { width: 20px; height: 20px; }
-        .flash-overlay { position: fixed; left: 0; width: 100%; height: 40%; z-index: 9999; pointer-events: none; opacity: 0; }
-        #flash-top { top: 0; background: radial-gradient(ellipse at top, rgba(46, 204, 113, 0.5) 0%, rgba(46, 204, 113, 0) 80%); }
-        #flash-bottom { bottom: 0; background: radial-gradient(ellipse at bottom, rgba(231, 76, 60, 0.5) 0%, rgba(231, 76, 60, 0) 80%); }
-        .flash-active { animation: flash-in-out 1.5s ease-out; }
-        #flash-top.super-flash { background: radial-gradient(ellipse at top, rgba(46, 204, 113, 0.9) 0%, rgba(46, 204, 113, 0) 75%); }
-        #flash-bottom.super-flash { background: radial-gradient(ellipse at bottom, rgba(231, 76, 60, 0.9) 0%, rgba(231, 76, 60, 0) 75%); }
-        @keyframes flash-in-out { 0% { opacity: 0; } 20% { opacity: 1; } 100% { opacity: 0; } }
-        .raining-icon { position: fixed; top: -50px; font-size: 2rem; z-index: 9998; pointer-events: none; opacity: 0.7; text-shadow: 0 0 10px rgba(0,0,0,0.5); }
-        .raining-icon.up { color: #2ecc71; animation-name: rise-anim; }
-        .raining-icon.down { color: #e74c3c; animation-name: fall-anim; }
-        @keyframes fall-anim { from { transform: translateY(-10vh) rotate(0deg); opacity: 1; } to { transform: translateY(110vh) rotate(720deg); opacity: 0; } }
-        @keyframes rise-anim { from { transform: translateY(110vh) rotate(0deg); opacity: 1; } to { transform: translateY(-10vh) rotate(720deg); opacity: 0; } }
-        #fun-stock-name-display { position: absolute; bottom: 20vh; right: 5vw; font-size: 2.5rem; font-family: 'Oswald', sans-serif; color: var(--text-color); text-shadow: var(--text-shadow); opacity: 0; transition: opacity 1.5s ease-in-out; pointer-events: none; }
-        #fun-stock-name-display.visible { opacity: 1; pointer-events: auto; }
+        #upload-status { color: #f2f2f7; font-size: 1rem; font-weight: 500; min-height: 1.3em; }
+        #upload-status.error { color: #ff9f0a; }
+        /* White plate behind the code: the quiet zone matters as much as the
+           modules, and a dark page bleeding into it costs the receiver a lock. */
+        #sender-canvas-wrap { display: none; background: #fff; padding: 12px; border-radius: 12px; }
+        #sender-canvas { display: block; width: 100%; height: auto; image-rendering: pixelated; }
+        #sender-stats { font-family: 'Roboto Mono', monospace; font-size: 0.78rem; color: #8e8e93; line-height: 1.5; }
+        #sender-settings { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+        #sender-settings label { display: flex; flex-direction: column; gap: 4px; font-size: 0.75rem; color: #8e8e93; text-align: left; }
+        #sender-settings select { background: #3a3a3c; color: #fff; border: 1px solid #555; border-radius: 8px; padding: 8px; }
+
         /* =====================================================
            TAXI METER WIDGET
            ===================================================== */
@@ -293,7 +307,7 @@
         .taxi-sum-card .k { font-size: 0.66rem; letter-spacing: 0.1em; text-transform: uppercase; color: #8e8e93; margin-top: 3px; }
         #taxi-history-list { max-height: 44vh; overflow-y: auto; margin-top: 12px; }
         #taxi-history-empty { text-align: center; color: #8e8e93; padding: 30px 10px; }
-        #taxi-history-empty i { font-size: 2.2rem; display: block; margin-bottom: 12px; opacity: 0.5; }
+        #taxi-history-empty .icon { font-size: 2.2rem; display: block; margin: 0 auto 12px; opacity: 0.5; }
         .taxi-trip { display: flex; align-items: center; gap: 12px; padding: 12px 6px; border-bottom: 1px solid #3a3a3c; animation: taxi-row-in .38s cubic-bezier(.22,1,.36,1) both; }
         .taxi-trip:last-child { border-bottom: none; }
         @keyframes taxi-row-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
@@ -312,27 +326,62 @@
 
         #lock-screen.light-theme { --icon-stroke-color: #333; }
         #lock-screen.light-theme #clock { color: #333; filter: drop-shadow(0 0 10px rgba(255,255,255,0.3));}
-        #lock-screen.light-theme #status-bar, #lock-screen.light-theme #unlock-prompt, #lock-screen.light-theme #fullscreen-hint, #lock-screen.light-theme #fun-stock-name-display { color: var(--text-color-light); text-shadow: var(--text-shadow-light); }
+        #lock-screen.light-theme #status-bar, #lock-screen.light-theme #unlock-prompt, #lock-screen.light-theme #fullscreen-hint { color: var(--text-color-light); text-shadow: var(--text-shadow-light); }
         #lock-screen.light-theme .widget, #lock-screen.light-theme #weather-info { background-color: var(--widget-bg-light); color: var(--text-color-light); text-shadow: var(--text-shadow-light); }
         #lock-screen.light-theme #note-textarea, #lock-screen.light-theme #note-display { color: var(--text-color-light); }
     </style>
 </head>
 <body>
     <audio id="audio-player" preload="none"></audio>
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+  <!--
+    Icon sprite, replacing the Font Awesome webfont and CSS from cdnjs.
+    Paths are Font Awesome Free 7.3.1 solid glyphs (CC BY 4.0); see LICENSES.md.
+    Use one with: <svg class="icon"><use href="#i-play"/></svg>
+  -->
+  <symbol id="i-arrow-left" viewBox="0 0 512 512"><path d="M9.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 288 480 288c17.7 0 32-14.3 32-32s-14.3-32-32-32l-370.7 0 105.4-105.4c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></symbol>
+  <symbol id="i-backward-step" viewBox="0 0 384 512"><path d="M363 36.8c-12.9-7-28.7-6.3-41 1.8L64 208.1 64 64c0-17.7-14.3-32-32-32S0 46.3 0 64L0 448c0 17.7 14.3 32 32 32s32-14.3 32-32l0-144.1 258 169.6c12.3 8.1 28 8.8 41 1.8s21-20.5 21-35.2l0-368c0-14.7-8.1-28.2-21-35.2z"/></symbol>
+  <symbol id="i-clock-rotate-left" viewBox="0 0 576 512"><path d="M288 64c106 0 192 86 192 192S394 448 288 448c-65.2 0-122.9-32.5-157.6-82.3-10.1-14.5-30.1-18-44.6-7.9s-18 30.1-7.9 44.6C124.1 468.6 201 512 288 512 429.4 512 544 397.4 544 256S429.4 0 288 0C202.3 0 126.5 42.1 80 106.7L80 80c0-17.7-14.3-32-32-32S16 62.3 16 80l0 112c0 17.7 14.3 32 32 32l24.6 0c.5 0 1 0 1.5 0l86 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-38.3 0C154.9 102.6 217 64 288 64zm24 88c0-13.3-10.7-24-24-24s-24 10.7-24 24l0 104c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65 0-94.1z"/></symbol>
+  <symbol id="i-cloud-sun" viewBox="0 0 640 512"><path d="M208.3 192c43.1 0 80.5 24.4 99.2 60.1 14.7-17.2 36.4-28.1 60.8-28.1 44.2 0 80 35.8 80 80 0 5.5-.6 10.9-1.6 16 .5 0 1.1 0 1.6 0 53 0 96 43 96 96s-43 96-96 96l-320 0c-53 0-96-43-96-96 0-42.5 27.7-78.5 66-91.2-1.3-6.8-2-13.7-2-20.8 0-61.9 50.1-112 112-112zm192-223.8c5.3 0 10.3 2.7 13.3 7.1l47.3 70.4 83.3-16.3c5.2-1 10.6 .7 14.3 4.4 3.8 3.8 5.4 9.2 4.4 14.4l-16.3 83.3 70.4 47.3c4.4 3 7.1 8 7.1 13.3 0 5.3-2.6 10.3-7 13.2l-70.4 47.3 14.5 74.2c-17.2-21.7-40.4-38.4-67.2-47.3-2.5-12.7-6.9-24.6-12.8-35.7 9.6-14.9 15.2-32.7 15.2-51.7 0-53-43-96-96-96-47.9 0-87.6 35.1-94.8 80.9-20.9-16-45.9-27-73.1-31.1l21.5-14.5-16.3-83.2-.3-2c-.3-4.6 1.3-9.1 4.6-12.4 3.8-3.8 9.2-5.4 14.4-4.4l83.3 16.3 47.3-70.4 1.2-1.6c3-3.5 7.4-5.5 12.1-5.5zm0 175.8c26.5 0 48 21.5 48 48 0 3.8-.5 7.6-1.4 11.1-21.7-16.9-48.9-27.1-78.6-27.1-4.6 0-9.1 .2-13.5 .7 6.4-19 24.3-32.7 45.5-32.7z"/></symbol>
+  <symbol id="i-cog" viewBox="0 0 512 512"><path d="M195.1 9.5C198.1-5.3 211.2-16 226.4-16l59.8 0c15.2 0 28.3 10.7 31.3 25.5L332 79.5c14.1 6 27.3 13.7 39.3 22.8l67.8-22.5c14.4-4.8 30.2 1.2 37.8 14.4l29.9 51.8c7.6 13.2 4.9 29.8-6.5 39.9L447 233.3c.9 7.4 1.3 15 1.3 22.7s-.5 15.3-1.3 22.7l53.4 47.5c11.4 10.1 14 26.8 6.5 39.9l-29.9 51.8c-7.6 13.1-23.4 19.2-37.8 14.4l-67.8-22.5c-12.1 9.1-25.3 16.7-39.3 22.8l-14.4 69.9c-3.1 14.9-16.2 25.5-31.3 25.5l-59.8 0c-15.2 0-28.3-10.7-31.3-25.5l-14.4-69.9c-14.1-6-27.2-13.7-39.3-22.8L73.5 432.3c-14.4 4.8-30.2-1.2-37.8-14.4L5.8 366.1c-7.6-13.2-4.9-29.8 6.5-39.9l53.4-47.5c-.9-7.4-1.3-15-1.3-22.7s.5-15.3 1.3-22.7L12.3 185.8c-11.4-10.1-14-26.8-6.5-39.9L35.7 94.1c7.6-13.2 23.4-19.2 37.8-14.4l67.8 22.5c12.1-9.1 25.3-16.7 39.3-22.8L195.1 9.5zM256.3 336a80 80 0 1 0 -.6-160 80 80 0 1 0 .6 160z"/></symbol>
+  <symbol id="i-forward-step" viewBox="0 0 384 512"><path d="M21 36.8c12.9-7 28.7-6.3 41 1.8L320 208.1 320 64c0-17.7 14.3-32 32-32s32 14.3 32 32l0 384c0 17.7-14.3 32-32 32s-32-14.3-32-32l0-144.1-258 169.6c-12.3 8.1-28 8.8-41 1.8S0 454.7 0 440L0 72C0 57.3 8.1 43.8 21 36.8z"/></symbol>
+  <symbol id="i-headphones" viewBox="0 0 448 512"><path d="M64 224c0-88.4 71.6-160 160-160s160 71.6 160 160l0 37.5c-10-3.5-20.8-5.5-32-5.5l-16 0c-26.5 0-48 21.5-48 48l0 128c0 26.5 21.5 48 48 48l16 0c53 0 96-43 96-96l0-160C448 100.3 347.7 0 224 0S0 100.3 0 224L0 384c0 53 43 96 96 96l16 0c26.5 0 48-21.5 48-48l0-128c0-26.5-21.5-48-48-48l-16 0c-11.2 0-22 1.9-32 5.5L64 224z"/></symbol>
+  <symbol id="i-image" viewBox="0 0 448 512"><path d="M64 32C28.7 32 0 60.7 0 96L0 416c0 35.3 28.7 64 64 64l320 0c35.3 0 64-28.7 64-64l0-320c0-35.3-28.7-64-64-64L64 32zm64 80a48 48 0 1 1 0 96 48 48 0 1 1 0-96zM272 224c8.4 0 16.1 4.4 20.5 11.5l88 144c4.5 7.4 4.7 16.7 .5 24.3S368.7 416 360 416L88 416c-8.9 0-17.2-5-21.3-12.9s-3.5-17.5 1.6-24.8l56-80c4.5-6.4 11.8-10.2 19.7-10.2s15.2 3.8 19.7 10.2l26.4 37.8 61.4-100.5c4.4-7.1 12.1-11.5 20.5-11.5z"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 384 512"><path d="M48 32C21.5 32 0 53.5 0 80L0 432c0 26.5 21.5 48 48 48l64 0c26.5 0 48-21.5 48-48l0-352c0-26.5-21.5-48-48-48L48 32zm224 0c-26.5 0-48 21.5-48 48l0 352c0 26.5 21.5 48 48 48l64 0c26.5 0 48-21.5 48-48l0-352c0-26.5-21.5-48-48-48l-64 0z"/></symbol>
+  <symbol id="i-play" viewBox="0 0 448 512"><path d="M91.2 36.9c-12.4-6.8-27.4-6.5-39.6 .7S32 57.9 32 72l0 368c0 14.1 7.5 27.2 19.6 34.4s27.2 7.5 39.6 .7l336-184c12.8-7 20.8-20.5 20.8-35.1s-8-28.1-20.8-35.1l-336-184z"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 448 512"><path d="M256 64c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 160-160 0c-17.7 0-32 14.3-32 32s14.3 32 32 32l160 0 0 160c0 17.7 14.3 32 32 32s32-14.3 32-32l0-160 160 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-160 0 0-160z"/></symbol>
+  <symbol id="i-power-off" viewBox="0 0 512 512"><path d="M288 0c0-17.7-14.3-32-32-32S224-17.7 224 0l0 256c0 17.7 14.3 32 32 32s32-14.3 32-32L288 0zM146.3 98.4c14.5-10.1 18-30.1 7.9-44.6s-30.1-18-44.6-7.9C43.4 92.1 0 169 0 256 0 397.4 114.6 512 256 512S512 397.4 512 256c0-87-43.4-163.9-109.7-210.1-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6c49.8 34.8 82.3 92.4 82.3 157.6 0 106-86 192-192 192S64 362 64 256c0-65.2 32.5-122.9 82.3-157.6z"/></symbol>
+  <symbol id="i-route" viewBox="0 0 512 512"><path d="M512 96c0 50.2-59.1 125.1-84.6 155-3.8 4.4-9.4 6.1-14.5 5L320 256c-17.7 0-32 14.3-32 32s14.3 32 32 32l96 0c53 0 96 43 96 96s-43 96-96 96l-276.4 0c8.7-9.9 19.3-22.6 30-36.8 6.3-8.4 12.8-17.6 19-27.2L416 448c17.7 0 32-14.3 32-32s-14.3-32-32-32l-96 0c-53 0-96-43-96-96s43-96 96-96l39.8 0c-21-31.5-39.8-67.7-39.8-96 0-53 43-96 96-96s96 43 96 96zM117.1 489.1c-3.8 4.3-7.2 8.1-10.1 11.3l-1.8 2-.2-.2c-6 4.6-14.6 4-20-1.8-25.2-27.4-85-97.9-85-148.4 0-53 43-96 96-96s96 43 96 96c0 30-21.1 67-43.5 97.9-10.7 14.7-21.7 28-30.8 38.5l-.6 .7zM128 352a32 32 0 1 0 -64 0 32 32 0 1 0 64 0zM416 128a32 32 0 1 0 0-64 32 32 0 1 0 0 64z"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 512 512"><path d="M32 64C14.3 64 0 78.3 0 96s14.3 32 32 32l86.7 0c12.3 28.3 40.5 48 73.3 48s61-19.7 73.3-48L480 128c17.7 0 32-14.3 32-32s-14.3-32-32-32L265.3 64C253 35.7 224.8 16 192 16s-61 19.7-73.3 48L32 64zm0 160c-17.7 0-32 14.3-32 32s14.3 32 32 32l246.7 0c12.3 28.3 40.5 48 73.3 48s61-19.7 73.3-48l54.7 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-54.7 0c-12.3-28.3-40.5-48-73.3-48s-61 19.7-73.3 48L32 224zm0 160c-17.7 0-32 14.3-32 32s14.3 32 32 32l54.7 0c12.3 28.3 40.5 48 73.3 48s61-19.7 73.3-48L480 448c17.7 0 32-14.3 32-32s-14.3-32-32-32l-246.7 0c-12.3-28.3-40.5-48-73.3-48s-61 19.7-73.3 48L32 384z"/></symbol>
+  <symbol id="i-stop" viewBox="0 0 448 512"><path d="M64 32l320 0c35.3 0 64 28.7 64 64l0 320c0 35.3-28.7 64-64 64L64 480c-35.3 0-64-28.7-64-64L0 96C0 60.7 28.7 32 64 32z"/></symbol>
+  <symbol id="i-taxi" viewBox="0 0 512 512"><path d="M192 0c-17.7 0-32 14.3-32 32l0 32-8.9 0c-42 0-79.1 27.3-91.6 67.4l-23 73.5C14.5 219.1 0 243.9 0 272L0 448c0 17.7 14.3 32 32 32l32 0c17.7 0 32-14.3 32-32l0-32 320 0 0 32c0 17.7 14.3 32 32 32l32 0c17.7 0 32-14.3 32-32l0-176c0-28.1-14.5-52.9-36.4-67.1l-23-73.5C440.1 91.3 402.9 64 360.9 64l-8.9 0 0-32c0-17.7-14.3-32-32-32L192 0zM151.1 128l209.9 0c14 0 26.4 9.1 30.5 22.5l13 41.5-296.9 0 13-41.5c4.2-13.4 16.5-22.5 30.5-22.5zM96 272a32 32 0 1 1 0 64 32 32 0 1 1 0-64zm288 32a32 32 0 1 1 64 0 32 32 0 1 1 -64 0z"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 448 512"><path d="M136.7 5.9L128 32 32 32C14.3 32 0 46.3 0 64S14.3 96 32 96l384 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-96 0-8.7-26.1C306.9-7.2 294.7-16 280.9-16L167.1-16c-13.8 0-26 8.8-30.4 21.9zM416 144L32 144 53.1 467.1C54.7 492.4 75.7 512 101 512L347 512c25.3 0 46.3-19.6 47.9-44.9L416 144z"/></symbol>
+  <symbol id="i-video" viewBox="0 0 576 512"><path d="M96 64c-35.3 0-64 28.7-64 64l0 256c0 35.3 28.7 64 64 64l256 0c35.3 0 64-28.7 64-64l0-256c0-35.3-28.7-64-64-64L96 64zM464 336l73.5 58.8c4.2 3.4 9.4 5.2 14.8 5.2 13.1 0 23.7-10.6 23.7-23.7l0-240.6c0-13.1-10.6-23.7-23.7-23.7-5.4 0-10.6 1.8-14.8 5.2L464 176 464 336z"/></symbol>
+  <symbol id="i-video-slash" viewBox="0 0 576 512"><path d="M41-24.9c-9.4-9.4-24.6-9.4-33.9 0S-2.3-.3 7 9.1l528 528c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-153-153 0-222.2c0-35.3-28.7-64-64-64L129.8 64 41-24.9zM32 128l0 256c0 35.3 28.7 64 64 64l256 0c7.8 0 15.3-1.4 22.2-4L36 105.8c-2.6 6.9-4 14.4-4 22.2zM464 336l73.5 58.8c4.2 3.4 9.4 5.2 14.8 5.2 13.1 0 23.7-10.6 23.7-23.7l0-240.6c0-13.1-10.6-23.7-23.7-23.7-5.4 0-10.6 1.8-14.8 5.2L464 176 464 336z"/></symbol>
+  <symbol id="i-xmark" viewBox="0 0 384 512"><path d="M55.1 73.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L147.2 256 9.9 393.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L192.5 301.3 329.9 438.6c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L237.8 256 375.1 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L192.5 210.7 55.1 73.4z"/></symbol>
+  <symbol id="i-qrcode" viewBox="0 0 448 512"><path d="M64 160l64 0 0-64-64 0 0 64zM0 80C0 53.5 21.5 32 48 32l96 0c26.5 0 48 21.5 48 48l0 96c0 26.5-21.5 48-48 48l-96 0c-26.5 0-48-21.5-48-48L0 80zM64 416l64 0 0-64-64 0 0 64zM0 336c0-26.5 21.5-48 48-48l96 0c26.5 0 48 21.5 48 48l0 96c0 26.5-21.5 48-48 48l-96 0c-26.5 0-48-21.5-48-48l0-96zM320 96l0 64 64 0 0-64-64 0zM304 32l96 0c26.5 0 48 21.5 48 48l0 96c0 26.5-21.5 48-48 48l-96 0c-26.5 0-48-21.5-48-48l0-96c0-26.5 21.5-48 48-48zM288 352a32 32 0 1 1 0-64 32 32 0 1 1 0 64zm0 64c17.7 0 32 14.3 32 32s-14.3 32-32 32-32-14.3-32-32 14.3-32 32-32zm96 32c0-17.7 14.3-32 32-32s32 14.3 32 32-14.3 32-32 32-32-14.3-32-32zm32-96a32 32 0 1 1 0-64 32 32 0 1 1 0 64zm-32 32a32 32 0 1 1 -64 0 32 32 0 1 1 64 0z"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 576 512"><path d="M288-32c8.4 0 16.3 4.4 20.6 11.7L364.1 72.3 468.9 46c8.2-2 16.9 .4 22.8 6.3S500 67 498 75.1l-26.3 104.7 92.7 55.5c7.2 4.3 11.7 12.2 11.7 20.6s-4.4 16.3-11.7 20.6L471.7 332.1 498 436.8c2 8.2-.4 16.9-6.3 22.8S477 468 468.9 466l-104.7-26.3-55.5 92.7c-4.3 7.2-12.2 11.7-20.6 11.7s-16.3-4.4-20.6-11.7L211.9 439.7 107.2 466c-8.2 2-16.8-.4-22.8-6.3S76 445 78 436.8l26.2-104.7-92.6-55.5C4.4 272.2 0 264.4 0 256s4.4-16.3 11.7-20.6L104.3 179.9 78 75.1c-2-8.2 .3-16.8 6.3-22.8S99 44 107.2 46l104.7 26.2 55.5-92.6 1.8-2.6c4.5-5.7 11.4-9.1 18.8-9.1zm0 144a144 144 0 1 0 0 288 144 144 0 1 0 0-288zm0 240a96 96 0 1 1 0-192 96 96 0 1 1 0 192z"/></symbol>
+  <symbol id="i-cloud" viewBox="0 0 576 512"><path d="M0 336c0 79.5 64.5 144 144 144l304 0c70.7 0 128-57.3 128-128 0-51.6-30.5-96.1-74.5-116.3 6.7-13.1 10.5-28 10.5-43.7 0-53-43-96-96-96-17.7 0-34.2 4.8-48.4 13.1-24.1-45.8-72.2-77.1-127.6-77.1-79.5 0-144 64.5-144 144 0 8 .7 15.9 1.9 23.5-56.9 19.2-97.9 73.1-97.9 136.5z"/></symbol>
+  <symbol id="i-smog" viewBox="0 0 576 512"><path d="M176 288C96.5 288 32 223.5 32 144S96.5 0 176 0c27.2 0 52.6 7.5 74.3 20.6 20.1-13 44-20.6 69.7-20.6 47.4 0 88.7 25.7 110.9 64l1.1 0c61.9 0 112 50.1 112 112 0 60.3-47.6 109.4-107.2 111.9-22.6 20-52.3 32.1-84.8 32.1-32.5 0-62.1-12.1-84.7-32L176 288zM512 392c0 13.3-10.7 24-24 24L24 416c-13.3 0-24-10.7-24-24s10.7-24 24-24l464 0c13.3 0 24 10.7 24 24zM88 464l80 0c13.3 0 24 10.7 24 24s-10.7 24-24 24l-80 0c-13.3 0-24-10.7-24-24s10.7-24 24-24zm176 0l288 0c13.3 0 24 10.7 24 24s-10.7 24-24 24l-288 0c-13.3 0-24-10.7-24-24s10.7-24 24-24z"/></symbol>
+  <symbol id="i-cloud-rain" viewBox="0 0 512 512"><path d="M96 320c-53 0-96-43-96-96 0-42.5 27.6-78.6 65.9-91.2-1.3-6.7-1.9-13.7-1.9-20.8 0-61.9 50.1-112 112-112 43.1 0 80.5 24.3 99.2 60 14.7-17.1 36.5-28 60.8-28 44.2 0 80 35.8 80 80 0 5.5-.6 10.8-1.6 16 .5 0 1.1 0 1.6 0 53 0 96 43 96 96s-43 96-96 96L96 320zm1.6 68.2c1.1-2.5 3.6-4.2 6.4-4.2s5.3 1.6 6.4 4.2l30.2 68.2c2.2 5.1 3.4 10.5 3.4 16 0 21.9-18.1 39.6-40 39.6s-40-17.7-40-39.6c0-5.5 1.2-11 3.4-16l30.2-68.2zm152 0c1.1-2.5 3.6-4.2 6.4-4.2s5.3 1.6 6.4 4.2l30.2 68.2c2.2 5.1 3.4 10.5 3.4 16 0 21.9-18.1 39.6-40 39.6s-40-17.7-40-39.6c0-5.5 1.2-11 3.4-16l30.2-68.2zm121.8 68.2l30.2-68.2c1.1-2.5 3.6-4.2 6.4-4.2s5.3 1.6 6.4 4.2l30.2 68.2c2.2 5.1 3.4 10.5 3.4 16 0 21.9-18.1 39.6-40 39.6s-40-17.7-40-39.6c0-5.5 1.2-11 3.4-16z"/></symbol>
+  <symbol id="i-cloud-showers-heavy" viewBox="0 0 512 512"><path d="M96 320c-53 0-96-43-96-96 0-42.5 27.6-78.6 65.9-91.2-1.3-6.7-1.9-13.7-1.9-20.8 0-61.9 50.1-112 112-112 43.1 0 80.5 24.3 99.2 60 14.7-17.1 36.5-28 60.8-28 44.2 0 80 35.8 80 80 0 5.5-.6 10.8-1.6 16 .5 0 1.1 0 1.6 0 53 0 96 43 96 96s-43 96-96 96L96 320zm6.8 79.6l-32 96C66.6 508.2 53 515 40.4 510.8S21 493 25.2 480.4l32-96C61.4 371.8 75 365 87.6 369.2S107 387 102.8 399.6zm120 0l-32 96c-4.2 12.6-17.8 19.4-30.4 15.2S141 493 145.2 480.4l32-96c4.2-12.6 17.8-19.4 30.4-15.2S227 387 222.8 399.6zm112 0l-32 96c-4.2 12.6-17.8 19.4-30.4 15.2S253 493 257.2 480.4l32-96c4.2-12.6 17.8-19.4 30.4-15.2S339 387 334.8 399.6zm120 0l-32 96c-4.2 12.6-17.8 19.4-30.4 15.2S373 493 377.2 480.4l32-96c4.2-12.6 17.8-19.4 30.4-15.2S459 387 454.8 399.6z"/></symbol>
+  <symbol id="i-snowflake" viewBox="0 0 512 512"><path d="M288.2 0c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 62.1-15-15c-9.4-9.4-24.6-9.4-33.9 0s-9.4 24.6 0 33.9l49 49 0 70.6-61.2-35.3-17.9-66.9c-3.4-12.8-16.6-20.4-29.4-17S95.3 98 98.7 110.8l5.5 20.5-53.7-31C35.2 91.5 15.6 96.7 6.8 112s-3.6 34.9 11.7 43.7l53.7 31-20.5 5.5c-12.8 3.4-20.4 16.6-17 29.4s16.6 20.4 29.4 17l66.9-17.9 61.2 35.3-61.2 35.3-66.9-17.9c-12.8-3.4-26 4.2-29.4 17s4.2 26 17 29.4l20.5 5.5-53.7 31C3.2 365.1-2 384.7 6.8 400s28.4 20.6 43.7 11.7l53.7-31-5.5 20.5c-3.4 12.8 4.2 26 17 29.4s26-4.2 29.4-17l17.9-66.9 61.2-35.3 0 70.6-49 49c-9.4 9.4-9.4 24.6 0 33.9s24.6 9.4 33.9 0l15-15 0 62.1c0 17.7 14.3 32 32 32s32-14.3 32-32l0-62.1 15 15c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-49-49 0-70.6 61.2 35.3 17.9 66.9c3.4 12.8 16.6 20.4 29.4 17s20.4-16.6 17-29.4l-5.5-20.5 53.7 31c15.3 8.8 34.9 3.6 43.7-11.7s3.6-34.9-11.7-43.7l-53.7-31 20.5-5.5c12.8-3.4 20.4-16.6 17-29.4s-16.6-20.4-29.4-17l-66.9 17.9-61.2-35.3 61.2-35.3 66.9 17.9c12.8 3.4 26-4.2 29.4-17s-4.2-26-17-29.4l-20.5-5.5 53.7-31c15.3-8.8 20.6-28.4 11.7-43.7s-28.4-20.5-43.7-11.7l-53.7 31 5.5-20.5c3.4-12.8-4.2-26-17-29.4s-26 4.2-29.4 17l-17.9 66.9-61.2 35.3 0-70.6 49-49c9.4-9.4 9.4-24.6 0-33.9s-24.6-9.4-33.9 0l-15 15 0-62.1z"/></symbol>
+  <symbol id="i-cloud-bolt" viewBox="0 0 512 512"><path d="M0 224c0 53 43 96 96 96l38.6 0 124.1-111c12.2-10.9 28-17 44.4-17 44.6 0 76.5 43 63.7 85.7L354.1 320 416 320c53 0 96-43 96-96s-43-96-96-96c-.5 0-1.1 0-1.6 0 1.1-5.2 1.6-10.5 1.6-16 0-44.2-35.8-80-80-80-24.3 0-46.1 10.9-60.8 28-18.7-35.7-56.1-60-99.2-60-61.9 0-112 50.1-112 112 0 7.1 .7 14.1 1.9 20.8-38.3 12.6-65.9 48.7-65.9 91.2zM160.6 400l61.8 0-31.2 104.1c-3.6 11.9 5.3 23.9 17.8 23.9 4.6 0 9-1.7 12.4-4.7L362.5 396.9c3.5-3.1 5.5-7.6 5.5-12.4 0-9.2-7.4-16.6-16.6-16.6l-61.8 0 31.2-104.1c3.6-11.9-5.3-23.9-17.8-23.9-4.6 0-9 1.7-12.4 4.7L149.5 371.1c-3.5 3.1-5.5 7.6-5.5 12.4 0 9.2 7.4 16.6 16.6 16.6z"/></symbol>
+  <symbol id="i-cloud-meatball" viewBox="0 0 512 512"><path d="M0 224c0 53 43 96 96 96l26.9 0c3.5-12.1 10.1-23.3 19.2-32.4l1.4-1.4c15-15 35.3-22.9 56.1-22.2 14.2-15.1 34.2-23.9 55.4-23.9l2 0c21.1 0 41.1 8.8 55.4 23.9 20.8-.6 41.1 7.3 56.1 22.2l1.4 1.4c9.2 9.2 15.7 20.4 19.2 32.4l26.9 0c53 0 96-43 96-96s-43-96-96-96c-.5 0-1.1 0-1.6 0 1.1-5.2 1.6-10.5 1.6-16 0-44.2-35.8-80-80-80-24.3 0-46.1 10.9-60.8 28-18.7-35.7-56.1-60-99.2-60-61.9 0-112 50.1-112 112 0 7.1 .7 14.1 1.9 20.8-38.3 12.6-65.9 48.7-65.9 91.2zM156.5 424.3c9.5 6.3 14.2 17.7 11.9 28.8-1.8 9.2 1 18.7 7.7 25.3l1.4 1.4c6.6 6.6 16.1 9.5 25.3 7.7 11.1-2.2 22.5 2.5 28.8 11.9 5.2 7.8 14 12.5 23.3 12.5l2 0c9.4 0 18.1-4.7 23.3-12.5 6.3-9.5 17.7-14.2 28.8-11.9 9.2 1.8 18.7-1 25.3-7.7l1.4-1.4c6.6-6.6 9.5-16.1 7.7-25.3-2.2-11.1 2.5-22.5 11.9-28.8 7.8-5.2 12.5-14 12.5-23.3l0-2c0-9.4-4.7-18.1-12.5-23.3-9.5-6.3-14.2-17.7-11.9-28.8 1.8-9.2-1-18.7-7.7-25.3l-1.4-1.4c-6.6-6.6-16.1-9.5-25.3-7.7-11.1 2.2-22.5-2.5-28.8-11.9-5.2-7.8-14-12.5-23.3-12.5l-2 0c-9.4 0-18.1 4.7-23.3 12.5-6.3 9.5-17.7 14.2-28.8 11.9-9.2-1.8-18.7 1-25.3 7.7l-1.4 1.4c-6.6 6.6-9.5 16.1-7.7 25.3 2.2 11.1-2.5 22.5-11.9 28.8-7.8 5.2-12.5 14-12.5 23.3l0 2c0 9.4 4.7 18.1 12.5 23.3zM48 448a48 48 0 1 0 0-96 48 48 0 1 0 0 96zm416 0a48 48 0 1 0 0-96 48 48 0 1 0 0 96z"/></symbol>
+</svg>
     <div id="lock-screen">
-        <div id="status-bar"><div id="weather-info"><span id="date"></span> <i id="weather-icon" class="fa-solid fa-cloud-sun"></i> <span id="temperature">...</span></div></div>
+        <div id="status-bar"><div id="weather-info"><span id="date"></span> <svg id="weather-icon" class="icon" aria-hidden="true"><use href="#i-cloud-sun"/></svg> <span id="temperature">...</span></div></div>
         <div id="fullscreen-hint">Double press wallpaper for fullscreen</div>
         <div id="clock" class="draggable-item"><div id="hours">00</div><div id="minutes">00</div></div>
         <div id="youtube-music-btn" class="draggable-item app-icon"><a href="https://music.youtube.com/" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="50" fill="#FF0000"/><circle cx="50" cy="50" r="23" fill="none" stroke="white" stroke-width="4"/><polygon points="43,38 62,50 43,62" fill="white"/></svg></a></div>
         <div id="youtube-btn" class="draggable-item app-icon"><a href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="50" fill="#FF0000"/><path d="M 35,29 A 10,10 0 0 0 25,39 V 61 A 10,10 0 0 0 35,71 H 65 A 10,10 0 0 0 75,61 V 39 A 10,10 0 0 0 65,29 Z" fill="white"/><polygon points="45,42 62,50 45,58" fill="#FF0000"/></svg></a></div>
         
         <!-- Widgets -->
-        <div id="stock-widget" class="draggable-item widget" title="Single-click to trigger effect | Double-click to edit"></div>
         
         <div id="note-widget" class="draggable-item widget" title="Double-click to edit">
             <div id="note-display"></div>
             <textarea id="note-textarea" placeholder="Type a note..."></textarea>
-            <div id="note-settings-btn" title="Edit note style"><i class="fa-solid fa-cog"></i></div>
+            <div id="note-settings-btn" title="Edit note style"><svg class="icon" aria-hidden="true"><use href="#i-cog"/></svg></div>
         </div>
 
         <div id="music-widget" class="draggable-item widget no-station" title="Double-click to select radio">
@@ -344,13 +393,13 @@
                 </div>
             </div>
             <div id="music-controls">
-                <i id="music-prev" class="fa-solid fa-backward-step"></i>
-                <i id="music-play-pause" class="fa-solid fa-play"></i>
-                <i id="music-next" class="fa-solid fa-forward-step"></i>
+                <svg id="music-prev" class="icon" aria-hidden="true"><use href="#i-backward-step"/></svg>
+                <svg id="music-play-pause" class="icon" aria-hidden="true"><use href="#i-play"/></svg>
+                <svg id="music-next" class="icon" aria-hidden="true"><use href="#i-forward-step"/></svg>
             </div>
         </div>
         <div id="gif-widget" class="draggable-item" title="Click to add GIF | Double-click to choose">
-            <i id="gif-widget-placeholder" class="fa-solid fa-image"></i>
+            <svg id="gif-widget-placeholder" class="icon" aria-hidden="true"><use href="#i-image"/></svg>
             <img id="gif-display">
             <div id="remove-gif-btn">×</div>
         </div>
@@ -358,7 +407,7 @@
         <div id="taxi-widget" class="draggable-item" title="Double-click to open taxi meter settings">
             <div id="taxi-sheen"></div>
             <div id="taxi-head">
-                <div id="taxi-badge"><i class="fa-solid fa-taxi"></i></div>
+                <div id="taxi-badge"><svg class="icon" aria-hidden="true"><use href="#i-taxi"/></svg></div>
                 <div id="taxi-title">Taxi Meter</div>
                 <div id="taxi-status"><span id="taxi-status-dot"></span><span id="taxi-status-text">Idle</span></div>
             </div>
@@ -366,10 +415,10 @@
             <div id="taxi-progress"><div id="taxi-progress-fill"></div></div>
             <div id="taxi-meta"><span id="taxi-elapsed">00:00</span><span id="taxi-rate">10 kr/min</span></div>
             <div id="taxi-controls">
-                <button class="taxi-btn" id="taxi-settings-btn" title="Meter settings"><i class="fa-solid fa-sliders"></i></button>
-                <button class="taxi-btn stop is-disabled" id="taxi-stop-btn" title="Stop and save trip"><i class="fa-solid fa-stop"></i></button>
-                <button class="taxi-btn primary" id="taxi-start-btn" title="Start trip"><i class="fa-solid fa-play"></i></button>
-                <button class="taxi-btn" id="taxi-history-btn" title="Trip history"><i class="fa-solid fa-clock-rotate-left"></i></button>
+                <button class="taxi-btn" id="taxi-settings-btn" title="Meter settings"><svg class="icon" aria-hidden="true"><use href="#i-sliders"/></svg></button>
+                <button class="taxi-btn stop is-disabled" id="taxi-stop-btn" title="Stop and save trip"><svg class="icon" aria-hidden="true"><use href="#i-stop"/></svg></button>
+                <button class="taxi-btn primary" id="taxi-start-btn" title="Start trip"><svg class="icon" aria-hidden="true"><use href="#i-play"/></svg></button>
+                <button class="taxi-btn" id="taxi-history-btn" title="Trip history"><svg class="icon" aria-hidden="true"><use href="#i-clock-rotate-left"/></svg></button>
             </div>
             <div id="taxi-toast"></div>
         </div>
@@ -379,11 +428,11 @@
                 <canvas id="webcam-canvas"></canvas>
                 <div id="webcam-controls">
                     <select id="webcam-source-select"><option>No Cams</option></select>
-                    <button id="webcam-stop-btn" title="Stop Camera"><i class="fa-solid fa-power-off"></i></button>
+                    <button id="webcam-stop-btn" title="Stop Camera"><svg class="icon" aria-hidden="true"><use href="#i-power-off"/></svg></button>
                 </div>
                 <video id="webcam-video-source" playsinline muted style="display: none;"></video>
             </div>
-            <div id="webcam-placeholder"><i class="fa-solid fa-video-slash"></i><span>Camera Inactive</span></div>
+            <div id="webcam-placeholder"><svg class="icon" aria-hidden="true"><use href="#i-video-slash"/></svg><span>Camera Inactive</span></div>
         </div>
 
         <!-- CORRECTED ID AND LOGIC FOR THIS BUTTON -->
@@ -391,11 +440,10 @@
 
         <!-- NEW: Webcam Toggle Button -->
         <div id="webcam-toggle-btn" class="draggable-item app-icon hidden" title="Toggle Rear Seat Cam">
-            <i class="fa-solid fa-video-slash"></i>
+            <svg class="icon" aria-hidden="true"><use href="#i-video-slash"/></svg>
         </div>
 
         <div id="settings-btn" class="draggable-item app-icon" title="Open settings menu"><svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="7.5" fill="rgba(80, 80, 80, 0.6)"/><circle cx="8" cy="8" r="4" fill="none" stroke="var(--icon-stroke-color)" stroke-width="1.5"/></svg></div>
-        <div id="fun-stock-name-display" class="draggable-item"></div>
         <div id="unlock-prompt">Press to unlock</div>
     </div>
     <div id="settings-menu">
@@ -405,7 +453,6 @@
             <div id="advanced-settings-view" class="hidden">
                  <div class="settings-section">
                     <h3>Widget Visibility</h3>
-                    <div class="setting-toggle"><label for="toggle-stock-widget">Stock Widget</label><input type="checkbox" id="toggle-stock-widget"></div>
                     <div class="setting-toggle"><label for="toggle-note-widget">Note Widget</label><input type="checkbox" id="toggle-note-widget"></div>
                     <div class="setting-toggle"><label for="toggle-music-widget">Music Widget</label><input type="checkbox" id="toggle-music-widget"></div>
                     <div class="setting-toggle"><label for="toggle-gif-widget">GIF Widget</label><input type="checkbox" id="toggle-gif-widget"></div>
@@ -446,15 +493,14 @@
                 </div>
             </div>
             <div class="settings-section settings-footer" id="settings-footer">
-                <button id="show-advanced-settings-btn"><i class="fa-solid fa-sliders"></i> Show Full Settings</button>
-                <button id="hide-advanced-settings-btn" class="hidden"><i class="fa-solid fa-arrow-left"></i> Back to Wallpapers</button>
+                <button id="show-advanced-settings-btn"><svg class="icon" aria-hidden="true"><use href="#i-sliders"/></svg> Show Full Settings</button>
+                <button id="hide-advanced-settings-btn" class="hidden"><svg class="icon" aria-hidden="true"><use href="#i-arrow-left"/></svg> Back to Wallpapers</button>
             </div>
         </div>
     </div>
-    <div id="stock-editor-menu"><div class="menu-content"><button id="close-stock-editor-btn">×</button><h2>Edit Stock Symbols</h2><p>Enter up to 7 stock symbols, separated by commas.</p><input type="text" id="stock-symbols-input" placeholder="TSLA, GOOGL, AKBA..."><div class="stock-flash-toggle"><label for="stock-flash-checkbox">Stock Flash 🎉</label><input type="checkbox" id="stock-flash-checkbox"></div><button id="save-stocks-btn">Save and Update</button></div></div>
     <div id="note-editor-menu"><div class="menu-content"><button id="close-note-editor-btn">×</button><h2>Edit Note Style</h2><div class="settings-section"><label for="note-font-select">Font Family</label><select id="note-font-select"><option value="'Roboto', sans-serif">Roboto (Default)</option><option value="'Lora', serif">Lora</option><option value="'Inter', sans-serif">Inter</option><option value="'Source Code Pro', monospace">Source Code Pro</option></select></div><div class="settings-section"><label for="note-font-size-input">Font Size (px)</label><input type="text" id="note-font-size-input" inputmode="numeric" pattern="[0-9]*" value="16"></div></div></div>
     <div id="radio-menu"><div class="menu-content"><button id="close-radio-btn">×</button><h2>Select a Radio Station</h2><div id="radio-channel-list"></div></div></div>
-    <div id="gif-chooser-menu"><div class="menu-content"><button id="close-gif-chooser-btn">×</button><h2>Choose a GIF</h2><div id="gif-choices"></div><button id="add-new-gif-btn"><i class="fa-solid fa-plus"></i> Add New GIF</button></div></div>
+    <div id="gif-chooser-menu"><div class="menu-content"><button id="close-gif-chooser-btn">×</button><h2>Choose a GIF</h2><div id="gif-choices"></div><button id="add-new-gif-btn"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg> Add New GIF</button></div></div>
     <div id="taxi-settings-menu">
         <div class="menu-content">
             <button id="close-taxi-settings-btn">×</button>
@@ -527,63 +573,198 @@
                 <div class="taxi-sum-card"><div class="v" id="taxi-total-time">0m</div><div class="k">On the clock</div></div>
             </div>
             <div id="taxi-history-list"></div>
-            <button id="taxi-clear-history-btn"><i class="fa-solid fa-trash"></i> Clear all trips</button>
+            <button id="taxi-clear-history-btn"><svg class="icon" aria-hidden="true"><use href="#i-trash"/></svg> Clear all trips</button>
         </div>
     </div>
-    <div id="qr-modal"><div id="qr-modal-content"><h2>Scan with your phone</h2><div id="qr-code"></div><p>Scan to send an image URL from your phone.</p></div></div>
-    <div id="upload-view"><div id="phone-upload-container"><h2>Add Wallpaper from Phone</h2><label for="file-input" id="upload-label">Tap to Upload Image</label><input type="file" id="file-input" accept="image/*" style="display: none;"><p class="separator-text">... or ...</p><p>Paste an image URL below</p><input type="url" id="phone-url-input" placeholder="https://example.com/image.jpg"><button id="phone-url-submit">Use this URL</button><h2 id="upload-status"></h2></div></div>
-    <div id="flash-top" class="flash-overlay"></div>
-    <div id="flash-bottom" class="flash-overlay"></div>
+    <!-- Receiver: the car screen watches the phone's QR stream through its camera. -->
+    <div id="qr-modal"><div id="qr-modal-content">
+        <h2 id="receiver-title">Point the camera at your phone</h2>
+        <p class="hint">On the phone, open this page and pick an image. Hold its QR code inside the frame.</p>
+        <div id="receiver-stage">
+            <video id="receiver-video" playsinline muted></video>
+            <div id="receiver-reticle"></div>
+        </div>
+        <div id="receiver-progress-track"><div id="receiver-progress-bar"></div></div>
+        <div id="receiver-status">Starting camera…</div>
+        <div id="receiver-detail"></div>
+        <div id="receiver-controls">
+            <!-- Explicit empty value: without it, select.value returns the option's
+                 text and gets sent as an exact deviceId, which overconstrains. -->
+            <select id="receiver-camera-select"><option value="">Default camera</option></select>
+            <button id="receiver-pairing-btn" class="optical-btn secondary">
+                <svg class="icon" aria-hidden="true"><use href="#i-qrcode"/></svg>Open on phone
+            </button>
+            <button id="receiver-cancel-btn" class="optical-btn secondary">
+                <svg class="icon" aria-hidden="true"><use href="#i-xmark"/></svg>Cancel
+            </button>
+        </div>
+        <!-- Pairing only. This code carries this page's address so the phone can
+             open the sender; the image itself never goes near a network. -->
+        <div id="receiver-pairing" class="hidden">
+            <canvas id="receiver-pairing-canvas"></canvas>
+            <p class="hint">Scan to open the sender on your phone.</p>
+            <code id="receiver-pairing-url"></code>
+        </div>
+    </div></div>
+
+    <!-- Sender: the phone view, reached by scanning the pairing code. -->
+    <div id="upload-view"><div id="phone-upload-container">
+        <h2>Send an image to the car</h2>
+        <p>Nothing is uploaded. The picture travels as light, from this screen to the car's camera.</p>
+        <label for="file-input" id="upload-label">Choose an image</label>
+        <input type="file" id="file-input" accept="image/*" style="display: none;">
+        <div id="sender-canvas-wrap"><canvas id="sender-canvas"></canvas></div>
+        <div id="upload-status"></div>
+        <div id="sender-stats"></div>
+        <div id="sender-settings">
+            <label>Frame size
+                <select id="sender-frame-bytes"></select>
+            </label>
+            <label>Frame rate
+                <select id="sender-fps"></select>
+            </label>
+        </div>
+        <button id="sender-stop-btn" class="optical-btn secondary hidden">
+            <svg class="icon" aria-hidden="true"><use href="#i-stop"/></svg>Stop sending
+        </button>
+    </div></div>
     
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // --- Phone -> Lockscreen relay ---
-            // The old npoint.io bin expired, which broke all image/GIF uploads.
-            // Swapped to ntfy.sh: a free, no-signup, CORS-enabled pub/sub relay.
-            // Each QR session gets its own ntfy "topic" (no bin/bucket to pre-create).
-            // Intentionally a quick, unsecured fix: topic names are derived from the
-            // session id, so anyone who knows a live session id could read/write it.
-            const RELAY_TOPIC_PREFIX = 'nio-carlock-9f3a2b-';
-            const relayTopic = (session) => `${RELAY_TOPIC_PREFIX}${session}`.replace(/[^a-zA-Z0-9_-]/g, '');
+            // --- Phone -> Lockscreen image transfer ---
+            // Images move optically: the phone renders a fountain-coded QR stream
+            // and the car's camera reads it back. There is no relay, no upload and
+            // no account anywhere in the path — see assets/js/optical.js for the
+            // wire format and assets/js/optical-ui.js for both ends of the link.
             const lockScreen = document.getElementById('lock-screen');
             const clock = document.getElementById('clock');
             const qrModal = document.getElementById('qr-modal');
-            const initialWallpaper = { url: 'https://images.pexels.com/photos/807598/pexels-photo-807598.jpeg', position: 'center center' };
-            let isPanningMode = false, currentWallpaperImg = new Image(), pollingInterval, clickTimer, inactivityTimer, pressHoldTimer;
+            // Built-in gradient rather than a hosted photo, so a fresh install has
+            // a wallpaper without fetching anything. Kept in sync with the
+            // #lock-screen background-image rule above.
+            const DEFAULT_WALLPAPER_URL = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 9' preserveAspectRatio='none'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23121a2b'/%3E%3Cstop offset='.55' stop-color='%231e2a45'/%3E%3Cstop offset='1' stop-color='%230b0e16'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='16' height='9' fill='url(%23g)'/%3E%3C/svg%3E";
+            const initialWallpaper = { url: DEFAULT_WALLPAPER_URL, position: 'center center' };
+            let isPanningMode = false, currentWallpaperImg = new Image(), clickTimer, inactivityTimer, pressHoldTimer;
             let hasMovedWp = false;
-            let stockFlashIndex = 0;
-            let stockNameFadeOutTimer = null;
-            let stockWidgetClickTimer = null;
             window.isWebcamPanZoomMode = false;
             currentWallpaperImg.crossOrigin = "Anonymous";
 
             const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.has('upload') && urlParams.has('session')) {
+            // `session` is no longer required: there is no relay topic to join, so
+            // the sender view is reachable from a bare ?upload=true. Older pairing
+            // codes carrying a session id still land here and still work.
+            if (urlParams.has('upload')) {
                 document.body.style.backgroundColor = '#1a1a1a';
-                ['lock-screen', 'settings-menu', 'stock-editor-menu', 'qr-modal'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+                ['lock-screen', 'settings-menu', 'qr-modal'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
                 document.getElementById('upload-view').style.display = 'flex';
-                handlePhoneUpload(urlParams.get('session'));
+                handlePhoneSend();
             } else {
                 initializeLockscreen();
             }
 
-            function handlePhoneUpload(session) {
-                const IMGBB_API_KEY = '4418969a1a33c4e2ea690d835d915e52';
+            /**
+             * The phone half of the optical link.
+             *
+             * Pick an image, shrink it to something a dashboard can actually show,
+             * then stream it as QR frames until the user stops. The stream never
+             * ends on its own: with no back-channel this side cannot know the car
+             * has finished, so it loops and the person watching decides.
+             */
+            function handlePhoneSend() {
                 const fileInput = document.getElementById('file-input');
-                const urlInput = document.getElementById('phone-url-input');
-                const urlSubmitBtn = document.getElementById('phone-url-submit');
                 const statusElem = document.getElementById('upload-status');
+                const statsElem = document.getElementById('sender-stats');
                 const uploadLabel = document.getElementById('upload-label');
-                const sendUrlToLockscreen = (imageUrl) => {
-                    statusElem.textContent = 'Sending to PC...';
-                    fileInput.disabled = true; urlInput.disabled = true; urlSubmitBtn.disabled = true;
-                    uploadLabel.style.backgroundColor = '#555';
-                    fetch(`https://ntfy.sh/${relayTopic(session)}`, { method: 'POST', body: imageUrl })
-                    .then(r => { if (!r.ok) throw new Error('Failed to update PC.'); statusElem.textContent = 'Success! You can close this window.'; })
-                    .catch(e => { statusElem.textContent = `Error: ${e.message}`; fileInput.disabled = false; urlInput.disabled = false; urlSubmitBtn.disabled = false; uploadLabel.style.backgroundColor = '#34c759'; });
+                const canvasWrap = document.getElementById('sender-canvas-wrap');
+                const canvas = document.getElementById('sender-canvas');
+                const stopBtn = document.getElementById('sender-stop-btn');
+                const frameBytesSelect = document.getElementById('sender-frame-bytes');
+                const fpsSelect = document.getElementById('sender-fps');
+
+                OpticalUI.FRAME_BYTES_OPTIONS.forEach(value => {
+                    const option = document.createElement('option');
+                    option.value = value;
+                    option.textContent = `${value} B`;
+                    option.selected = value === OpticalUI.DEFAULT_FRAME_BYTES;
+                    frameBytesSelect.appendChild(option);
+                });
+                OpticalUI.TX_FPS_OPTIONS.forEach(value => {
+                    const option = document.createElement('option');
+                    option.value = value;
+                    option.textContent = `${value} fps`;
+                    option.selected = value === OpticalUI.DEFAULT_TX_FPS;
+                    fpsSelect.appendChild(option);
+                });
+
+                const setStatus = (text, isError) => {
+                    statusElem.textContent = text;
+                    statusElem.classList.toggle('error', !!isError);
                 };
-                fileInput.addEventListener('change', (e) => { const file = e.target.files[0]; if (!file) return; statusElem.textContent = 'Uploading to ImgBB...'; const formData = new FormData(); formData.append('key', IMGBB_API_KEY); formData.append('image', file); fetch('https://api.imgbb.com/1/upload', { method: 'POST', body: formData }).then(response => response.json()).then(data => { if (data.success) { sendUrlToLockscreen(data.data.url); } else { throw new Error(data.error.message || 'ImgBB upload failed.'); } }).catch(error => { statusElem.textContent = `Error: ${error.message}`; }); });
-                urlSubmitBtn.addEventListener('click', () => { const imageUrl = urlInput.value.trim(); if (!imageUrl || !imageUrl.startsWith('http')) { statusElem.textContent = 'Please enter a valid image URL.'; return; } sendUrlToLockscreen(imageUrl); });
+
+                const sender = new OpticalUI.OpticalSender({
+                    canvas,
+                    onStatus: (s) => {
+                        statsElem.textContent =
+                            `frame ${s.seq + 1} · ${s.k} blocks · ${s.passes.toFixed(1)} passes\n` +
+                            `QR V${s.version} · ${s.frameBytes} B @ ${s.fps} fps · ` +
+                            `${(s.transmittedSize / 1024).toFixed(0)} KB payload`;
+                    },
+                    onError: (err) => setStatus(err.message, true)
+                });
+
+                let selected = null;
+
+                const startStream = () => {
+                    if (!selected) return;
+                    const settings = {
+                        frameBytes: Number(frameBytesSelect.value),
+                        fps: Number(fpsSelect.value)
+                    };
+                    sender.start(selected.bytes, selected.name, selected.type, settings)
+                        .then(() => {
+                            canvasWrap.style.display = 'block';
+                            stopBtn.classList.remove('hidden');
+                            setStatus('Hold this screen in front of the car camera.');
+                        })
+                        .catch(err => setStatus(err.message, true));
+                };
+
+                fileInput.addEventListener('change', (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    sender.stop();
+                    setStatus('Preparing image…');
+                    statsElem.textContent = '';
+                    // 1600px is plenty for any dashboard panel, and keeps a typical
+                    // phone photo down to a few seconds on the wire instead of
+                    // several minutes.
+                    OpticalUI.prepareImage(file, 1600, 0.82)
+                        .then(prepared => {
+                            selected = prepared;
+                            startStream();
+                        })
+                        .catch(err => setStatus(err.message, true));
+                });
+
+                // Changing either dial restarts the stream: both are baked into the
+                // frame header, so a receiver mid-decode has to start over anyway.
+                [frameBytesSelect, fpsSelect].forEach(select => {
+                    select.addEventListener('change', () => { if (selected) startStream(); });
+                });
+
+                stopBtn.addEventListener('click', () => {
+                    sender.stop();
+                    canvasWrap.style.display = 'none';
+                    stopBtn.classList.add('hidden');
+                    statsElem.textContent = '';
+                    setStatus('Stopped. Pick an image to send another.');
+                });
+
+                uploadLabel.addEventListener('click', () => setStatus(''));
+                // A phone that sleeps mid-stream stops transmitting; ask to stay awake.
+                if (navigator.wakeLock) {
+                    navigator.wakeLock.request('screen').catch(() => { /* not fatal */ });
+                }
             }
 
             function initializeLockscreen() {
@@ -622,124 +803,6 @@
                 closeSettingsBtn.addEventListener('click', () => settingsMenu.classList.remove('visible'));
                 settingsMenu.addEventListener('click', (e) => { if (e.target === settingsMenu) settingsMenu.classList.remove('visible'); });
 
-                const FINNHUB_API_KEY = 'd1obuihr01qtrav0d5sgd1obuihr01qtrav0d5t0';
-                
-                const stockWidget = document.getElementById('stock-widget');
-                const stockEditorMenu = document.getElementById('stock-editor-menu');
-                const closeStockEditorBtn = document.getElementById('close-stock-editor-btn');
-                const saveStocksBtn = document.getElementById('save-stocks-btn');
-                const stockSymbolsInput = document.getElementById('stock-symbols-input');
-                const stockFlashCheckbox = document.getElementById('stock-flash-checkbox');
-
-                const getStockSymbols = () => JSON.parse(localStorage.getItem('lockscreenStockSymbols')) || ['NIO'];
-                const saveStockSymbols = (symbols) => localStorage.setItem('lockscreenStockSymbols', JSON.stringify(symbols));
-                const getStockFlashState = () => localStorage.getItem('lockscreenStockFlashEnabled') === 'true';
-                const saveStockFlashState = (isEnabled) => localStorage.setItem('lockscreenStockFlashEnabled', isEnabled);
-                
-                stockFlashCheckbox.checked = getStockFlashState();
-                stockFlashCheckbox.addEventListener('change', () => saveStockFlashState(stockFlashCheckbox.checked));
-
-                function triggerScreenFlash(isUp, isSuper = false) {
-                    const flashEl = isUp ? document.getElementById('flash-top') : document.getElementById('flash-bottom');
-                    if (isSuper) flashEl.classList.add('super-flash');
-                    flashEl.classList.add('flash-active');
-                    setTimeout(() => {
-                        flashEl.classList.remove('flash-active');
-                        if (isSuper) flashEl.classList.remove('super-flash');
-                    }, 1500);
-                }
-
-                function triggerIconShower(isUp, isSuper = false) {
-                    const iconCount = isSuper ? 60 : 20;
-                    for (let i = 0; i < iconCount; i++) {
-                        const icon = document.createElement('i');
-                        icon.className = `fa-solid raining-icon ${isUp ? 'fa-caret-up up' : 'fa-caret-down down'}`;
-                        icon.style.left = `${Math.random() * 100}vw`;
-                        icon.style.animationDuration = `${(Math.random() * 2) + 3}s`;
-                        icon.style.animationDelay = `${Math.random() * 2}s`;
-                        icon.style.transform = `scale(${(Math.random() * 0.5) + 0.8})`;
-                        icon.addEventListener('animationend', () => icon.remove());
-                        document.body.appendChild(icon);
-                    }
-                }
-
-                function triggerStockFlashEffect(isUp, isSuper, symbol) {
-                    const nameDisplay = document.getElementById('fun-stock-name-display');
-                    nameDisplay.textContent = symbol;
-                    nameDisplay.classList.add('visible');
-
-                    if (stockNameFadeOutTimer) clearTimeout(stockNameFadeOutTimer);
-
-                    setTimeout(() => {
-                        triggerScreenFlash(isUp, isSuper);
-                        triggerIconShower(isUp, isSuper);
-                    }, 1500);
-
-                    stockNameFadeOutTimer = setTimeout(() => {
-                        nameDisplay.classList.remove('visible');
-                    }, 4500);
-                }
-                
-                function isMarketOpen() {
-                    const now = new Date();
-                    const day = now.getDay(); 
-                    const hour = now.getHours();
-                    const minute = now.getMinutes();
-                    if (day < 1 || day > 5) return false;
-                    const currentTime = hour * 100 + minute;
-                    return currentTime >= 1530 && currentTime < 2100;
-                }
-                
-                function handleStockData(data, symbol) {
-                    if (!data || typeof data.c === 'undefined' || typeof data.o === 'undefined' || data.o === 0 || data.c === data.o) return;
-                    const isUp = data.c > data.o;
-                    const percentChange = ((data.c - data.o) / data.o) * 100;
-                    const isSuper = Math.abs(percentChange) > 5;
-                    triggerStockFlashEffect(isUp, isSuper, symbol);
-                }
-                
-                function checkStockFlashTrigger() {
-                    if (!getStockFlashState() || !isMarketOpen()) return;
-                    const symbols = getStockSymbols();
-                    if (symbols.length === 0) return;
-                    const symbol = symbols[stockFlashIndex];
-                    stockFlashIndex = (stockFlashIndex + 1) % symbols.length;
-
-                    fetch(`https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${FINNHUB_API_KEY}`)
-                        .then(r => { if (!r.ok) throw new Error(`Finnhub ${r.status}`); return r.json(); })
-                        .then(data => handleStockData(data, symbol))
-                        .catch(err => console.error(`Stock Flash fetch error for ${symbol}:`, err));
-                }
-
-                function updateStockWidget() {
-                    const symbols = getStockSymbols();
-                    stockWidget.innerHTML = '';
-                    if (!FINNHUB_API_KEY || FINNHUB_API_KEY.includes('PASTE')) { stockWidget.innerHTML = '<div class="stock-row"><span>NO API KEY</span></div>'; return; }
-                    symbols.forEach(symbol => {
-                        const row = document.createElement('div'); row.className = 'stock-row';
-                        row.innerHTML = `<div class="stock-info"><i class="fa-solid"></i> ${symbol}</div><span class="stock-price">...</span>`;
-                        stockWidget.appendChild(row);
-                        fetch(`https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${FINNHUB_API_KEY}`)
-                            .then(r => { if (!r.ok) throw new Error(`Finnhub ${r.status}`); return r.json(); })
-                            .then(data => {
-                                if (!data || typeof data.c === 'undefined' || data.o === 0) { row.querySelector('.stock-price').textContent = 'N/A'; return; }
-                                const priceEl = row.querySelector('.stock-price');
-                                const iconEl = row.querySelector('i');
-                                priceEl.textContent = (data.c < 10) ? data.c.toFixed(3) : data.c.toFixed(2);
-                                iconEl.className = 'fa-solid';
-                                if (data.c > data.o) {
-                                    iconEl.classList.add('fa-caret-up');
-                                } else if (data.c < data.o) {
-                                    iconEl.classList.add('fa-caret-down');
-                                }
-                            })
-                            .catch(err => {
-                                const priceEl = row.querySelector('.stock-price');
-                                if (priceEl) priceEl.textContent = 'N/A';
-                                console.error(`Stock fetch error for ${symbol}:`, err);
-                            });
-                    });
-                }
                 
                 (function setupWidgets() {
                     const noteWidget = document.getElementById('note-widget');
@@ -852,13 +915,13 @@
                             this.audio.addEventListener('play', () => this.updatePlayState(true));
                             this.audio.addEventListener('pause', () => this.updatePlayState(false));
                             this.elements.art.style.backgroundImage = 'none';
-                            this.elements.art.innerHTML = '<i class="fa-solid fa-headphones"></i>';
+                            this.elements.art.innerHTML = '<svg class="icon" aria-hidden="true"><use href="#i-headphones"/></svg>';
                             this.setupMediaSession();
                         },
                         updateAlbumArt(artUrl) {
                             if (artUrl) this.currentArtworkUrl = artUrl;
                             // Don't show wallpaper in music widget - keep default music icon
-                            this.elements.art.innerHTML = '<i class="fa-solid fa-headphones"></i>';
+                            this.elements.art.innerHTML = '<svg class="icon" aria-hidden="true"><use href="#i-headphones"/></svg>';
                             this.elements.art.style.backgroundImage = 'none';
                             // Still send artwork to media session API for system controls
                             if (this.currentStationIndex !== -1 && 'mediaSession' in navigator) {
@@ -870,7 +933,7 @@
                                 });
                             }
                         },
-                        updatePlayState(isPlaying) { this.elements.playPause.className = `fa-solid ${isPlaying ? 'fa-pause' : 'fa-play'}`; },
+                        updatePlayState(isPlaying) { this.elements.playPause.querySelector('use').setAttribute('href', isPlaying ? '#i-pause' : '#i-play'); },
                         togglePlay() { if (this.currentStationIndex !== -1) this.audio.paused ? this.audio.play() : this.audio.pause(); },
                         playNext() { this.loadStation((this.currentStationIndex + 1) % this.stations.length); },
                         playPrev() { this.loadStation((this.currentStationIndex - 1 + this.stations.length) % this.stations.length); },
@@ -901,7 +964,7 @@
                             this.elements.widget.classList.add('no-station');
                             this.elements.title.textContent = 'No Station Loaded'; this.elements.artist.textContent = 'Double click to select';
                             this.elements.art.style.backgroundImage = 'none';
-                            this.elements.art.innerHTML = '<i class="fa-solid fa-headphones"></i>';
+                            this.elements.art.innerHTML = '<svg class="icon" aria-hidden="true"><use href="#i-headphones"/></svg>';
                             this.updatePlayState(false);
                             if (navigator.mediaSession) navigator.mediaSession.metadata = null;
                         },
@@ -927,14 +990,24 @@
                     const addNewGifBtn = document.getElementById('add-new-gif-btn');
                     const getGifs = () => JSON.parse(localStorage.getItem('lockscreenGifUrls_v2')) || [];
                     const saveGifs = (gifs) => localStorage.setItem('lockscreenGifUrls_v2', JSON.stringify(gifs));
-                    
+                    // As with wallpapers, a stored GIF is either a plain URL or a
+                    // `local:` reference to a blob received over the optical link.
+                    const gifSrc = (ref) => ImageStore.url(ref) || ref;
+
+                    // The reference currently on screen. Tracked explicitly because
+                    // gifDisplay.src reports a resolved absolute URL — an object URL
+                    // for local GIFs — which never equals the stored reference, so
+                    // comparing against it would fail to find the entry to remove.
+                    let currentGifRef = null;
+
                     const renderCurrentGif = () => {
                         const lastGif = localStorage.getItem('lockscreenLastGif');
                         const gifs = getGifs();
-                        const urlToLoad = lastGif && gifs.includes(lastGif) ? lastGif : (gifs.length > 0 ? gifs[0] : null);
-                        
-                        if (urlToLoad) {
-                            gifDisplay.src = urlToLoad;
+                        const refToLoad = lastGif && gifs.includes(lastGif) ? lastGif : (gifs.length > 0 ? gifs[0] : null);
+
+                        currentGifRef = refToLoad;
+                        if (refToLoad) {
+                            gifDisplay.src = gifSrc(refToLoad);
                             gifWidget.classList.add('has-gif');
                             gifPlaceholder.style.display = 'none';
                         } else {
@@ -944,12 +1017,18 @@
                         }
                     };
 
-                    const addGif = (url) => {
-                        if (!url.toLowerCase().endsWith('.gif')) { alert("Invalid URL. Please provide a direct link to a GIF."); return; }
+                    const addGif = (ref) => {
+                        // A `local:` reference is a blob already decoded and checked
+                        // on arrival, so only pasted URLs still need the extension
+                        // sniff to catch someone handing this a JPEG.
+                        if (!ImageStore.isLocalRef(ref) && !ref.toLowerCase().endsWith('.gif')) {
+                            alert("Invalid URL. Please provide a direct link to a GIF.");
+                            return;
+                        }
                         const gifs = getGifs();
-                        if (!gifs.includes(url)) { gifs.push(url); }
+                        if (!gifs.includes(ref)) { gifs.push(ref); }
                         saveGifs(gifs);
-                        localStorage.setItem('lockscreenLastGif', url);
+                        localStorage.setItem('lockscreenLastGif', ref);
                         renderCurrentGif();
                     };
 
@@ -959,24 +1038,28 @@
                         if (gifs.length === 0) {
                             gifChoices.innerHTML = '<p style="text-align:center;color:#aaa;">No GIFs added yet. Click the widget on the lockscreen to add one.</p>';
                         } else {
-                            gifs.forEach(gifUrl => {
+                            gifs.forEach(gifRef => {
                                 const thumb = document.createElement('div');
                                 thumb.className = 'gif-thumbnail';
-                                thumb.innerHTML = `<img src="${gifUrl}" alt="GIF thumbnail">`;
+                                const img = document.createElement('img');
+                                img.src = gifSrc(gifRef);
+                                img.alt = 'GIF thumbnail';
+                                thumb.appendChild(img);
                                 const rmvBtn = document.createElement('span');
                                 rmvBtn.className = 'remove-thumb-btn';
                                 rmvBtn.innerHTML = '×';
                                 rmvBtn.onclick = (e) => {
                                     e.stopPropagation();
-                                    const newGifs = getGifs().filter(url => url !== gifUrl);
+                                    const newGifs = getGifs().filter(ref => ref !== gifRef);
                                     saveGifs(newGifs);
-                                    if (localStorage.getItem('lockscreenLastGif') === gifUrl) localStorage.removeItem('lockscreenLastGif');
+                                    if (localStorage.getItem('lockscreenLastGif') === gifRef) localStorage.removeItem('lockscreenLastGif');
                                     renderCurrentGif();
                                     openGifChooser();
+                                    if (window.collectImageGarbage) window.collectImageGarbage();
                                 };
                                 thumb.appendChild(rmvBtn);
                                 thumb.onclick = () => {
-                                    localStorage.setItem('lockscreenLastGif', gifUrl);
+                                    localStorage.setItem('lockscreenLastGif', gifRef);
                                     renderCurrentGif();
                                     gifChooserMenu.classList.remove('visible');
                                 };
@@ -988,11 +1071,13 @@
                     
                     removeGifBtn.addEventListener('click', (e) => {
                         e.stopPropagation();
-                        const currentSrc = gifDisplay.src;
-                        const newGifs = getGifs().filter(url => url !== currentSrc);
+                        if (!currentGifRef) return;
+                        const removed = currentGifRef;
+                        const newGifs = getGifs().filter(ref => ref !== removed);
                         saveGifs(newGifs);
-                        if (localStorage.getItem('lockscreenLastGif') === currentSrc) localStorage.removeItem('lockscreenLastGif');
+                        if (localStorage.getItem('lockscreenLastGif') === removed) localStorage.removeItem('lockscreenLastGif');
                         renderCurrentGif();
+                        if (window.collectImageGarbage) window.collectImageGarbage();
                     });
 
                     addNewGifBtn.addEventListener('click', () => {
@@ -1004,6 +1089,9 @@
                     gifWidget.addEventListener('dblclick', (e) => { if (!e.target.hasMoved) openGifChooser(); });
                     closeGifChooserBtn.addEventListener('click', () => gifChooserMenu.classList.remove('visible'));
                     window.addGif = addGif;
+                    // Re-run once the image store has resolved its blobs; the first
+                    // call here only has plain URLs to work with.
+                    window.renderCurrentGif = renderCurrentGif;
                     renderCurrentGif();
                     
                     // =================================================================
@@ -1166,8 +1254,8 @@
                             this.el.widget.classList.toggle('paused', status === 'paused');
                             this.el.statusText.textContent = status === 'running' ? 'On trip' : (status === 'paused' ? 'Paused' : 'Idle');
                             this.el.startBtn.innerHTML = status === 'running'
-                                ? '<i class="fa-solid fa-pause"></i>'
-                                : '<i class="fa-solid fa-play"></i>';
+                                ? '<svg class="icon" aria-hidden="true"><use href="#i-pause"/></svg>'
+                                : '<svg class="icon" aria-hidden="true"><use href="#i-play"/></svg>';
                             this.el.startBtn.title = status === 'running' ? 'Pause meter' : (status === 'paused' ? 'Resume meter' : 'Start trip');
                             this.el.stopBtn.classList.toggle('is-disabled', status === 'idle');
                             const rate = status === 'idle' ? this.settings.ratePerMin : this.state.rate;
@@ -1413,7 +1501,7 @@
                             this.el.clearHistoryBtn.style.display = trips.length ? 'block' : 'none';
 
                             if (!trips.length) {
-                                list.innerHTML = '<div id="taxi-history-empty"><i class="fa-solid fa-route"></i>No trips yet.<br>Press start to run the meter.</div>';
+                                list.innerHTML = '<div id="taxi-history-empty"><svg class="icon" aria-hidden="true"><use href="#i-route"/></svg>No trips yet.<br>Press start to run the meter.</div>';
                                 return;
                             }
 
@@ -1426,13 +1514,13 @@
                                     ? `kr ${this.money(trip.base, 0)} + kr ${this.money(trip.rate)}/min`
                                     : `kr ${this.money(trip.rate)}/min`;
                                 row.innerHTML = `
-                                    <div class="idx"><i class="fa-solid fa-taxi"></i></div>
+                                    <div class="idx"><svg class="icon" aria-hidden="true"><use href="#i-taxi"/></svg></div>
                                     <div>
                                         <div class="when">${when.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} · ${when.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</div>
                                         <div class="sub">${this.formatDurationLong(trip.durationMs)} · ${rateText}</div>
                                     </div>
                                     <div class="amt">kr ${this.fareText(trip.fare)}</div>
-                                    <button class="del" title="Delete trip"><i class="fa-solid fa-xmark"></i></button>`;
+                                    <button class="del" title="Delete trip"><svg class="icon" aria-hidden="true"><use href="#i-xmark"/></svg></button>`;
                                 row.querySelector('.del').addEventListener('click', () => {
                                     row.classList.add('removing');
                                     this.saveHistory(this.getHistory().filter(t => t.id !== trip.id));
@@ -1678,7 +1766,7 @@
                                 this.elements.video.onloadedmetadata = () => {
                                     this.elements.video.play();
                                     this.elements.widget.classList.add('active');
-                                    if (this.elements.toggleIcon) this.elements.toggleIcon.className = 'fa-solid fa-video';
+                                    if (this.elements.toggleIcon) this.elements.toggleIcon.querySelector('use').setAttribute('href', '#i-video');
                                     this.drawToCanvas();
                                 };
                                 this.populateDevices(false);
@@ -1697,7 +1785,7 @@
                             this.elements.video.srcObject = null;
                             if (this.elements.canvasContext) this.elements.canvasContext.clearRect(0, 0, this.elements.canvas.width, this.elements.canvas.height);
                             this.elements.widget.classList.remove('active');
-                            if (this.elements.toggleIcon) this.elements.toggleIcon.className = 'fa-solid fa-video-slash';
+                            if (this.elements.toggleIcon) this.elements.toggleIcon.querySelector('use').setAttribute('href', '#i-video-slash');
                             if (!isRestarting) this.elements.widget.style.display = 'none';
                         },
                                             savePanZoomState() { localStorage.setItem('webcamPanZoomState', JSON.stringify(webcam_transform)); },
@@ -2149,9 +2237,8 @@
                 
                 (function setupBaseFeatures() {
                     const webcamToggleBtn = document.getElementById('webcam-toggle-btn');
-                    const DRAGGABLE_ELEMENT_IDS = ['clock', 'youtube-music-btn', 'youtube-btn', 'stock-widget', 'settings-btn', 'fun-stock-name-display', 'note-widget', 'music-widget', 'gif-widget', 'webcam-widget', 'webcam-toggle-btn', 'taxi-widget'];
+                    const DRAGGABLE_ELEMENT_IDS = ['clock', 'youtube-music-btn', 'youtube-btn', 'settings-btn', 'note-widget', 'music-widget', 'gif-widget', 'webcam-widget', 'webcam-toggle-btn', 'taxi-widget'];
                     const WIDGETS = {
-                        stock: { el: document.getElementById('stock-widget'), toggle: document.getElementById('toggle-stock-widget'), default: true },
                         note: { el: document.getElementById('note-widget'), toggle: document.getElementById('toggle-note-widget'), default: false },
                         music: { el: document.getElementById('music-widget'), toggle: document.getElementById('toggle-music-widget'), default: false },
                         gif: { el: document.getElementById('gif-widget'), toggle: document.getElementById('toggle-gif-widget'), default: false },
@@ -2209,12 +2296,75 @@
                     const weatherLocationInput = document.getElementById('weather-location-input');
                     let clockScale = 1;
                     const getweatherLocation = () => localStorage.getItem('lockscreenWeatherLocation') || '';
+
+                    /*
+                     * Weather comes from Open-Meteo: free, no API key, CORS-enabled
+                     * and open data, so nothing here needs a shared credential.
+                     * Place names go through their geocoding endpoint first.
+                     */
+                    const WMO_ICONS = [
+                        [[0], 'i-sun'],
+                        [[1, 2], 'i-cloud-sun'],
+                        [[3], 'i-cloud'],
+                        [[45, 48], 'i-smog'],
+                        [[51, 53, 55, 56, 57], 'i-cloud-rain'],
+                        [[61, 63, 65, 80, 81, 82], 'i-cloud-showers-heavy'],
+                        [[66, 67], 'i-cloud-meatball'],
+                        [[71, 73, 75, 77, 85, 86], 'i-snowflake'],
+                        [[95, 96, 99], 'i-cloud-bolt']
+                    ];
+                    const weatherIconFor = (code) => {
+                        const hit = WMO_ICONS.find(([codes]) => codes.includes(code));
+                        return hit ? hit[1] : 'i-cloud-sun';
+                    };
+
+                    /* Geocoding results are cached: the place name only changes when
+                       the user edits it, but fetchWeather() runs every 30 minutes. */
+                    const geocode = (place) => {
+                        const cacheKey = `lockscreenGeo_${place.toLowerCase()}`;
+                        const cached = localStorage.getItem(cacheKey);
+                        if (cached) {
+                            try { return Promise.resolve(JSON.parse(cached)); } catch (e) { /* refetch */ }
+                        }
+                        const url = 'https://geocoding-api.open-meteo.com/v1/search' +
+                            `?name=${encodeURIComponent(place)}&count=1&language=en&format=json`;
+                        return fetch(url)
+                            .then(r => { if (!r.ok) throw new Error(`geocoding ${r.status}`); return r.json(); })
+                            .then(d => {
+                                const hit = d && d.results && d.results[0];
+                                if (!hit) throw new Error(`No place called "${place}".`);
+                                const coords = { lat: hit.latitude, lon: hit.longitude };
+                                localStorage.setItem(cacheKey, JSON.stringify(coords));
+                                return coords;
+                            });
+                    };
+
                     const fetchWeather = () => {
                         const location = getweatherLocation();
                         weatherLocationInput.value = location;
-                        const url = `https://wttr.in/${location || 'Trondheim'}?format=j1`;
-                        const iM = { 'sunny': 'fa-sun', 'clear': 'fa-sun', 'partly cloudy': 'fa-cloud-sun', 'cloudy': 'fa-cloud', 'overcast': 'fa-cloud', 'mist': 'fa-smog', 'fog': 'fa-smog', 'patchy rain': 'fa-cloud-rain', 'rain': 'fa-cloud-showers-heavy', 'drizzle': 'fa-cloud-rain', 'patchy snow': 'fa-snowflake', 'snow': 'fa-snowflake', 'sleet': 'fa-cloud-meatball', 'ice pellets': 'fa-icicles', 'thunder': 'fa-cloud-bolt', 'blizzard': 'fa-wind' };
-                        fetch(url).then(r => { if (!r.ok) throw new Error(`wttr ${r.status}`); return r.json(); }).then(d => { const c = d.current_condition[0]; weatherElems.t.textContent = `${c.temp_C}°C`; const ds = c.weatherDesc[0].value.toLowerCase(); let ic = 'fa-cloud-sun'; for (const k in iM) { if (ds.includes(k)) { ic = iM[k]; break; } } weatherElems.i.className = `fa-solid ${ic}`; }).catch(e => { weatherElems.t.textContent = 'N/A'; });
+                        geocode(location || 'Trondheim')
+                            .then(({ lat, lon }) => {
+                                const url = 'https://api.open-meteo.com/v1/forecast' +
+                                    `?latitude=${lat}&longitude=${lon}` +
+                                    '&current=temperature_2m,weather_code&timezone=auto';
+                                return fetch(url).then(r => {
+                                    if (!r.ok) throw new Error(`open-meteo ${r.status}`);
+                                    return r.json();
+                                });
+                            })
+                            .then(d => {
+                                const current = d && d.current;
+                                if (!current || typeof current.temperature_2m !== 'number') {
+                                    throw new Error('No current conditions in the response.');
+                                }
+                                weatherElems.t.textContent = `${Math.round(current.temperature_2m)}°C`;
+                                weatherElems.i.querySelector('use')
+                                    .setAttribute('href', `#${weatherIconFor(current.weather_code)}`);
+                            })
+                            .catch(err => {
+                                weatherElems.t.textContent = 'N/A';
+                                console.warn('Weather unavailable.', err);
+                            });
                     };
                     weatherLocationInput.addEventListener('change', () => { localStorage.setItem('lockscreenWeatherLocation', weatherLocationInput.value.trim()); fetchWeather(); });
                     const updateTime = () => { const n = new Date(); timeElems.h.textContent = String(n.getHours()).padStart(2, '0'); timeElems.m.textContent = String(n.getMinutes()).padStart(2, '0'); timeElems.d.textContent = n.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }); };
@@ -2240,7 +2390,7 @@
                                 const pos = p[id];
                                 if (e && pos.t && pos.l) {
                                     e.style.top = pos.t; e.style.left = pos.l;
-                                    e.style.transform = (id === 'clock' || id === 'stock-widget') ? 'none' : e.style.transform;
+                                    e.style.transform = (id === 'clock') ? 'none' : e.style.transform;
                                     if (id === 'clock' && pos.s) applyClockScale(pos.s);
                                     if (id === 'note-widget' || id === 'gif-widget' || id === 'webcam-widget') { e.style.width = pos.w || e.style.width; e.style.height = pos.h || e.style.height; }
                                 }
@@ -2295,15 +2445,12 @@
                             nY = Math.max(0, Math.min(nY, maxY));
                             el.style.left = `${nX}px`; 
                             el.style.top = `${nY}px`;
-                            if(['clock', 'stock-widget'].indexOf(el.id) === -1) el.style.transform = 'none';
+                            if (el.id !== 'clock') el.style.transform = 'none';
                         };
                         
                         const stD = (e) => {
                             if (!isD && !isPinching) return;
                             e.target.hasMoved = hasMoved;
-                            if (el.id === 'fun-stock-name-display' && el.classList.contains('visible')) { 
-                                stockNameFadeOutTimer = setTimeout(() => { el.classList.remove('visible'); }, 3000); 
-                            }
                             if (isPinching && pinch && pinch.onEnd) pinch.onEnd();
                             isD = false;
                             isPinching = false;
@@ -2347,10 +2494,6 @@
                             
                             oX = cX - el.offsetLeft; 
                             oY = cY - el.offsetTop;
-                            if (el.id === 'fun-stock-name-display' && stockNameFadeOutTimer) { 
-                                clearTimeout(stockNameFadeOutTimer); 
-                                stockNameFadeOutTimer = null; 
-                            }
                             document.addEventListener('mousemove', mv, { passive: false });
                             document.addEventListener('touchmove', mv, { passive: false });
                             document.addEventListener('mouseup', stD, { once: true });
@@ -2368,44 +2511,11 @@
                         }
                     };
                     
-                    stockWidget.addEventListener('click', (e) => {
-                        if (e.target.hasMoved) return;
-                        clearTimeout(stockWidgetClickTimer);
-                        stockWidgetClickTimer = setTimeout(() => {
-                            if (!getStockFlashState()) return;
-                            const symbols = getStockSymbols();
-                            if (symbols.length === 0) return;
-                            const symbol = symbols[stockFlashIndex];
-                            stockFlashIndex = (stockFlashIndex + 1) % symbols.length;
-                            fetch(`https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${FINNHUB_API_KEY}`)
-                                .then(r => r.json()).then(data => handleStockData(data, symbol))
-                                .catch(err => console.error(`Stock Flash click trigger error for ${symbol}:`, err));
-                        }, 200);
-                    });
-                    stockWidget.addEventListener('dblclick', (e) => {
-                        clearTimeout(stockWidgetClickTimer);
-                        stockSymbolsInput.value = getStockSymbols().join(', ');
-                        stockFlashCheckbox.checked = getStockFlashState();
-                        stockEditorMenu.classList.add('visible');
-                    });
-                    closeStockEditorBtn.addEventListener('click', () => stockEditorMenu.classList.remove('visible'));
-                    stockEditorMenu.addEventListener('click', (e) => { if (e.target === stockEditorMenu) stockEditorMenu.classList.remove('visible'); });
-                    saveStocksBtn.addEventListener('click', () => { 
-                        const newSymbols = stockSymbolsInput.value.split(',').map(s => s.trim().toUpperCase()).filter(s => s.length > 0).slice(0, 7); 
-                        saveStockSymbols(newSymbols); 
-                        saveStockFlashState(stockFlashCheckbox.checked); 
-                        stockFlashIndex = 0;
-                        updateStockWidget(); 
-                        stockEditorMenu.classList.remove('visible');
-                    });
-
                     setInterval(updateTime, 1000); updateTime();
                     DRAGGABLE_ELEMENT_IDS.forEach(id => { const el = document.getElementById(id); if (el) makeDraggable(el); });
                     
                     loadPos();
                     fetchWeather(); setInterval(fetchWeather, 30 * 60 * 1000);
-                    updateStockWidget(); setInterval(updateStockWidget, 60000);
-                    checkStockFlashTrigger(); setInterval(checkStockFlashTrigger, 60 * 1000);
                 })();
                 
                 function generateSquareArt(image, callback) {
@@ -2428,14 +2538,22 @@
                     callback(canvas.toDataURL('image/jpeg'));
                 }
 
+                // A wallpaper's `url` is either an ordinary http(s)/data URL or a
+                // `local:` reference to a blob in IndexedDB (see image-store.js).
+                // Both are plain strings, so the dedupe and "which one is selected"
+                // comparisons below stay exactly as they were; only the moment of
+                // handing a value to CSS or an <img> needs the resolver.
+                const wpSrc = (ref) => ImageStore.url(ref) || ref;
+
                 const getWps = () => JSON.parse(localStorage.getItem('lockscreenWallpapers_v2')) || [initialWallpaper];
                 const saveWps = (wps) => localStorage.setItem('lockscreenWallpapers_v2', JSON.stringify(wps));
                 const setWp = (wpObj) => {
                     exitPanningMode();
-                    lockScreen.style.backgroundImage = `url('${wpObj.url}')`;
+                    const src = wpSrc(wpObj.url);
+                    lockScreen.style.backgroundImage = `url('${src}')`;
                     lockScreen.style.backgroundPosition = wpObj.position || 'center center';
                     wallpaperReady = false;
-                    currentWallpaperImg.src = wpObj.url;
+                    currentWallpaperImg.src = src;
                     currentWallpaperImg.onload = () => {
                         wallpaperReady = true;
                         generateSquareArt(currentWallpaperImg, (artUrl) => {
@@ -2448,7 +2566,25 @@
                     };
                 };
 
-                const renderWpChoices = () => { const cont = document.getElementById('wallpaper-choices'); cont.innerHTML = ''; getWps().forEach(wp => { const thumb = document.createElement('div'); thumb.className = 'wallpaper-thumbnail'; thumb.style.backgroundImage = `url('${wp.url}')`; const rmvBtn = document.createElement('span'); rmvBtn.className = 'remove-thumb-btn'; rmvBtn.title = 'Remove wallpaper'; rmvBtn.addEventListener('click', (e) => { e.stopPropagation(); const newWps = getWps().filter(w => w.url !== wp.url); saveWps(newWps); renderWpChoices(); }); thumb.appendChild(rmvBtn); thumb.addEventListener('click', () => { setWp(wp); localStorage.setItem('lockscreenLastSelectedWp', wp.url); settingsMenu.classList.remove('visible'); }); cont.appendChild(thumb); }); };
+                const renderWpChoices = () => { const cont = document.getElementById('wallpaper-choices'); cont.innerHTML = ''; getWps().forEach(wp => { const thumb = document.createElement('div'); thumb.className = 'wallpaper-thumbnail'; thumb.style.backgroundImage = `url('${wpSrc(wp.url)}')`; const rmvBtn = document.createElement('span'); rmvBtn.className = 'remove-thumb-btn'; rmvBtn.title = 'Remove wallpaper'; rmvBtn.addEventListener('click', (e) => { e.stopPropagation(); const newWps = getWps().filter(w => w.url !== wp.url); saveWps(newWps); renderWpChoices(); collectImageGarbage(); }); thumb.appendChild(rmvBtn); thumb.addEventListener('click', () => { setWp(wp); localStorage.setItem('lockscreenLastSelectedWp', wp.url); settingsMenu.classList.remove('visible'); }); cont.appendChild(thumb); }); };
+
+                /**
+                 * Drop stored blobs no wallpaper or GIF points at any more.
+                 * Removing either only rewrites a localStorage list, so without
+                 * this the bytes would linger in IndexedDB forever.
+                 */
+                const collectImageGarbage = () => {
+                    const referenced = new Set();
+                    getWps().forEach(wp => referenced.add(wp.url));
+                    (JSON.parse(localStorage.getItem('lockscreenGifUrls_v2')) || [])
+                        .forEach(ref => referenced.add(ref));
+                    const last = localStorage.getItem('lockscreenLastSelectedWp');
+                    if (last) referenced.add(last);
+                    ImageStore.collectGarbage(referenced);
+                };
+                // The GIF widget is initialised in its own scope earlier in the
+                // file, so it reaches this through window rather than closure.
+                window.collectImageGarbage = collectImageGarbage;
                 document.getElementById('wallpaper-url-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') { const url = e.target.value.trim(); if(url.toLowerCase().endsWith('.gif')) { alert('Please use the GIF widget to add GIFs.'); e.target.value = ''; return; } if (url.match(/\.(jpeg|jpg|gif|png|webp)$/i)) { const wps = getWps(); if (!wps.some(w => w.url === url)) { const newWp = { url: url, position: 'center center' }; wps.push(newWp); saveWps(wps); setWp(newWp); localStorage.setItem('lockscreenLastSelectedWp', newWp.url); renderWpChoices(); } e.target.value = ''; settingsMenu.classList.remove('visible'); } else { alert('Invalid URL.'); } } });
                 function exitPanningMode() { exitPanningModeCompletely(); }
 
@@ -2642,7 +2778,7 @@
                     window.radioPlayer.reset();
                     window.webcamPlayer.stop();
                     document.getElementById('gif-display').src = '';
-                    ['clock', 'youtube-music-btn', 'youtube-btn', 'stock-widget', 'settings-btn', 'fun-stock-name-display', 'note-widget', 'music-widget', 'gif-widget', 'webcam-widget', 'webcam-toggle-btn', 'taxi-widget'].forEach(id => {
+                    ['clock', 'youtube-music-btn', 'youtube-btn', 'settings-btn', 'note-widget', 'music-widget', 'gif-widget', 'webcam-widget', 'webcam-toggle-btn', 'taxi-widget'].forEach(id => {
                         const el = document.getElementById(id);
                         if (el) el.style.cssText = '';
                     });
@@ -2651,56 +2787,183 @@
                     settingsMenu.classList.remove('visible');
                 });
 
+                /*
+                 * The car half of the optical link.
+                 *
+                 * Opens the camera, watches for the phone's QR stream and rebuilds
+                 * the image from it. Keeps the old `startPolling(session, type)`
+                 * signature because the GIF widget and the wallpaper button both
+                 * call it; `session` is now only used to label the pairing code.
+                 */
+                let receiver = null;
+                let receiverStallTimer = null;
+
                 window.startPolling = (session, type = 'wallpaper') => {
-                    if (pollingInterval) clearInterval(pollingInterval);
-                    const uploadUrl = `${window.location.href.split('?')[0]}?upload=true&session=${session}`;
-                    const qrCodeContainer = document.getElementById('qr-code');
-                    qrCodeContainer.innerHTML = '';
+                    const titleElem = document.getElementById('receiver-title');
+                    const statusElem = document.getElementById('receiver-status');
+                    const detailElem = document.getElementById('receiver-detail');
+                    const barElem = document.getElementById('receiver-progress-bar');
+                    const videoElem = document.getElementById('receiver-video');
+                    const cameraSelect = document.getElementById('receiver-camera-select');
+                    const pairingPanel = document.getElementById('receiver-pairing');
+
+                    const setDetail = (text, isError) => {
+                        detailElem.textContent = text;
+                        detailElem.classList.toggle('error', !!isError);
+                    };
+
+                    stopReceiver();
                     qrModal.style.display = 'flex';
-                    new QRCode(qrCodeContainer, { text: uploadUrl, width: 200, height: 200 });
+                    titleElem.textContent = type === 'gif'
+                        ? 'Point the camera at your phone (GIF)'
+                        : 'Point the camera at your phone';
+                    statusElem.textContent = 'Starting camera…';
+                    setDetail('');
+                    barElem.style.width = '0%';
 
-                    pollingInterval = setInterval(() => {
-                        // ntfy returns cached messages as newline-delimited JSON (one per line).
-                        // ?poll=1 = don't keep the connection open; since=all = include cached msgs.
-                        fetch(`https://ntfy.sh/${relayTopic(session)}/json?poll=1&since=all`, { cache: 'no-cache' })
-                            .then(r => r.text())
-                            .then(text => {
-                                let newUrl = null;
-                                text.trim().split('\n').filter(Boolean).forEach(line => {
-                                    try {
-                                        const m = JSON.parse(line);
-                                        if (m.event === 'message' && m.message) newUrl = m.message.trim();
-                                    } catch (e) { /* ignore keepalive/non-JSON lines */ }
-                                });
-                                if (newUrl) {
-                                    clearInterval(pollingInterval);
-                                    pollingInterval = null;
+                    // Pairing code: this page's own address, so the phone can open
+                    // the sender. Carries no image data.
+                    const pairingUrl = `${window.location.href.split('?')[0]}?upload=true`;
+                    document.getElementById('receiver-pairing-url').textContent = pairingUrl;
+                    try {
+                        OpticalUI.renderTextQr(
+                            document.getElementById('receiver-pairing-canvas'), pairingUrl, 360
+                        );
+                    } catch (err) {
+                        console.warn('Could not render the pairing code.', err);
+                    }
+                    pairingPanel.classList.add('hidden');
+
+                    receiver = new OpticalUI.OpticalReceiver({
+                        video: videoElem,
+                        onStatus: (s) => {
+                            if (s.phase === 'locked') {
+                                statusElem.textContent = 'Receiving…';
+                                setDetail(`locked on ${s.k} blocks · ${(s.totalLen / 1024).toFixed(0)} KB`);
+                            }
+                        },
+                        onProgress: (p) => {
+                            barElem.style.width = `${Math.round(p.ratio * 100)}%`;
+                            setDetail(
+                                `${p.frames}/${p.needed} frames · ${p.solved}/${p.k} blocks` +
+                                (p.duplicates ? ` · ${p.duplicates} repeat` : '')
+                            );
+                        },
+                        onError: (err) => {
+                            statusElem.textContent = 'Trouble receiving';
+                            setDetail(err.message, true);
+                        },
+                        onComplete: (file) => {
+                            statusElem.textContent = 'Received — saving…';
+                            barElem.style.width = '100%';
+                            const blob = new Blob([file.bytes], { type: file.type });
+                            ImageStore.put(blob, file.name, file.type)
+                                .then(ref => {
+                                    stopReceiver();
                                     qrModal.style.display = 'none';
-
                                     if (type === 'gif') {
-                                        window.addGif(newUrl);
-                                    } else {
-                                        const newWp = { url: newUrl, position: 'center center' };
-                                        const wps = getWps();
-                                        if (!wps.some(w => w.url === newWp.url)) { wps.push(newWp); saveWps(wps); }
-                                        setWp(newWp); localStorage.setItem('lockscreenLastSelectedWp', newWp.url); renderWpChoices();
+                                        window.addGif(ref);
+                                        return;
                                     }
-                                }
-                            }).catch(err => { console.log("Polling... waiting for data."); });
-                    }, 2500);
+                                    const newWp = { url: ref, position: 'center center' };
+                                    const wps = getWps();
+                                    if (!wps.some(w => w.url === newWp.url)) { wps.push(newWp); saveWps(wps); }
+                                    setWp(newWp);
+                                    localStorage.setItem('lockscreenLastSelectedWp', newWp.url);
+                                    renderWpChoices();
+                                })
+                                .catch(err => {
+                                    statusElem.textContent = 'Could not save the image';
+                                    setDetail(err.message, true);
+                                });
+                        }
+                    });
+
+                    receiver.start(cameraSelect.value || undefined)
+                        .then(() => {
+                            statusElem.textContent = 'Looking for a code…';
+                            listReceiverCameras(cameraSelect);
+                        })
+                        .catch(err => {
+                            statusElem.textContent = 'Camera unavailable';
+                            setDetail(
+                                err && err.name === 'NotAllowedError'
+                                    ? 'Camera permission was denied. Allow it for this page and try again.'
+                                    : (err && err.message) || String(err),
+                                true
+                            );
+                        });
+
+                    // Nudge the user if nothing has decoded for a while — nearly
+                    // always aim, focus or a frame size the camera cannot resolve.
+                    clearInterval(receiverStallTimer);
+                    receiverStallTimer = setInterval(() => {
+                        if (!receiver || !receiver.running) return;
+                        if (receiver.decoder) return;
+                        if (receiver.secondsSinceFrame() < 12) return;
+                        setDetail('No code seen yet — fill the frame with the phone, ' +
+                            'or drop the sender to 1465 B at 24 fps.');
+                    }, 4000);
+                };
+
+                function stopReceiver() {
+                    clearInterval(receiverStallTimer);
+                    receiverStallTimer = null;
+                    if (receiver) {
+                        receiver.stop();
+                        receiver = null;
+                    }
+                }
+
+                /** Populate the camera picker once permission has been granted. */
+                function listReceiverCameras(select) {
+                    if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
+                    navigator.mediaDevices.enumerateDevices().then(devices => {
+                        const cams = devices.filter(d => d.kind === 'videoinput');
+                        if (!cams.length) return;
+                        const previous = select.value;
+                        select.innerHTML = '';
+                        cams.forEach((cam, i) => {
+                            const option = document.createElement('option');
+                            option.value = cam.deviceId;
+                            option.textContent = cam.label || `Camera ${i + 1}`;
+                            select.appendChild(option);
+                        });
+                        if (previous) select.value = previous;
+                    }).catch(() => { /* labels need permission; not worth surfacing */ });
                 }
 
                 document.getElementById('qr-upload-btn').addEventListener('click', () => window.startPolling(`wallpaper_session_${Date.now()}`, 'wallpaper'));
-                qrModal.addEventListener('click', (e) => { if (e.target === qrModal) { qrModal.style.display = 'none'; clearInterval(pollingInterval); } });
-                
-                renderWpChoices();
-                const allWps = getWps();
-                const lastSelectedUrl = localStorage.getItem('lockscreenLastSelectedWp');
-                let wpToLoad = allWps.find(w => w.url === lastSelectedUrl);
-                if (!wpToLoad) {
-                    wpToLoad = allWps[0] || initialWallpaper;
-                }
-                setWp(wpToLoad);
+
+                // The camera is a shared resource and a privacy surface: every exit
+                // from this modal has to release it, not just hide the overlay.
+                const closeReceiver = () => { stopReceiver(); qrModal.style.display = 'none'; };
+                qrModal.addEventListener('click', (e) => { if (e.target === qrModal) closeReceiver(); });
+                document.getElementById('receiver-cancel-btn').addEventListener('click', closeReceiver);
+                document.getElementById('receiver-pairing-btn').addEventListener('click', () => {
+                    document.getElementById('receiver-pairing').classList.toggle('hidden');
+                });
+                document.getElementById('receiver-camera-select').addEventListener('change', (e) => {
+                    if (receiver) receiver.start(e.target.value || undefined).catch(() => {});
+                });
+
+                // Locally stored images have to be resolved to object URLs before
+                // anything paints, or a `local:` wallpaper renders as a blank
+                // screen on the first frame after a reload. ready() never rejects —
+                // if IndexedDB is unavailable it resolves false and the plain-URL
+                // wallpapers still work.
+                ImageStore.ready().then(() => {
+                    renderWpChoices();
+                    const allWps = getWps();
+                    const lastSelectedUrl = localStorage.getItem('lockscreenLastSelectedWp');
+                    let wpToLoad = allWps.find(w => w.url === lastSelectedUrl);
+                    if (!wpToLoad) {
+                        wpToLoad = allWps[0] || initialWallpaper;
+                    }
+                    setWp(wpToLoad);
+                    if (window.renderCurrentGif) window.renderCurrentGif();
+                    collectImageGarbage();
+                });
 
                 document.addEventListener('keydown', (e) => {
                     if (document.getElementById('note-widget').classList.contains('edit-mode')) {
@@ -2709,21 +2972,6 @@
                             exitNoteEditMode();
                         }
                         return;
-                    }
-                    if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
-                    if (!getStockFlashState()) return;
-                    
-                    let isUp = null;
-                    if (e.key === 'ArrowUp') isUp = true;
-                    if (e.key === 'ArrowDown') isUp = false;
-                    
-                    if (isUp !== null) {
-                        e.preventDefault();
-                        const symbols = getStockSymbols();
-                        if (symbols.length === 0) return;
-                        const symbol = symbols[stockFlashIndex];
-                        const isSuper = e.shiftKey;
-                        triggerStockFlashEffect(isUp, isSuper, symbol);
                     }
                 });
             }
