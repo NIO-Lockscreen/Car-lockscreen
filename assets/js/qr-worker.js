@@ -7,8 +7,15 @@
  * frames when every worker is busy, which is free — the fountain layer does not
  * care which frames arrive, only how many distinct ones.
  */
-/* global importScripts, jsQR */
-importScripts('../vendor/qr-vendor.min.js');
+/*
+ * This file is not loaded directly as a worker entry point. makeDecodeWorker()
+ * in optical-ui.js builds a tiny blob shim that importScripts() the vendor
+ * bundle and then this file, both by absolute URL — the only construction that
+ * a file:// page is allowed to make. So `jsQR` is already defined by the time
+ * this runs, and a relative importScripts() here would resolve against the blob
+ * URL and fail.
+ */
+/* global jsQR */
 
 self.onmessage = function (e) {
     const data = e.data;

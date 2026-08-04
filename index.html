@@ -594,6 +594,12 @@
             <button id="receiver-pairing-btn" class="optical-btn secondary">
                 <svg class="icon" aria-hidden="true"><use href="#i-qrcode"/></svg>Open on phone
             </button>
+            <!-- Straight past the optical link: if the picture is already on this
+                 device (USB, SD card, a download) there is nothing to transmit. -->
+            <button id="receiver-file-btn" class="optical-btn secondary">
+                <svg class="icon" aria-hidden="true"><use href="#i-image"/></svg>Pick a local file
+            </button>
+            <input type="file" id="receiver-file-input" accept="image/*" style="display: none;">
             <button id="receiver-cancel-btn" class="optical-btn secondary">
                 <svg class="icon" aria-hidden="true"><use href="#i-xmark"/></svg>Cancel
             </button>
@@ -602,7 +608,7 @@
              open the sender; the image itself never goes near a network. -->
         <div id="receiver-pairing" class="hidden">
             <canvas id="receiver-pairing-canvas"></canvas>
-            <p class="hint">Scan to open the sender on your phone.</p>
+            <p class="hint" id="receiver-pairing-note">Scan to open the sender on your phone.</p>
             <code id="receiver-pairing-url"></code>
         </div>
     </div></div>
@@ -2797,6 +2803,7 @@
                  */
                 let receiver = null;
                 let receiverStallTimer = null;
+                let receiverMode = 'wallpaper';
 
                 window.startPolling = (session, type = 'wallpaper') => {
                     const titleElem = document.getElementById('receiver-title');
@@ -2813,6 +2820,7 @@
                     };
 
                     stopReceiver();
+                    receiverMode = type;
                     qrModal.style.display = 'flex';
                     titleElem.textContent = type === 'gif'
                         ? 'Point the camera at your phone (GIF)'
@@ -2823,12 +2831,28 @@
 
                     // Pairing code: this page's own address, so the phone can open
                     // the sender. Carries no image data.
+                    //
+                    // A file:// path is meaningless on another device, so rather
+                    // than print a code that cannot work, say what to do instead.
+                    const pairingCanvas = document.getElementById('receiver-pairing-canvas');
+                    const pairingUrlElem = document.getElementById('receiver-pairing-url');
+                    const pairingNote = document.getElementById('receiver-pairing-note');
+                    const servable = location.protocol === 'http:' || location.protocol === 'https:';
                     const pairingUrl = `${window.location.href.split('?')[0]}?upload=true`;
-                    document.getElementById('receiver-pairing-url').textContent = pairingUrl;
                     try {
-                        OpticalUI.renderTextQr(
-                            document.getElementById('receiver-pairing-canvas'), pairingUrl, 360
-                        );
+                        if (servable) {
+                            pairingCanvas.classList.remove('hidden');
+                            pairingUrlElem.textContent = pairingUrl;
+                            pairingNote.textContent = 'Scan to open the sender on your phone.';
+                            OpticalUI.renderTextQr(pairingCanvas, pairingUrl, 360);
+                        } else {
+                            pairingCanvas.classList.add('hidden');
+                            pairingUrlElem.textContent = '';
+                            pairingNote.textContent =
+                                'This page is open from a local file, so there is no address ' +
+                                'to share. On the phone, open any hosted copy of this page and ' +
+                                'add ?upload=true — or use "Pick a local file" instead.';
+                        }
                     } catch (err) {
                         console.warn('Could not render the pairing code.', err);
                     }
@@ -2857,21 +2881,7 @@
                             statusElem.textContent = 'Received — saving…';
                             barElem.style.width = '100%';
                             const blob = new Blob([file.bytes], { type: file.type });
-                            ImageStore.put(blob, file.name, file.type)
-                                .then(ref => {
-                                    stopReceiver();
-                                    qrModal.style.display = 'none';
-                                    if (type === 'gif') {
-                                        window.addGif(ref);
-                                        return;
-                                    }
-                                    const newWp = { url: ref, position: 'center center' };
-                                    const wps = getWps();
-                                    if (!wps.some(w => w.url === newWp.url)) { wps.push(newWp); saveWps(wps); }
-                                    setWp(newWp);
-                                    localStorage.setItem('lockscreenLastSelectedWp', newWp.url);
-                                    renderWpChoices();
-                                })
+                            storeAndApply(blob, file.name, file.type, type)
                                 .catch(err => {
                                     statusElem.textContent = 'Could not save the image';
                                     setDetail(err.message, true);
@@ -2905,6 +2915,29 @@
                             'or drop the sender to 1465 B at 24 fps.');
                     }, 4000);
                 };
+
+
+                /**
+                 * Persist an image and put it to use — the common tail of both
+                 * arrival paths, the optical link and the local file picker.
+                 */
+                function storeAndApply(blob, name, mediaType, kind) {
+                    return ImageStore.put(blob, name, mediaType).then(ref => {
+                        stopReceiver();
+                        qrModal.style.display = 'none';
+                        if (kind === 'gif') {
+                            window.addGif(ref);
+                            return ref;
+                        }
+                        const newWp = { url: ref, position: 'center center' };
+                        const wps = getWps();
+                        if (!wps.some(w => w.url === newWp.url)) { wps.push(newWp); saveWps(wps); }
+                        setWp(newWp);
+                        localStorage.setItem('lockscreenLastSelectedWp', newWp.url);
+                        renderWpChoices();
+                        return ref;
+                    });
+                }
 
                 function stopReceiver() {
                     clearInterval(receiverStallTimer);
@@ -2945,6 +2978,40 @@
                 });
                 document.getElementById('receiver-camera-select').addEventListener('change', (e) => {
                     if (receiver) receiver.start(e.target.value || undefined).catch(() => {});
+                });
+
+                // Local file route. GIFs are stored as-is so they keep animating;
+                // everything else is downscaled, since a dashboard cannot show more
+                // than a screenful and the blob has to live in IndexedDB.
+                const receiverFileInput = document.getElementById('receiver-file-input');
+                document.getElementById('receiver-file-btn')
+                    .addEventListener('click', () => receiverFileInput.click());
+                receiverFileInput.addEventListener('change', (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    e.target.value = '';
+                    const statusElem = document.getElementById('receiver-status');
+                    const detailElem = document.getElementById('receiver-detail');
+                    // The GIF widget wants an actual GIF; anything else picked
+                    // there would land in the list and quietly not animate.
+                    if (receiverMode === 'gif' && file.type !== 'image/gif') {
+                        statusElem.textContent = 'That is not a GIF';
+                        detailElem.textContent = 'The GIF widget needs a .gif file.';
+                        detailElem.classList.add('error');
+                        return;
+                    }
+                    detailElem.textContent = '';
+                    detailElem.classList.remove('error');
+                    statusElem.textContent = 'Reading file…';
+                    OpticalUI.prepareImage(file, 2560, 0.9)
+                        .then(prepared => storeAndApply(
+                            new Blob([prepared.bytes], { type: prepared.type }),
+                            prepared.name, prepared.type, receiverMode))
+                        .catch(err => {
+                            statusElem.textContent = 'Could not read that file';
+                            detailElem.textContent = err.message;
+                            detailElem.classList.add('error');
+                        });
                 });
 
                 // Locally stored images have to be resolved to object URLs before

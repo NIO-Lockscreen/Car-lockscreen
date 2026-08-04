@@ -10,24 +10,46 @@ there is no relay, no account and no API key anywhere in the path.
 
 ## Running it
 
-Serve the directory over HTTP and open `index.html`:
+**No server required.** Opening `index.html` straight off disk works, camera
+included — Chrome treats `file://` as a secure context, so `getUserMedia`,
+IndexedDB, blob URLs and `localStorage` are all available. Copy the folder onto
+the device and open it.
+
+Serving over HTTP also works and changes nothing functionally:
 
 ```bash
-python3 -m http.server 8000
-# then open http://localhost:8000/
+python3 -m http.server 8000   # then open http://localhost:8000/
 ```
 
-It needs to be served rather than opened as a `file://` URL, because the QR
-decode runs in a Web Worker and the camera needs a secure context. For a real
-install, any static host works — or `localhost` / HTTPS on your own LAN, which
-is what the camera and the phone both require.
+The reason to serve it is the *phone*, not the car: a `file://` path on the car
+means nothing to another device, so the pairing code has no address to point at.
+Only the car needs a camera and therefore a secure context — the sender is just a
+file picker and a canvas, so plain HTTP on a LAN address is enough for the phone.
 
-## Sending an image from your phone
+The one `file://` wrinkle is handled internally: `new Worker('…/qr-worker.js')`
+is refused on an opaque origin, so the decode worker is constructed from a blob
+URL that pulls its sources in by absolute URL. Full worker performance either
+way, and no main-thread stutter.
 
-1. On the car screen, open **Settings → Wallpapers → Add from Phone**. The
-   camera view opens.
-2. Tap **Open on phone** and scan the pairing code — it carries this page's
-   address, nothing else. (Or just browse to the same URL with `?upload=true`.)
+## Getting an image onto the screen
+
+There are two routes, both offline. Open **Settings → Wallpapers → Add from
+Phone** on the car screen to reach either.
+
+### Already have the file on this device?
+
+Tap **Pick a local file**. USB stick, SD card, a download — anything the device's
+file picker can see goes straight into storage with no transfer at all. This is
+the shortest path and worth trying first.
+
+### Otherwise: send it optically from your phone
+
+1. The camera view is already open.
+2. Get the sender open on the phone. Tap **Open on phone** and scan the pairing
+   code — it carries this page's address and nothing else. If the car is running
+   from `file://` that address is meaningless to the phone, so instead point the
+   phone at any copy of this page (a static host, or the same folder served on
+   your LAN) with `?upload=true` on the end.
 3. On the phone, choose an image. It starts streaming as QR frames immediately.
 4. Hold the phone in front of the car's camera, filling the dashed frame. The
    progress bar tracks frames collected; the image lands as your wallpaper when

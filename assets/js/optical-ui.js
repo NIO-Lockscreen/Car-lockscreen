@@ -192,6 +192,36 @@
 
     const WORKER_COUNT = 2;
 
+    /**
+     * Build the QR decode worker.
+     *
+     * `new Worker('assets/js/qr-worker.js')` is refused outright when the page is
+     * opened as a file:// URL — the origin is "null", so the script counts as
+     * cross-origin and construction throws SecurityError. That matters, because
+     * everything else the receiver needs (camera, IndexedDB, blob URLs) does work
+     * from file://, and dropping to main-thread decoding costs ~50 ms per frame
+     * at 720p, which the dashboard feels.
+     *
+     * A worker built from a blob URL is allowed even on an opaque origin, and
+     * importScripts() from inside it can still reach absolute file:// URLs. So
+     * the blob is a two-line shim that pulls in the real sources by absolute URL.
+     * The same path works unchanged over http(s), so there is no branching here.
+     */
+    function makeDecodeWorker() {
+        const vendorUrl = new URL('assets/vendor/qr-vendor.min.js', document.baseURI).href;
+        const workerUrl = new URL('assets/js/qr-worker.js', document.baseURI).href;
+        const shim = 'importScripts(' +
+            JSON.stringify(vendorUrl) + ',' + JSON.stringify(workerUrl) + ');';
+        const blobUrl = URL.createObjectURL(new Blob([shim], { type: 'text/javascript' }));
+        try {
+            return new Worker(blobUrl);
+        } finally {
+            // The worker holds its own reference once constructed; releasing the
+            // URL here keeps a long session from leaking one per receiver start.
+            URL.revokeObjectURL(blobUrl);
+        }
+    }
+
     function OpticalReceiver(options) {
         this.video = options.video;
         this.onProgress = options.onProgress || function () {};
@@ -264,10 +294,11 @@
         for (let i = 0; i < WORKER_COUNT; i++) {
             let worker;
             try {
-                worker = new Worker('assets/js/qr-worker.js');
+                worker = makeDecodeWorker();
             } catch (err) {
-                // No worker (file:// origin, blocked, etc). Decoding then happens
-                // inline in pump(), which is slower but still functional.
+                // Last resort: decoding falls back to pump()'s inline path, which
+                // is slower but keeps the receiver working.
+                console.warn('QR decode worker unavailable; decoding on the main thread.', err);
                 break;
             }
             const slot = i;
@@ -279,6 +310,9 @@
             this.workers.push(worker);
             this.busy.push(false);
         }
+        // Surfaced for diagnostics: 0 here means decoding fell back to the main
+        // thread, which is the difference between smooth and visibly stuttering.
+        if (typeof window !== 'undefined') window.__lastWorkerCount = this.workers.length;
     };
 
     /**
