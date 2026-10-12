@@ -83,6 +83,38 @@
         #webcam-source-select { background-color: #333; color: white; border: 1px solid #555; border-radius: 5px; padding: 3px; max-width: 150px; }
         #webcam-stop-btn { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; padding: 0; line-height: 1; display: flex; align-items: center; }
 
+        /* Video Widget CSS (canvas-rendered video / YouTube iframe) */
+        #video-widget { top: 18%; left: 22%; width: 480px; height: 320px; min-width: 260px; min-height: 190px; padding: 0; resize: both; overflow: hidden; display: flex; flex-direction: column; background-color: #000; border: 1px solid var(--widget-bg); text-align: left; }
+        #video-header { flex: 0 0 auto; display: flex; align-items: center; gap: 8px; height: 38px; padding: 0 6px 0 12px; background: rgba(20,20,22,0.92); color: #fff; font-size: 0.85rem; text-shadow: none; transition: opacity 0.3s; }
+        #video-mode-label { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: 0.85; }
+        #video-header-actions { display: flex; gap: 2px; flex: 0 0 auto; }
+        #video-widget button { background: none; border: none; color: #fff; cursor: pointer; font-size: 1rem; width: 36px; height: 34px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; padding: 0; }
+        #video-widget button:active { background: rgba(255,255,255,0.18); }
+        #video-note { flex: 0 0 auto; background: rgba(255,193,7,0.14); color: #ffd866; font-size: 0.75rem; line-height: 1.3; padding: 5px 12px; text-shadow: none; cursor: pointer; }
+        #video-stage { position: relative; flex: 1 1 auto; min-height: 0; background: #000; overflow: hidden; }
+        #video-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+        #video-iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: #000; }
+        #video-widget:not(.mode-canvas) #video-canvas { display: none; }
+        #video-overlay { position: absolute; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 16px; text-align: center; background: rgba(0,0,0,0.45); color: #fff; text-shadow: none; }
+        #video-overlay.show { display: flex; }
+        #video-overlay.kind-play { cursor: pointer; }
+        #video-overlay-icon { font-size: 2.4rem; }
+        #video-overlay.kind-play #video-overlay-icon { width: 76px; height: 76px; border-radius: 50%; background: rgba(255,255,255,0.92); color: #111; display: flex; align-items: center; justify-content: center; font-size: 2rem; padding-left: 5px; }
+        #video-overlay.kind-error #video-overlay-icon { color: #ff6b6b; }
+        #video-overlay.kind-loading #video-overlay-icon { width: 42px; height: 42px; border-radius: 50%; border: 4px solid rgba(255,255,255,0.25); border-top-color: #fff; font-size: 0; animation: video-spin 0.9s linear infinite; }
+        #video-overlay-text { font-size: 0.95rem; max-width: 90%; }
+        @keyframes video-spin { to { transform: rotate(360deg); } }
+        #video-controls { flex: 0 0 auto; display: none; align-items: center; gap: 8px; height: 46px; padding: 0 10px; background: rgba(20,20,22,0.92); color: #fff; font-size: 0.8rem; text-shadow: none; transition: opacity 0.3s; }
+        #video-widget.mode-canvas #video-controls { display: flex; }
+        #video-time { flex: 0 0 auto; font-family: 'Roboto Mono', monospace; font-size: 0.75rem; opacity: 0.85; min-width: 84px; text-align: center; }
+        #video-seek { flex: 1 1 auto; min-width: 40px; height: 28px; accent-color: #0a84ff; }
+        #video-seek:disabled { opacity: 0.4; }
+        #video-volume { flex: 0 0 76px; width: 76px; height: 28px; accent-color: #0a84ff; }
+        #video-widget.is-full { position: fixed !important; inset: 0 !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important; max-width: none; border-radius: 0; border: none; z-index: 1000; resize: none; cursor: default; transform: none !important; }
+        #video-widget:-webkit-full-screen { width: 100vw !important; height: 100vh !important; }
+        #video-widget.mode-canvas.is-full:not(.show-ui) #video-header, #video-widget.mode-canvas.is-full:not(.show-ui) #video-controls { opacity: 0; pointer-events: none; }
+        #video-widget.mode-canvas.is-full.show-ui #video-stage, #video-widget.is-full { cursor: default; }
+
         /* NEW: Webcam Toggle Button */
         #webcam-toggle-btn {
             top: 80%;
@@ -324,7 +356,7 @@
         <div id="fullscreen-hint">Double press wallpaper for fullscreen</div>
         <div id="clock" class="draggable-item"><div id="hours">00</div><div id="minutes">00</div></div>
         <div id="youtube-music-btn" class="draggable-item app-icon"><a href="https://music.youtube.com/" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="50" fill="#FF0000"/><circle cx="50" cy="50" r="23" fill="none" stroke="white" stroke-width="4"/><polygon points="43,38 62,50 43,62" fill="white"/></svg></a></div>
-        <div id="youtube-btn" class="draggable-item app-icon"><a href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="50" fill="#FF0000"/><path d="M 35,29 A 10,10 0 0 0 25,39 V 61 A 10,10 0 0 0 35,71 H 65 A 10,10 0 0 0 75,61 V 39 A 10,10 0 0 0 65,29 Z" fill="white"/><polygon points="45,42 62,50 45,58" fill="#FF0000"/></svg></a></div>
+        <div id="youtube-btn" class="draggable-item app-icon" title="Scan a QR code to send a YouTube link from your phone"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="50" fill="#FF0000"/><path d="M 35,29 A 10,10 0 0 0 25,39 V 61 A 10,10 0 0 0 35,71 H 65 A 10,10 0 0 0 75,61 V 39 A 10,10 0 0 0 65,29 Z" fill="white"/><polygon points="45,42 62,50 45,58" fill="#FF0000"/></svg></div>
         
         <!-- Widgets -->
         <div id="stock-widget" class="draggable-item widget" title="Single-click to trigger effect | Double-click to edit"></div>
@@ -372,6 +404,31 @@
                 <button class="taxi-btn" id="taxi-history-btn" title="Trip history"><i class="fa-solid fa-clock-rotate-left"></i></button>
             </div>
             <div id="taxi-toast"></div>
+        </div>
+
+        <div id="video-widget" class="draggable-item widget hidden">
+            <div id="video-header">
+                <span id="video-mode-label">Video</span>
+                <div id="video-header-actions">
+                    <button id="video-newlink-btn" type="button" title="Send another link (QR)"><i class="fa-solid fa-qrcode"></i></button>
+                    <button id="video-fs-btn" type="button" title="Fullscreen"><i class="fa-solid fa-expand"></i></button>
+                    <button id="video-close-btn" type="button" title="Close"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+            </div>
+            <div id="video-note" class="hidden"></div>
+            <div id="video-stage">
+                <canvas id="video-canvas"></canvas>
+                <div id="video-overlay"><div id="video-overlay-icon"></div><div id="video-overlay-text"></div></div>
+            </div>
+            <div id="video-controls">
+                <button id="video-play-btn" type="button" title="Play / pause"><i class="fa-solid fa-play"></i></button>
+                <span id="video-time">0:00 / 0:00</span>
+                <input id="video-seek" type="range" min="0" max="1000" step="1" value="0" title="Seek">
+                <button id="video-mute-btn" type="button" title="Mute"><i class="fa-solid fa-volume-high"></i></button>
+                <input id="video-volume" type="range" min="0" max="1" step="0.05" value="1" title="Volume">
+            </div>
+            <!-- The browser decodes here; the visible picture is the canvas above. Hidden with display:none (the method confirmed to work on the car). -->
+            <video id="video-source" playsinline preload="metadata" style="display: none;"></video>
         </div>
 
         <div id="webcam-widget" class="draggable-item widget" title="Long-press feed to mirror | Dbl-click feed for pan/zoom">
@@ -530,8 +587,8 @@
             <button id="taxi-clear-history-btn"><i class="fa-solid fa-trash"></i> Clear all trips</button>
         </div>
     </div>
-    <div id="qr-modal"><div id="qr-modal-content"><h2>Scan with your phone</h2><div id="qr-code"></div><p>Scan to send an image URL from your phone.</p></div></div>
-    <div id="upload-view"><div id="phone-upload-container"><h2>Add Wallpaper from Phone</h2><label for="file-input" id="upload-label">Tap to Upload Image</label><input type="file" id="file-input" accept="image/*" style="display: none;"><p class="separator-text">... or ...</p><p>Paste an image URL below</p><input type="url" id="phone-url-input" placeholder="https://example.com/image.jpg"><button id="phone-url-submit">Use this URL</button><h2 id="upload-status"></h2></div></div>
+    <div id="qr-modal"><div id="qr-modal-content"><h2>Scan with your phone</h2><div id="qr-code"></div><p id="qr-modal-note">Scan to send an image URL from your phone.</p></div></div>
+    <div id="upload-view"><div id="phone-upload-container"><h2 id="upload-title">Add Wallpaper from Phone</h2><label for="file-input" id="upload-label">Tap to Upload Image</label><input type="file" id="file-input" accept="image/*" style="display: none;"><p class="separator-text">... or ...</p><p id="upload-hint">Paste an image URL below</p><input type="url" id="phone-url-input" placeholder="https://example.com/image.jpg"><button id="phone-url-submit">Use this URL</button><h2 id="upload-status"></h2></div></div>
     <div id="flash-top" class="flash-overlay"></div>
     <div id="flash-bottom" class="flash-overlay"></div>
     
@@ -545,6 +602,47 @@
             // session id, so anyone who knows a live session id could read/write it.
             const RELAY_TOPIC_PREFIX = 'nio-carlock-9f3a2b-';
             const relayTopic = (session) => `${RELAY_TOPIC_PREFIX}${session}`.replace(/[^a-zA-Z0-9_-]/g, '');
+            const newVideoSession = () => {
+                let rnd;
+                try { rnd = Array.from(crypto.getRandomValues(new Uint8Array(8)), b => b.toString(16).padStart(2, '0')).join(''); }
+                catch (e) { rnd = Math.random().toString(16).slice(2, 10) + Date.now().toString(16); }
+                return `video_session_${rnd}`;
+            };
+
+            // Classifies a pasted link. YouTube links -> { kind: 'youtube' } (can only be shown in YouTube's
+            // own iframe player). Anything else http(s) -> { kind: 'media' } (tried as a direct media file,
+            // which the canvas renderer can display). Shared by the phone page and the lockscreen.
+            function parseVideoSource(raw) {
+                let text = String(raw || '').trim();
+                if (!text) return { ok: false, error: 'Paste a link first.' };
+                if (text.length > 2000) return { ok: false, error: 'That link is too long.' };
+                if (!/^[a-z][a-z0-9+.-]*:/i.test(text)) text = 'https://' + text;
+                let u;
+                try { u = new URL(text); } catch (e) { return { ok: false, error: "That doesn't look like a link." }; }
+                if (u.protocol !== 'http:' && u.protocol !== 'https:') return { ok: false, error: 'Only http(s) links are supported.' };
+                const host = u.hostname.toLowerCase().replace(/^(www|m|music)\./, '');
+                const isYouTube = host === 'youtu.be' || host === 'youtube.com' || host === 'youtube-nocookie.com';
+                if (!isYouTube) return { ok: true, kind: 'media', url: u.href };
+
+                const ID = /^[A-Za-z0-9_-]{11}$/;
+                const parts = u.pathname.split('/').filter(Boolean);
+                let id = null;
+                if (host === 'youtu.be') id = parts[0] || null;
+                else if (parts[0] === 'watch') id = u.searchParams.get('v');
+                else if (['shorts', 'live', 'embed', 'v'].includes(parts[0])) id = parts[1] || null;
+                const list = u.searchParams.get('list');
+                const listOk = list && /^[A-Za-z0-9_-]{10,64}$/.test(list) ? list : null;
+                if (id && !ID.test(id)) return { ok: false, error: "That YouTube link has an invalid video id." };
+                if (!id && !listOk) return { ok: false, error: 'No video found in that YouTube link. Use a watch, share or Shorts link.' };
+                let start = 0;
+                const t = u.searchParams.get('t') || u.searchParams.get('start');
+                if (t) {
+                    const m = /^(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s?)?$/.exec(t);
+                    if (m) start = (+m[1] || 0) * 3600 + (+m[2] || 0) * 60 + (+m[3] || 0);
+                }
+                return { ok: true, kind: 'youtube', id, list: listOk, start, url: u.href };
+            }
+
             const lockScreen = document.getElementById('lock-screen');
             const clock = document.getElementById('clock');
             const qrModal = document.getElementById('qr-modal');
@@ -574,8 +672,20 @@
                 const urlSubmitBtn = document.getElementById('phone-url-submit');
                 const statusElem = document.getElementById('upload-status');
                 const uploadLabel = document.getElementById('upload-label');
+                const isVideoSession = urlParams.get('type') === 'video';
+                if (isVideoSession) {
+                    document.getElementById('upload-title').textContent = 'Send a Video Link';
+                    document.getElementById('upload-hint').textContent = 'Paste a YouTube link (or a direct video file URL) below';
+                    uploadLabel.style.display = 'none';
+                    document.querySelector('#phone-upload-container .separator-text').style.display = 'none';
+                    urlInput.type = 'text';
+                    urlInput.placeholder = 'https://youtu.be/...';
+                    urlInput.setAttribute('autocapitalize', 'none');
+                    urlInput.setAttribute('autocorrect', 'off');
+                    urlSubmitBtn.textContent = 'Play on car screen';
+                }
                 const sendUrlToLockscreen = (imageUrl) => {
-                    statusElem.textContent = 'Sending to PC...';
+                    statusElem.textContent = isVideoSession ? 'Sending to car...' : 'Sending to PC...';
                     fileInput.disabled = true; urlInput.disabled = true; urlSubmitBtn.disabled = true;
                     uploadLabel.style.backgroundColor = '#555';
                     fetch(`https://ntfy.sh/${relayTopic(session)}`, { method: 'POST', body: imageUrl })
@@ -583,7 +693,14 @@
                     .catch(e => { statusElem.textContent = `Error: ${e.message}`; fileInput.disabled = false; urlInput.disabled = false; urlSubmitBtn.disabled = false; uploadLabel.style.backgroundColor = '#34c759'; });
                 };
                 fileInput.addEventListener('change', (e) => { const file = e.target.files[0]; if (!file) return; statusElem.textContent = 'Uploading to ImgBB...'; const formData = new FormData(); formData.append('key', IMGBB_API_KEY); formData.append('image', file); fetch('https://api.imgbb.com/1/upload', { method: 'POST', body: formData }).then(response => response.json()).then(data => { if (data.success) { sendUrlToLockscreen(data.data.url); } else { throw new Error(data.error.message || 'ImgBB upload failed.'); } }).catch(error => { statusElem.textContent = `Error: ${error.message}`; }); });
-                urlSubmitBtn.addEventListener('click', () => { const imageUrl = urlInput.value.trim(); if (!imageUrl || !imageUrl.startsWith('http')) { statusElem.textContent = 'Please enter a valid image URL.'; return; } sendUrlToLockscreen(imageUrl); });
+                urlSubmitBtn.addEventListener('click', () => {
+                    if (isVideoSession) {
+                        const src = parseVideoSource(urlInput.value);
+                        if (!src.ok) { statusElem.textContent = src.error; return; }
+                        sendUrlToLockscreen(src.url);
+                        return;
+                    }
+                    const imageUrl = urlInput.value.trim(); if (!imageUrl || !imageUrl.startsWith('http')) { statusElem.textContent = 'Please enter a valid image URL.'; return; } sendUrlToLockscreen(imageUrl); });
             }
 
             function initializeLockscreen() {
@@ -2147,9 +2264,287 @@
                     }
                 })();
                 
+                // =================================================================
+                // VIDEO WIDGET
+                //  - Direct media URLs: a hidden <video> (display:none) decodes and plays; a visible <canvas>
+                //    receives each frame via drawImage in a requestAnimationFrame loop. This is the technique
+                //    confirmed to get past the car browser's video cover. Controls live outside the <video>.
+                //  - YouTube links: a cross-origin iframe has no accessible <video>, and drawImage() rejects
+                //    iframes, so these CANNOT be canvas-rendered here. They use YouTube's embedded player and
+                //    are labelled as such in the widget.
+                // =================================================================
+                (function setupVideoWidget() {
+                    const widget = document.getElementById('video-widget');
+                    const stage = document.getElementById('video-stage');
+                    const canvas = document.getElementById('video-canvas');
+                    const ctx = canvas.getContext('2d');
+                    const video = document.getElementById('video-source');
+                    const overlay = document.getElementById('video-overlay');
+                    const overlayIcon = document.getElementById('video-overlay-icon');
+                    const overlayText = document.getElementById('video-overlay-text');
+                    const modeLabel = document.getElementById('video-mode-label');
+                    const note = document.getElementById('video-note');
+                    const playBtn = document.getElementById('video-play-btn');
+                    const timeEl = document.getElementById('video-time');
+                    const seek = document.getElementById('video-seek');
+                    const muteBtn = document.getElementById('video-mute-btn');
+                    const volume = document.getElementById('video-volume');
+                    const fsBtn = document.getElementById('video-fs-btn');
+                    const LOAD_TIMEOUT_MS = 20000;
+                    const state = { mode: null, rafId: null, loadTimer: null, uiTimer: null, seeking: false, last: { t: -1, w: 0, h: 0 }, iframe: null, saveTimer: null };
+
+                    const fmt = (s) => {
+                        if (!isFinite(s) || s < 0) s = 0;
+                        const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = Math.floor(s % 60);
+                        return h ? `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}` : `${m}:${String(sec).padStart(2, '0')}`;
+                    };
+                    const setIcon = (btn, cls) => { btn.firstElementChild.className = `fa-solid ${cls}`; };
+
+                    // ---- overlay (loading / error / tap-to-play) ----
+                    function setOverlay(kind, text) {
+                        if (!kind) { overlay.className = ''; return; }
+                        overlay.className = `show kind-${kind}`;
+                        overlayText.textContent = text || '';
+                        overlayIcon.innerHTML = kind === 'play' ? '<i class="fa-solid fa-play"></i>' : kind === 'error' ? '<i class="fa-solid fa-triangle-exclamation"></i>' : '';
+                    }
+
+                    // ---- canvas renderer ----
+                    // Pixel size follows the on-screen size (not only CSS), so the picture stays sharp and fills the widget.
+                    function resizeCanvas() {
+                        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+                        const w = Math.max(1, Math.round(stage.clientWidth * dpr));
+                        const h = Math.max(1, Math.round(stage.clientHeight * dpr));
+                        if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; state.last.t = -1; }
+                    }
+                    function drawFrame() {
+                        state.rafId = requestAnimationFrame(drawFrame);
+                        if (video.readyState < 2) return; // no frame available yet
+                        const vw = video.videoWidth, vh = video.videoHeight;
+                        if (!vw || !vh) return;
+                        const cw = canvas.width, ch = canvas.height, t = video.currentTime;
+                        if (t === state.last.t && cw === state.last.w && ch === state.last.h) return; // nothing new to draw
+                        state.last = { t, w: cw, h: ch };
+                        const fit = Math.min(cw / vw, ch / vh); // preserve aspect ratio (letterbox)
+                        const dw = vw * fit, dh = vh * fit;
+                        ctx.fillStyle = '#000';
+                        ctx.fillRect(0, 0, cw, ch);
+                        ctx.drawImage(video, (cw - dw) / 2, (ch - dh) / 2, dw, dh);
+                    }
+                    function stopLoop() { if (state.rafId) cancelAnimationFrame(state.rafId); state.rafId = null; }
+                    function startLoop() { stopLoop(); state.last.t = -1; state.rafId = requestAnimationFrame(drawFrame); } // never two loops
+
+                    // ---- teardown: cancel loop, release media, drop iframe ----
+                    function teardown() {
+                        stopLoop();
+                        clearTimeout(state.loadTimer); clearTimeout(state.uiTimer);
+                        state.loadTimer = state.uiTimer = null; state.seeking = false;
+                        video.pause();
+                        video.removeAttribute('src');
+                        video.load(); // releases the network/decoder resources of the previous source
+                        if (state.iframe) { state.iframe.src = 'about:blank'; state.iframe.remove(); state.iframe = null; }
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        state.mode = null;
+                        widget.classList.remove('mode-canvas', 'mode-youtube', 'show-ui');
+                        note.classList.add('hidden');
+                        setOverlay(null);
+                        seek.value = 0; seek.disabled = false; timeEl.textContent = '0:00 / 0:00';
+                        setIcon(playBtn, 'fa-play');
+                    }
+
+                    // ---- playback (always from a user tap) ----
+                    function togglePlay() {
+                        if (state.mode !== 'canvas') return;
+                        if (!video.paused && !video.ended) { video.pause(); return; }
+                        if (video.ended) video.currentTime = 0;
+                        let p;
+                        try { p = video.play(); } catch (e) { p = Promise.reject(e); }
+                        if (p && p.catch) p.catch((err) => {
+                            if (err && err.name === 'AbortError') return; // interrupted by a new load / pause
+                            if (err && err.name === 'NotAllowedError') setOverlay('play', 'Playback was blocked by the browser. Tap to play.');
+                            else if (err && err.name === 'NotSupportedError') setOverlay('error', "This video can't be played (unsupported format or blocked URL).");
+                            else setOverlay('error', `Couldn't start playback${err && err.message ? ': ' + err.message : '.'}`);
+                        });
+                    }
+                    const MEDIA_ERRORS = {
+                        1: 'Loading was cancelled.',
+                        2: 'Network error while loading the video.',
+                        3: 'The video file is corrupt or uses an unsupported codec.',
+                        4: "This link isn't a playable video file (format unsupported, or the server blocked it). Direct .mp4 / .webm links work best."
+                    };
+                    function showMediaError() {
+                        clearTimeout(state.loadTimer);
+                        const code = video.error ? video.error.code : 0;
+                        setOverlay('error', MEDIA_ERRORS[code] || 'The video failed to load.');
+                    }
+
+                    video.addEventListener('loadedmetadata', () => {
+                        if (state.mode !== 'canvas') return;
+                        const live = !isFinite(video.duration);
+                        seek.disabled = live;
+                        timeEl.textContent = live ? 'LIVE' : `0:00 / ${fmt(video.duration)}`;
+                    });
+                    video.addEventListener('loadeddata', () => {
+                        if (state.mode !== 'canvas') return;
+                        clearTimeout(state.loadTimer);
+                        resizeCanvas();
+                        if (video.paused) setOverlay('play', ''); // ready: waiting for the user's tap
+                    });
+                    video.addEventListener('waiting', () => { if (state.mode === 'canvas' && !video.paused) setOverlay('loading', 'Buffering…'); });
+                    video.addEventListener('playing', () => { if (state.mode === 'canvas') { setOverlay(null); setIcon(playBtn, 'fa-pause'); showUi(); } });
+                    video.addEventListener('pause', () => { if (state.mode === 'canvas') { setIcon(playBtn, 'fa-play'); showUi(); } });
+                    video.addEventListener('ended', () => { if (state.mode === 'canvas') { setIcon(playBtn, 'fa-play'); setOverlay('play', 'Tap to replay'); } });
+                    video.addEventListener('error', () => { if (state.mode === 'canvas' && video.getAttribute('src')) showMediaError(); });
+                    video.addEventListener('timeupdate', () => {
+                        if (state.mode !== 'canvas' || !isFinite(video.duration)) return;
+                        timeEl.textContent = `${fmt(video.currentTime)} / ${fmt(video.duration)}`;
+                        if (!state.seeking) seek.value = video.duration ? Math.round((video.currentTime / video.duration) * 1000) : 0;
+                    });
+                    video.addEventListener('volumechange', () => {
+                        volume.value = video.muted ? 0 : video.volume;
+                        setIcon(muteBtn, video.muted || video.volume === 0 ? 'fa-volume-xmark' : video.volume < 0.5 ? 'fa-volume-low' : 'fa-volume-high');
+                        try { localStorage.setItem('lockscreenVideoVolume', String(video.volume)); } catch (e) { /* storage unavailable */ }
+                    });
+
+                    // ---- controls (all outside the hidden <video>) ----
+                    playBtn.addEventListener('click', togglePlay);
+                    overlay.addEventListener('click', () => { if (overlay.classList.contains('kind-play')) togglePlay(); });
+                    muteBtn.addEventListener('click', () => { video.muted = !video.muted; if (!video.muted && video.volume === 0) video.volume = 0.5; });
+                    volume.addEventListener('input', () => { const v = parseFloat(volume.value); video.volume = v; video.muted = v === 0; });
+                    ['pointerdown', 'touchstart', 'mousedown'].forEach(ev => seek.addEventListener(ev, () => { state.seeking = true; }, { passive: true }));
+                    ['pointerup', 'touchend', 'mouseup', 'change', 'blur'].forEach(ev => seek.addEventListener(ev, () => { state.seeking = false; }));
+                    seek.addEventListener('input', () => {
+                        if (state.mode !== 'canvas' || !isFinite(video.duration)) return;
+                        const target = (seek.value / 1000) * video.duration;
+                        timeEl.textContent = `${fmt(target)} / ${fmt(video.duration)}`;
+                        video.currentTime = target;
+                    });
+                    try { const v = parseFloat(localStorage.getItem('lockscreenVideoVolume')); if (!isNaN(v)) video.volume = Math.max(0, Math.min(1, v)); } catch (e) { /* storage unavailable */ }
+                    volume.value = video.volume;
+
+                    // ---- fullscreen (widget container, never the <video> itself, so the canvas stays what you see) ----
+                    const fsElement = () => document.fullscreenElement || document.webkitFullscreenElement || null;
+                    const isFull = () => fsElement() === widget || widget.classList.contains('maximized');
+                    function syncFull() {
+                        const full = isFull();
+                        widget.classList.toggle('is-full', full);
+                        setIcon(fsBtn, full ? 'fa-compress' : 'fa-expand');
+                        fsBtn.title = full ? 'Exit fullscreen' : 'Fullscreen';
+                        if (full) showUi();
+                        requestAnimationFrame(resizeCanvas);
+                    }
+                    function exitFull() {
+                        widget.classList.remove('maximized');
+                        if (fsElement() === widget) { const ex = document.exitFullscreen || document.webkitExitFullscreen; try { const p = ex.call(document); if (p && p.catch) p.catch(() => {}); } catch (e) { /* ignore */ } }
+                        syncFull();
+                    }
+                    function toggleFullscreen() {
+                        if (isFull()) { exitFull(); return; }
+                        const req = widget.requestFullscreen || widget.webkitRequestFullscreen;
+                        const fallback = () => { widget.classList.add('maximized'); syncFull(); }; // browsers without the Fullscreen API
+                        if (!req) { fallback(); return; }
+                        try { const p = req.call(widget); if (p && p.catch) p.catch(fallback); } catch (e) { fallback(); }
+                    }
+                    fsBtn.addEventListener('click', toggleFullscreen);
+                    document.addEventListener('fullscreenchange', syncFull);
+                    document.addEventListener('webkitfullscreenchange', syncFull);
+                    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && widget.classList.contains('maximized')) exitFull(); });
+
+                    // Controls auto-hide in fullscreen canvas mode; tap the picture to bring them back.
+                    function showUi() {
+                        widget.classList.add('show-ui');
+                        clearTimeout(state.uiTimer);
+                        if (state.mode === 'canvas' && !video.paused) state.uiTimer = setTimeout(() => widget.classList.remove('show-ui'), 3500);
+                    }
+                    stage.addEventListener('click', (e) => { if (!e.target.hasMoved) showUi(); });
+                    widget.addEventListener('mousemove', () => { if (widget.classList.contains('is-full')) showUi(); });
+
+                    // ---- opening / closing ----
+                    function keepOnScreen() {
+                        const maxL = Math.max(0, lockScreen.clientWidth - widget.offsetWidth), maxT = Math.max(0, lockScreen.clientHeight - widget.offsetHeight);
+                        widget.style.left = `${Math.min(Math.max(0, widget.offsetLeft), maxL)}px`;
+                        widget.style.top = `${Math.min(Math.max(0, widget.offsetTop), maxT)}px`;
+                    }
+                    function showError(text, label) {
+                        teardown();
+                        widget.classList.remove('hidden');
+                        modeLabel.textContent = label || 'Video';
+                        setOverlay('error', text);
+                        keepOnScreen();
+                    }
+                    function open(raw) {
+                        const src = parseVideoSource(raw);
+                        if (!src.ok) { showError(src.error); return; }
+                        teardown(); // changing source: cancel the old loop, release the old media
+                        widget.classList.remove('hidden');
+                        if (src.kind === 'youtube') openYouTube(src); else openMedia(src);
+                        keepOnScreen();
+                        syncFull();
+                    }
+                    function openMedia(src) {
+                        state.mode = 'canvas';
+                        widget.classList.add('mode-canvas');
+                        modeLabel.textContent = `Canvas player · ${new URL(src.url).hostname}`;
+                        setOverlay('loading', 'Loading…');
+                        resizeCanvas();
+                        startLoop();
+                        state.loadTimer = setTimeout(() => {
+                            if (video.readyState < 2) setOverlay('error', 'Timed out loading the video. Check the link, or try a direct .mp4 / .webm URL.');
+                        }, LOAD_TIMEOUT_MS);
+                        video.src = src.url; // no crossorigin attribute: the canvas becomes "tainted" (pixels unreadable) but still displays
+                        video.load();
+                    }
+                    function openYouTube(src) {
+                        state.mode = 'youtube';
+                        widget.classList.add('mode-youtube');
+                        modeLabel.textContent = 'YouTube · embedded player (not canvas-rendered)';
+                        note.textContent = "YouTube can't be drawn onto the canvas (it lives in a cross-origin iframe), so this uses YouTube's own player. If your car's video cover hides it, send a direct video file link (.mp4/.webm) instead. Tap to dismiss.";
+                        note.classList.remove('hidden');
+                        const embed = new URL(`https://www.youtube.com/embed/${src.id || 'videoseries'}`);
+                        if (src.list) embed.searchParams.set('list', src.list);
+                        if (src.start) embed.searchParams.set('start', String(src.start));
+                        embed.searchParams.set('rel', '0');
+                        embed.searchParams.set('playsinline', '1');
+                        const frame = document.createElement('iframe');
+                        frame.id = 'video-iframe';
+                        frame.title = 'YouTube video player';
+                        frame.setAttribute('allow', 'autoplay; encrypted-media; picture-in-picture; fullscreen');
+                        frame.setAttribute('allowfullscreen', '');
+                        frame.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
+                        frame.src = embed.href;
+                        stage.insertBefore(frame, overlay);
+                        state.iframe = frame;
+                    }
+                    function close() {
+                        if (isFull()) exitFull();
+                        teardown();
+                        widget.classList.add('hidden');
+                    }
+                    note.addEventListener('click', () => note.classList.add('hidden'));
+                    document.getElementById('video-close-btn').addEventListener('click', close);
+                    document.getElementById('video-newlink-btn').addEventListener('click', () => {
+                        if (isFull()) exitFull(); // the QR modal can't appear above a fullscreen element
+                        window.startPolling(newVideoSession(), 'video');
+                    });
+
+                    // Keep the canvas's pixel size in step with the widget (resize handle, fullscreen) and persist the size.
+                    if (window.ResizeObserver) {
+                        new ResizeObserver(() => {
+                            resizeCanvas();
+                            clearTimeout(state.saveTimer);
+                            state.saveTimer = setTimeout(() => {
+                                if (!widget.classList.contains('hidden') && !widget.classList.contains('is-full') && window.saveItemPositions) window.saveItemPositions();
+                            }, 800);
+                        }).observe(widget);
+                    } else {
+                        window.addEventListener('resize', resizeCanvas);
+                    }
+
+                    window.videoWidget = { open, close, teardown };
+                })();
+
                 (function setupBaseFeatures() {
                     const webcamToggleBtn = document.getElementById('webcam-toggle-btn');
-                    const DRAGGABLE_ELEMENT_IDS = ['clock', 'youtube-music-btn', 'youtube-btn', 'stock-widget', 'settings-btn', 'fun-stock-name-display', 'note-widget', 'music-widget', 'gif-widget', 'webcam-widget', 'webcam-toggle-btn', 'taxi-widget'];
+                    const DRAGGABLE_ELEMENT_IDS = ['clock', 'youtube-music-btn', 'youtube-btn', 'stock-widget', 'settings-btn', 'fun-stock-name-display', 'note-widget', 'music-widget', 'gif-widget', 'webcam-widget', 'webcam-toggle-btn', 'taxi-widget', 'video-widget'];
                     const WIDGETS = {
                         stock: { el: document.getElementById('stock-widget'), toggle: document.getElementById('toggle-stock-widget'), default: true },
                         note: { el: document.getElementById('note-widget'), toggle: document.getElementById('toggle-note-widget'), default: false },
@@ -2222,16 +2617,21 @@
                     
                     const savePos = () => {
                         const p = {};
+                        let prev = {};
+                        try { prev = JSON.parse(localStorage.getItem('lockscreenItemPositions_v5')) || {}; } catch (err) { prev = {}; }
                         DRAGGABLE_ELEMENT_IDS.forEach(id => {
                             const e = document.getElementById(id);
                             if (e) {
+                                // A closed video widget is display:none (offsets read 0) - keep its last saved spot instead.
+                                if (id === 'video-widget' && e.classList.contains('hidden')) { if (prev[id]) p[id] = prev[id]; return; }
                                 p[id] = { t: `${(e.offsetTop / lockScreen.clientHeight) * 100}%`, l: `${(e.offsetLeft / lockScreen.clientWidth) * 100}%` };
                                 if (id === 'clock') p[id].s = clockScale;
-                                if (id === 'note-widget' || id === 'gif-widget' || id === 'webcam-widget') { p[id].w = e.style.width; p[id].h = e.style.height; }
+                                if (id === 'note-widget' || id === 'gif-widget' || id === 'webcam-widget' || id === 'video-widget') { p[id].w = e.style.width; p[id].h = e.style.height; }
                             }
                         });
                         localStorage.setItem('lockscreenItemPositions_v5', JSON.stringify(p));
                     };
+                    window.saveItemPositions = savePos;
                     const loadPos = () => {
                         const p = JSON.parse(localStorage.getItem('lockscreenItemPositions_v5'));
                         if (p) {
@@ -2242,7 +2642,7 @@
                                     e.style.top = pos.t; e.style.left = pos.l;
                                     e.style.transform = (id === 'clock' || id === 'stock-widget') ? 'none' : e.style.transform;
                                     if (id === 'clock' && pos.s) applyClockScale(pos.s);
-                                    if (id === 'note-widget' || id === 'gif-widget' || id === 'webcam-widget') { e.style.width = pos.w || e.style.width; e.style.height = pos.h || e.style.height; }
+                                    if (id === 'note-widget' || id === 'gif-widget' || id === 'webcam-widget' || id === 'video-widget') { e.style.width = pos.w || e.style.width; e.style.height = pos.h || e.style.height; }
                                 }
                             });
                         }
@@ -2323,7 +2723,8 @@
                                 return;
                             }
                             if (el.isEditing) return;
-                            if (e.target.closest('#music-controls, #remove-gif-btn, #webcam-controls, #note-settings-btn, #webcam-portrait-btn, #taxi-controls')) return;
+                            if (el.id === 'video-widget' && el.classList.contains('is-full')) return; // no dragging while fullscreen
+                            if (e.target.closest('#music-controls, #remove-gif-btn, #webcam-controls, #note-settings-btn, #webcam-portrait-btn, #taxi-controls, #video-controls, #video-header-actions, #video-iframe')) return;
                             if (e.touches && e.touches.length === 2 && pinch) {
                                 isPinching = true;
                                 isD = false;
@@ -2641,8 +3042,9 @@
                     localStorage.removeItem('lockscreenLastGif');
                     window.radioPlayer.reset();
                     window.webcamPlayer.stop();
+                    window.videoWidget.close();
                     document.getElementById('gif-display').src = '';
-                    ['clock', 'youtube-music-btn', 'youtube-btn', 'stock-widget', 'settings-btn', 'fun-stock-name-display', 'note-widget', 'music-widget', 'gif-widget', 'webcam-widget', 'webcam-toggle-btn', 'taxi-widget'].forEach(id => {
+                    ['clock', 'youtube-music-btn', 'youtube-btn', 'stock-widget', 'settings-btn', 'fun-stock-name-display', 'note-widget', 'music-widget', 'gif-widget', 'webcam-widget', 'webcam-toggle-btn', 'taxi-widget', 'video-widget'].forEach(id => {
                         const el = document.getElementById(id);
                         if (el) el.style.cssText = '';
                     });
@@ -2656,8 +3058,11 @@
                     const uploadUrl = `${window.location.href.split('?')[0]}?upload=true&session=${session}`;
                     const qrCodeContainer = document.getElementById('qr-code');
                     qrCodeContainer.innerHTML = '';
+                    document.getElementById('qr-modal-note').textContent = type === 'video'
+                        ? 'Scan, then paste a YouTube link (or direct video URL) on your phone.'
+                        : 'Scan to send an image URL from your phone.';
                     qrModal.style.display = 'flex';
-                    new QRCode(qrCodeContainer, { text: uploadUrl, width: 200, height: 200 });
+                    new QRCode(qrCodeContainer, { text: type === 'video' ? `${uploadUrl}&type=video` : uploadUrl, width: 200, height: 200 });
 
                     pollingInterval = setInterval(() => {
                         // ntfy returns cached messages as newline-delimited JSON (one per line).
@@ -2679,6 +3084,8 @@
 
                                     if (type === 'gif') {
                                         window.addGif(newUrl);
+                                    } else if (type === 'video') {
+                                        window.videoWidget.open(newUrl);
                                     } else {
                                         const newWp = { url: newUrl, position: 'center center' };
                                         const wps = getWps();
@@ -2690,6 +3097,10 @@
                     }, 2500);
                 }
 
+                document.getElementById('youtube-btn').addEventListener('click', (e) => {
+                    if (e.target.hasMoved) return; // it was dragged, not tapped
+                    window.startPolling(newVideoSession(), 'video');
+                });
                 document.getElementById('qr-upload-btn').addEventListener('click', () => window.startPolling(`wallpaper_session_${Date.now()}`, 'wallpaper'));
                 qrModal.addEventListener('click', (e) => { if (e.target === qrModal) { qrModal.style.display = 'none'; clearInterval(pollingInterval); } });
                 
