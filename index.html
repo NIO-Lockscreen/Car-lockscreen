@@ -94,7 +94,9 @@
         #video-stage { position: relative; flex: 1 1 auto; min-height: 0; background: #000; overflow: hidden; }
         #video-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
         #video-iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: #000; }
-        #video-widget:not(.mode-canvas) #video-canvas { display: none; }
+        #video-widget:not(.mode-canvas):not(.capturing) #video-canvas { display: none; }
+        #video-widget.capturing #video-canvas { z-index: 2; pointer-events: none; } /* taps fall through to the YouTube player underneath */
+        #video-widget.capturing #video-iframe { z-index: 1; }
         #video-overlay { position: absolute; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 16px; text-align: center; background: rgba(0,0,0,0.45); color: #fff; text-shadow: none; }
         #video-overlay.show { display: flex; }
         #video-overlay.kind-play { cursor: pointer; }
@@ -410,6 +412,7 @@
             <div id="video-header">
                 <span id="video-mode-label">Video</span>
                 <div id="video-header-actions">
+                    <button id="video-capture-btn" class="hidden" type="button" title="Render on canvas (experimental)"><i class="fa-solid fa-film"></i></button>
                     <button id="video-newlink-btn" type="button" title="Send another link (QR)"><i class="fa-solid fa-qrcode"></i></button>
                     <button id="video-fs-btn" type="button" title="Fullscreen"><i class="fa-solid fa-expand"></i></button>
                     <button id="video-close-btn" type="button" title="Close"><i class="fa-solid fa-xmark"></i></button>
@@ -2290,8 +2293,9 @@
                     const muteBtn = document.getElementById('video-mute-btn');
                     const volume = document.getElementById('video-volume');
                     const fsBtn = document.getElementById('video-fs-btn');
+                    const captureBtn = document.getElementById('video-capture-btn');
                     const LOAD_TIMEOUT_MS = 20000;
-                    const state = { mode: null, rafId: null, loadTimer: null, uiTimer: null, seeking: false, last: { t: -1, w: 0, h: 0 }, iframe: null, saveTimer: null };
+                    const state = { mode: null, rafId: null, loadTimer: null, uiTimer: null, seeking: false, last: { t: -1, w: 0, h: 0 }, iframe: null, saveTimer: null, capture: null, prevMuted: false };
 
                     const fmt = (s) => {
                         if (!isFinite(s) || s < 0) s = 0;
@@ -2322,7 +2326,7 @@
                         const vw = video.videoWidth, vh = video.videoHeight;
                         if (!vw || !vh) return;
                         const cw = canvas.width, ch = canvas.height, t = video.currentTime;
-                        if (t === state.last.t && cw === state.last.w && ch === state.last.h) return; // nothing new to draw
+                        if (!video.srcObject && t === state.last.t && cw === state.last.w && ch === state.last.h) return; // nothing new to draw (live streams always redraw)
                         state.last = { t, w: cw, h: ch };
                         const fit = Math.min(cw / vw, ch / vh); // preserve aspect ratio (letterbox)
                         const dw = vw * fit, dh = vh * fit;
@@ -2338,13 +2342,15 @@
                         stopLoop();
                         clearTimeout(state.loadTimer); clearTimeout(state.uiTimer);
                         state.loadTimer = state.uiTimer = null; state.seeking = false;
+                        stopCapture();
                         video.pause();
                         video.removeAttribute('src');
                         video.load(); // releases the network/decoder resources of the previous source
                         if (state.iframe) { state.iframe.src = 'about:blank'; state.iframe.remove(); state.iframe = null; }
                         ctx.clearRect(0, 0, canvas.width, canvas.height);
                         state.mode = null;
-                        widget.classList.remove('mode-canvas', 'mode-youtube', 'show-ui');
+                        captureBtn.classList.add('hidden');
+                        widget.classList.remove('mode-canvas', 'mode-youtube', 'show-ui', 'capturing');
                         note.classList.add('hidden');
                         setOverlay(null);
                         seek.value = 0; seek.disabled = false; timeEl.textContent = '0:00 / 0:00';
@@ -2458,6 +2464,60 @@
                     stage.addEventListener('click', (e) => { if (!e.target.hasMoved) showUi(); });
                     widget.addEventListener('mousemove', () => { if (widget.classList.contains('is-full')) showUi(); });
 
+                    // ---- YouTube -> canvas via screen capture (experimental, opt-in) ----
+                    // The embed iframe stays YouTube's official player. With the user's permission, the browser captures
+                    // ONLY that iframe element (Element Capture) as a MediaStream; that stream feeds the hidden <video>,
+                    // and the usual canvas loop draws it. Audio keeps coming from the iframe itself.
+                    function stopCapture() {
+                        if (!state.capture) return;
+                        const cap = state.capture; state.capture = null;
+                        cap.getTracks().forEach(t => { t.onended = null; t.stop(); });
+                        video.pause();
+                        video.srcObject = null;
+                        video.muted = state.prevMuted;
+                        if (state.mode === 'youtube') { stopLoop(); ctx.clearRect(0, 0, canvas.width, canvas.height); }
+                        widget.classList.remove('capturing');
+                        captureBtn.title = 'Render on canvas (experimental)';
+                        setIcon(captureBtn, 'fa-film');
+                        if (state.mode === 'youtube') modeLabel.textContent = 'YouTube · embedded player (not canvas-rendered)';
+                    }
+                    async function startCapture() {
+                        if (state.mode !== 'youtube' || !state.iframe) return;
+                        if (state.capture) { stopCapture(); return; }
+                        const md = navigator.mediaDevices;
+                        if (!md || !md.getDisplayMedia || !(window.RestrictionTarget && window.RestrictionTarget.fromElement)) {
+                            setOverlay('error', "This browser can't capture a single element (needs Chrome 126+ with getDisplayMedia + Element Capture), so YouTube can't be canvas-rendered here.");
+                            setTimeout(() => { if (overlay.classList.contains('kind-error')) setOverlay(null); }, 6000);
+                            return;
+                        }
+                        let stream = null;
+                        try {
+                            const target = await window.RestrictionTarget.fromElement(state.iframe);
+                            stream = await md.getDisplayMedia({ video: true, audio: false, preferCurrentTab: true, selfBrowserSurface: 'include', surfaceSwitching: 'exclude' });
+                            await stream.getVideoTracks()[0].restrictTo(target); // only the player's pixels, never the canvas itself
+                        } catch (err) {
+                            if (stream) stream.getTracks().forEach(t => t.stop());
+                            const declined = err && (err.name === 'NotAllowedError' || err.name === 'AbortError');
+                            setOverlay('error', declined ? 'Capture was declined. Choose "This tab" when asked.' : `Capture failed: ${err && err.message ? err.message : err}`);
+                            setTimeout(() => { if (overlay.classList.contains('kind-error')) setOverlay(null); }, 6000);
+                            return;
+                        }
+                        if (state.mode !== 'youtube') { stream.getTracks().forEach(t => t.stop()); return; } // source changed while the prompt was open
+                        state.capture = stream;
+                        stream.getVideoTracks()[0].onended = () => stopCapture(); // user hit "Stop sharing"
+                        state.prevMuted = video.muted;
+                        video.muted = true; // the iframe already plays the sound
+                        video.srcObject = stream;
+                        try { await video.play(); } catch (err) { stopCapture(); setOverlay('error', `Couldn't start the captured video: ${err && err.message ? err.message : err}`); return; }
+                        widget.classList.add('capturing');
+                        captureBtn.title = 'Stop canvas rendering';
+                        setIcon(captureBtn, 'fa-circle-stop');
+                        modeLabel.textContent = 'YouTube · canvas-rendered via capture';
+                        resizeCanvas();
+                        startLoop();
+                    }
+                    captureBtn.addEventListener('click', startCapture);
+
                     // ---- opening / closing ----
                     function keepOnScreen() {
                         const maxL = Math.max(0, lockScreen.clientWidth - widget.offsetWidth), maxT = Math.max(0, lockScreen.clientHeight - widget.offsetHeight);
@@ -2497,7 +2557,8 @@
                         state.mode = 'youtube';
                         widget.classList.add('mode-youtube');
                         modeLabel.textContent = 'YouTube · embedded player (not canvas-rendered)';
-                        note.textContent = "YouTube can't be drawn onto the canvas (it lives in a cross-origin iframe), so this uses YouTube's own player. If your car's video cover hides it, send a direct video file link (.mp4/.webm) instead. Tap to dismiss.";
+                        note.textContent = "YouTube can't be drawn onto the canvas (it lives in a cross-origin iframe), so this uses YouTube's own player. If your car's video cover hides it, tap the film icon to try rendering it on the canvas, or send a direct video file link (.mp4/.webm). Tap to dismiss.";
+                        captureBtn.classList.remove('hidden');
                         note.classList.remove('hidden');
                         const embed = new URL(`https://www.youtube.com/embed/${src.id || 'videoseries'}`);
                         if (src.list) embed.searchParams.set('list', src.list);
