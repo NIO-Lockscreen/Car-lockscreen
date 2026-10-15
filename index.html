@@ -28,7 +28,7 @@
         #weather-info { display: flex; align-items: center; gap: 10px; user-select: none; padding: 10px 15px; border-radius: 12px; transition: background-color 0.2s; background-color: var(--widget-bg); }
         .draggable-item { position: absolute; user-select: none; cursor: grab; z-index: 10; } .draggable-item:active { cursor: grabbing; z-index: 11; }
         #clock { top: 30%; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: 'Oswald', sans-serif; font-weight: 700; color: #fff; filter: drop-shadow(0 0 20px rgba(0,0,0,0.5)); }
-        #hours, #minutes { font-size: clamp(6rem, 15vw, 12rem); line-height: 0.8; pointer-events: none; } #minutes { margin-top: -1.5rem; }
+        #hours, #minutes { font-size: min(clamp(6rem, 15vw, 12rem), 60vh); line-height: 0.8; pointer-events: none; } #minutes { margin-top: -1.5rem; }
         .app-icon { width: 70px; height: 70px; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.4)); transition: transform 0.2s ease; } .app-icon:active { transform: scale(1.1); }
         .app-icon svg { width: 100%; height: 100%; }
         #youtube-music-btn { top: 60%; left: calc(50% - 100px); } #youtube-btn { top: 60%; left: calc(50% + 30px); }
@@ -2564,7 +2564,9 @@
                     };
                     weatherLocationInput.addEventListener('change', () => { localStorage.setItem('lockscreenWeatherLocation', weatherLocationInput.value.trim()); fetchWeather(); });
                     const updateTime = () => { const n = new Date(); timeElems.h.textContent = String(n.getHours()).padStart(2, '0'); timeElems.m.textContent = String(n.getMinutes()).padStart(2, '0'); timeElems.d.textContent = n.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }); };
-                    const applyClockScale = (scale) => { const baseSizeVW = 15; const newSize = baseSizeVW * scale; timeElems.h.style.fontSize = `clamp(${newSize * 0.4}rem, ${newSize}vw, ${newSize * 0.8}rem)`; timeElems.m.style.fontSize = `clamp(${newSize * 0.4}rem, ${newSize}vw, ${newSize * 0.8}rem)`; clockScale = scale; };
+                    // Capped at 60vh: the size follows screen width, so on a wide, short screen an enlarged clock would
+                    // otherwise be taller than the screen and get pinned to the top.
+                    const applyClockScale = (scale) => { const baseSizeVW = 15; const newSize = baseSizeVW * scale; timeElems.h.style.fontSize = `min(clamp(${newSize * 0.4}rem, ${newSize}vw, ${newSize * 0.8}rem), 60vh)`; timeElems.m.style.fontSize = `min(clamp(${newSize * 0.4}rem, ${newSize}vw, ${newSize * 0.8}rem), 60vh)`; clockScale = scale; };
                     
                     const savePos = () => {
                         const p = {};
@@ -2615,6 +2617,18 @@
                         let isPinching = false, initialPinchDist, initialScale;
                         const pinch = PINCH_TARGETS[el.id];
                         const getDist = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+                        // The clock and stock widget start centred with translateX(-50%). On the first move, fold that
+                        // into left/top so the edge clamp works on where the element really is - otherwise it stops
+                        // half its width short of the right edge and can slide half off the left one.
+                        const foldCentering = () => {
+                            if (el.style.transform === 'none' || ['clock', 'stock-widget'].indexOf(el.id) === -1) return;
+                            const before = el.getBoundingClientRect();
+                            el.style.transform = 'none';
+                            const after = el.getBoundingClientRect();
+                            const dx = before.left - after.left, dy = before.top - after.top;
+                            el.style.left = `${el.offsetLeft + dx}px`; el.style.top = `${el.offsetTop + dy}px`;
+                            oX -= dx; oY -= dy;
+                        };
 
                         const mv = (e) => {
                             if (el.isEditing) return;
@@ -2627,6 +2641,7 @@
                             }
                             if (!isD) return; 
                             e.preventDefault(); 
+                            if (!hasMoved) foldCentering();
                             hasMoved = true;
                             
                             let cX, cY;
@@ -2999,7 +3014,7 @@
                         const el = document.getElementById(id);
                         if (el) el.style.cssText = '';
                     });
-                    const applyClockScale = (scale) => { clockScale = scale; const baseSizeVW = 15; const newSize = baseSizeVW * scale; document.getElementById('hours').style.fontSize = `clamp(${newSize * 0.4}rem, ${newSize}vw, ${newSize * 0.8}rem)`; document.getElementById('minutes').style.fontSize = `clamp(${newSize * 0.4}rem, ${newSize}vw, ${newSize * 0.8}rem)`; };
+                    const applyClockScale = (scale) => { clockScale = scale; const baseSizeVW = 15; const newSize = baseSizeVW * scale; document.getElementById('hours').style.fontSize = `min(clamp(${newSize * 0.4}rem, ${newSize}vw, ${newSize * 0.8}rem), 60vh)`; document.getElementById('minutes').style.fontSize = `min(clamp(${newSize * 0.4}rem, ${newSize}vw, ${newSize * 0.8}rem), 60vh)`; };
                     applyClockScale(1);
                     settingsMenu.classList.remove('visible');
                 });
