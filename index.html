@@ -98,6 +98,8 @@
         #video-widget:not(.mode-media) #video-source { display: none; }
         #video-overlay { position: absolute; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 16px; text-align: center; background: rgba(0,0,0,0.45); color: #fff; text-shadow: none; }
         #video-overlay.show { display: flex; }
+        #video-touch-shield { position: absolute; inset: 0; display: none; touch-action: none; }
+        #video-widget.mode-youtube:not(.is-full):not(.shield-off) #video-touch-shield { display: block; }
         #video-overlay.kind-play { cursor: pointer; }
         #video-overlay-icon { font-size: 2.4rem; }
         #video-overlay.kind-play #video-overlay-icon { width: 76px; height: 76px; border-radius: 50%; background: rgba(255,255,255,0.92); color: #111; display: flex; align-items: center; justify-content: center; font-size: 2rem; padding-left: 5px; }
@@ -190,7 +192,7 @@
         .hidden { display: none !important; }
         #qr-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); display: none; justify-content: center; align-items: center; z-index: 1001; }
         #qr-modal-content { background: #fff; padding: 25px; border-radius: 16px; text-align: center; color: #333; }
-        #qr-code { padding: 10px; background: white; margin-bottom: 15px; display: inline-block; } #qr-code img { display: block; margin: auto; }
+        #qr-code { padding: 10px; background: white; margin-bottom: 15px; display: inline-block; -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; } #qr-code img { display: block; margin: auto; }
         #upload-view { display: none; justify-content: center; align-items: center; width: 100%; height: 100%; padding: 20px; }
         #phone-upload-container { display: flex; flex-direction: column; width: 90%; max-width: 400px; gap: 10px; text-align: center; }
         #phone-upload-container h2 { color: #f2f2f7; }
@@ -434,6 +436,7 @@
             <div id="video-stage">
                 <video id="video-source" playsinline preload="metadata"></video>
                 <div id="video-overlay"><div id="video-overlay-icon"></div><div id="video-overlay-text"></div></div>
+                <div id="video-touch-shield"></div>
             </div>
             <div id="video-controls">
                 <button id="video-play-btn" type="button" title="Play / pause"><i class="fa-solid fa-play"></i></button>
@@ -2326,7 +2329,8 @@
                     const volume = document.getElementById('video-volume');
                     const fsBtn = document.getElementById('video-fs-btn');
                     const LOAD_TIMEOUT_MS = 20000;
-                    const state = { mode: null, loadTimer: null, uiTimer: null, seeking: false, iframe: null, saveTimer: null };
+                    const SHIELD_OFF_MS = 6000;
+                    const state = { mode: null, loadTimer: null, uiTimer: null, seeking: false, iframe: null, saveTimer: null, shieldTimer: null };
 
                     const fmt = (s) => {
                         if (!isFinite(s) || s < 0) s = 0;
@@ -2345,14 +2349,14 @@
 
                     // ---- teardown: release media, drop iframe ----
                     function teardown() {
-                        clearTimeout(state.loadTimer); clearTimeout(state.uiTimer);
-                        state.loadTimer = state.uiTimer = null; state.seeking = false;
+                        clearTimeout(state.loadTimer); clearTimeout(state.uiTimer); clearTimeout(state.shieldTimer);
+                        state.loadTimer = state.uiTimer = state.shieldTimer = null; state.seeking = false;
                         video.pause();
                         video.removeAttribute('src');
                         video.load(); // releases the network/decoder resources of the previous source
                         if (state.iframe) { state.iframe.src = 'about:blank'; state.iframe.remove(); state.iframe = null; }
                         state.mode = null;
-                        widget.classList.remove('mode-media', 'mode-youtube', 'show-ui');
+                        widget.classList.remove('mode-media', 'mode-youtube', 'show-ui', 'shield-off');
                         setOverlay(null);
                         seek.value = 0; seek.disabled = false; timeEl.textContent = '0:00 / 0:00';
                         setIcon(playBtn, 'fa-play');
@@ -2476,12 +2480,12 @@
                         setOverlay('error', text);
                         keepOnScreen();
                     }
-                    function open(raw) {
+                    function open(raw, opts = {}) {
                         const src = parseVideoSource(raw);
                         if (!src.ok) { showError(src.error); return; }
                         teardown(); // changing source: release the old media
                         widget.classList.remove('hidden');
-                        if (src.kind === 'youtube') openYouTube(src); else openMedia(src);
+                        if (src.kind === 'youtube') openYouTube(src, opts); else openMedia(src);
                         keepOnScreen();
                         syncFull();
                     }
@@ -2496,7 +2500,7 @@
                         video.src = src.url;
                         video.load();
                     }
-                    function openYouTube(src) {
+                    function openYouTube(src, opts = {}) {
                         state.mode = 'youtube';
                         widget.classList.add('mode-youtube');
                         modeLabel.textContent = 'YouTube';
@@ -2505,6 +2509,7 @@
                         if (src.start) embed.searchParams.set('start', String(src.start));
                         embed.searchParams.set('rel', '0');
                         embed.searchParams.set('playsinline', '1');
+                        if (opts.autoplay) embed.searchParams.set('autoplay', '1');
                         const frame = document.createElement('iframe');
                         frame.id = 'video-iframe';
                         frame.title = 'YouTube video player';
@@ -2526,6 +2531,26 @@
                         window.startPolling(newVideoSession(), 'video');
                     });
 
+                    // Touches on YouTube's player only ever reach YouTube, so in YouTube mode a see-through shield covers
+                    // it: two-finger pinches (resize) and drags (move) land on the page instead. A plain tap steps the
+                    // shield aside for a few seconds so the player's own buttons can be used. The tap is read from pointer
+                    // events: Chrome sends no click for a tap that follows a pinch.
+                    const shield = document.getElementById('video-touch-shield');
+                    let shieldTap = null;
+                    shield.addEventListener('pointerdown', (e) => {
+                        shieldTap = e.isPrimary ? { id: e.pointerId, x: e.clientX, y: e.clientY, t: Date.now() } : null; // a second finger: not a tap
+                    });
+                    shield.addEventListener('pointercancel', () => { shieldTap = null; });
+                    shield.addEventListener('pointerup', (e) => {
+                        if (!shieldTap || e.pointerId !== shieldTap.id) return;
+                        const isTap = Date.now() - shieldTap.t < 500 && Math.hypot(e.clientX - shieldTap.x, e.clientY - shieldTap.y) < 10;
+                        shieldTap = null;
+                        if (!isTap) return;
+                        widget.classList.add('shield-off');
+                        clearTimeout(state.shieldTimer);
+                        state.shieldTimer = setTimeout(() => widget.classList.remove('shield-off'), SHIELD_OFF_MS);
+                    });
+
                     // Persist the widget size after it is resized with the handle.
                     if (window.ResizeObserver) {
                         new ResizeObserver(() => {
@@ -2536,7 +2561,7 @@
                         }).observe(widget);
                     }
 
-                    window.videoWidget = { open, close, teardown };
+                    window.videoWidget = { open, close, teardown, keepOnScreen };
                 })();
 
                 (function setupBaseFeatures() {
@@ -2657,6 +2682,21 @@
                             onEnd: () => window.taxiMeter.setScale(window.taxiMeter.scale, true),
                             min: 0.6, max: 2.2
                         },
+                        // Width in px; the height follows, keeping the shape the widget had when the pinch started.
+                        'video-widget': (() => {
+                            const v = document.getElementById('video-widget');
+                            let ratio = 2 / 3;
+                            return {
+                                onStart: () => { ratio = v.offsetHeight / v.offsetWidth || ratio; },
+                                get: () => v.offsetWidth,
+                                set: (w) => {
+                                    w = Math.min(w, lockScreen.clientWidth, lockScreen.clientHeight / ratio); // never bigger than the screen
+                                    v.style.width = `${w}px`; v.style.height = `${w * ratio}px`;
+                                },
+                                onEnd: () => { window.videoWidget.keepOnScreen(); savePos(); },
+                                min: 260, max: 4000
+                            };
+                        })(),
                     };
 
                     const makeDraggable = (el) => {
@@ -2715,7 +2755,7 @@
                         
                         const stD = (e) => {
                             if (!isD && !isPinching) return;
-                            e.target.hasMoved = hasMoved;
+                            e.target.hasMoved = hasMoved || isPinching; // a pinch isn't a tap either
                             if (el.id === 'fun-stock-name-display' && el.classList.contains('visible')) { 
                                 stockNameFadeOutTimer = setTimeout(() => { el.classList.remove('visible'); }, 3000); 
                             }
@@ -2733,6 +2773,14 @@
                             document.removeEventListener('touchmove', mv);
                         };
                         
+                        // Adding the same listener twice is a no-op, so a pinch after a one-finger start doesn't double up.
+                        const listen = () => {
+                            document.addEventListener('mousemove', mv, { passive: false });
+                            document.addEventListener('touchmove', mv, { passive: false });
+                            document.addEventListener('mouseup', stD, { once: true });
+                            document.addEventListener('touchend', stD, { once: true });
+                        };
+
                         const sD_longPress = (e) => {
                             if (el.id === 'webcam-widget' && window.isWebcamPanZoomMode) {
                                 return;
@@ -2741,10 +2789,13 @@
                             if (el.id === 'video-widget' && el.classList.contains('is-full')) return; // no dragging while fullscreen
                             if (e.target.closest('#music-controls, #remove-gif-btn, #webcam-controls, #note-settings-btn, #webcam-portrait-btn, #taxi-controls, #video-controls, #video-header-actions, #video-iframe')) return;
                             if (e.touches && e.touches.length === 2 && pinch) {
+                                if (!isD) hasMoved = false;
                                 isPinching = true;
                                 isD = false;
                                 initialPinchDist = getDist(e.touches);
+                                if (pinch.onStart) pinch.onStart();
                                 initialScale = pinch.get();
+                                listen(); // both fingers can land in a single touchstart, with no one-finger start before it
                                 return;
                             }
                             
@@ -2767,10 +2818,7 @@
                                 clearTimeout(stockNameFadeOutTimer); 
                                 stockNameFadeOutTimer = null; 
                             }
-                            document.addEventListener('mousemove', mv, { passive: false });
-                            document.addEventListener('touchmove', mv, { passive: false });
-                            document.addEventListener('mouseup', stD, { once: true });
-                            document.addEventListener('touchend', stD, { once: true });
+                            listen();
                         };
                         
                         el.addEventListener('mousedown', sD_longPress);
@@ -3251,6 +3299,7 @@
                         ? 'Scan, then paste a YouTube link (or direct video URL) on your phone.'
                         : type === 'gif' ? 'Scan to send a GIF from your phone.' : 'Scan to send an image URL from your phone.';
                     qrModal.style.display = 'flex';
+                    qrModal.dataset.type = type;
                     new QRCode(qrCodeContainer, { text: type === 'video' || type === 'gif' ? `${uploadUrl}&type=${type}` : uploadUrl, width: 200, height: 200 });
 
                     pollingInterval = setInterval(() => {
@@ -3282,6 +3331,25 @@
                             }).catch(err => { console.log("Polling... waiting for data."); });
                     }, 2500);
                 }
+
+                // Easter egg: hold the YouTube QR code for a second and the car plays Rick Astley's
+                // "Never Gonna Give You Up" instead of waiting for a link from the phone.
+                const RICKROLL_URL = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+                const qrCodeEl = document.getElementById('qr-code');
+                let qrHoldTimer = null;
+                const cancelQrHold = () => { clearTimeout(qrHoldTimer); qrHoldTimer = null; };
+                qrCodeEl.addEventListener('pointerdown', () => {
+                    if (qrModal.dataset.type !== 'video') return;
+                    cancelQrHold();
+                    qrHoldTimer = setTimeout(() => {
+                        qrHoldTimer = null;
+                        clearInterval(pollingInterval); pollingInterval = null;
+                        qrModal.style.display = 'none';
+                        window.videoWidget.open(RICKROLL_URL, { autoplay: true });
+                    }, 1000);
+                });
+                ['pointerup', 'pointerleave', 'pointercancel'].forEach(t => qrCodeEl.addEventListener(t, cancelQrHold));
+                qrCodeEl.addEventListener('contextmenu', (e) => { if (qrModal.dataset.type === 'video') e.preventDefault(); }); // no "save image" menu on a long press
 
                 document.getElementById('youtube-btn').addEventListener('click', (e) => {
                     if (e.target.hasMoved) return; // it was dragged, not tapped
