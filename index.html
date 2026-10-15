@@ -698,6 +698,16 @@
                 const statusElem = document.getElementById('upload-status');
                 const uploadLabel = document.getElementById('upload-label');
                 const isVideoSession = urlParams.get('type') === 'video';
+                const isGifSession = urlParams.get('type') === 'gif';
+                // The car only accepts links ending in .gif for the GIF widget, so check that here instead of failing on the car.
+                const isGifLink = (url) => url.toLowerCase().endsWith('.gif');
+                if (isGifSession) {
+                    document.getElementById('upload-title').textContent = 'Add a GIF from Phone';
+                    uploadLabel.textContent = 'Tap to Upload a GIF';
+                    fileInput.accept = 'image/gif';
+                    document.getElementById('upload-hint').textContent = 'Paste a GIF link (ending in .gif) below';
+                    urlInput.placeholder = 'https://example.com/animation.gif';
+                }
                 if (isVideoSession) {
                     document.getElementById('upload-title').textContent = 'Send a Video Link';
                     document.getElementById('upload-hint').textContent = 'Paste a YouTube link (or a direct video file URL) below';
@@ -717,7 +727,7 @@
                     .then(r => { if (!r.ok) throw new Error('Failed to update PC.'); statusElem.textContent = 'Success! You can close this window.'; })
                     .catch(e => { statusElem.textContent = `Error: ${e.message}`; fileInput.disabled = false; urlInput.disabled = false; urlSubmitBtn.disabled = false; uploadLabel.style.backgroundColor = '#34c759'; });
                 };
-                fileInput.addEventListener('change', (e) => { const file = e.target.files[0]; if (!file) return; statusElem.textContent = 'Uploading to ImgBB...'; const formData = new FormData(); formData.append('key', IMGBB_API_KEY); formData.append('image', file); fetch('https://api.imgbb.com/1/upload', { method: 'POST', body: formData }).then(response => response.json()).then(data => { if (data.success) { sendUrlToLockscreen(data.data.url); } else { throw new Error(data.error.message || 'ImgBB upload failed.'); } }).catch(error => { statusElem.textContent = `Error: ${error.message}`; }); });
+                fileInput.addEventListener('change', (e) => { const file = e.target.files[0]; if (!file) return; if (isGifSession && file.type !== 'image/gif') { statusElem.textContent = 'That file is not a GIF. Pick a .gif file.'; return; } statusElem.textContent = 'Uploading to ImgBB...'; const formData = new FormData(); formData.append('key', IMGBB_API_KEY); formData.append('image', file); fetch('https://api.imgbb.com/1/upload', { method: 'POST', body: formData }).then(response => response.json()).then(data => { if (data.success) { sendUrlToLockscreen(data.data.url); } else { throw new Error(data.error.message || 'ImgBB upload failed.'); } }).catch(error => { statusElem.textContent = `Error: ${error.message}`; }); });
                 urlSubmitBtn.addEventListener('click', () => {
                     if (isVideoSession) {
                         const src = parseVideoSource(urlInput.value);
@@ -725,7 +735,9 @@
                         sendUrlToLockscreen(src.url);
                         return;
                     }
-                    const imageUrl = urlInput.value.trim(); if (!imageUrl || !imageUrl.startsWith('http')) { statusElem.textContent = 'Please enter a valid image URL.'; return; } sendUrlToLockscreen(imageUrl); });
+                    const imageUrl = urlInput.value.trim(); if (!imageUrl || !imageUrl.startsWith('http')) { statusElem.textContent = 'Please enter a valid image URL.'; return; }
+                    if (isGifSession && !isGifLink(imageUrl)) { statusElem.textContent = "That link isn't a GIF. Use a link that ends in .gif."; return; }
+                    sendUrlToLockscreen(imageUrl); });
             }
 
             function initializeLockscreen() {
@@ -3251,9 +3263,9 @@
                     qrCodeContainer.innerHTML = '';
                     document.getElementById('qr-modal-note').textContent = type === 'video'
                         ? 'Scan, then paste a YouTube link (or direct video URL) on your phone.'
-                        : 'Scan to send an image URL from your phone.';
+                        : type === 'gif' ? 'Scan to send a GIF from your phone.' : 'Scan to send an image URL from your phone.';
                     qrModal.style.display = 'flex';
-                    new QRCode(qrCodeContainer, { text: type === 'video' ? `${uploadUrl}&type=video` : uploadUrl, width: 200, height: 200 });
+                    new QRCode(qrCodeContainer, { text: type === 'video' || type === 'gif' ? `${uploadUrl}&type=${type}` : uploadUrl, width: 200, height: 200 });
 
                     pollingInterval = setInterval(() => {
                         // ntfy returns cached messages as newline-delimited JSON (one per line).
