@@ -6,7 +6,9 @@
     <title>Dynamic Lockscreen</title>
     <!-- MODIFIED: Favicons for Car Dash / Browser Tabs -->
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%232c2c2e'/%3E%3Ccircle cx='50' cy='50' r='30' fill='none' stroke='white' stroke-width='8'/%3E%3C/svg%3E">
-    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%232c2c2e'/%3E%3Ccircle cx='50' cy='50' r='30' fill='none' stroke='white' stroke-width='8'/%3E%3C/svg%3E">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <link rel="manifest" href="manifest.webmanifest">
+    <meta name="theme-color" content="#1a1a1a">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <style>
@@ -132,20 +134,36 @@
         #lock-screen.light-theme #music-artist { color: #555; }
         #settings-btn { top: 80%; left: 50px; }
         #settings-btn svg circle:nth-child(2) { stroke: var(--icon-stroke-color); }
-        #settings-menu, #stock-editor-menu, #note-editor-menu, #radio-menu, #gif-chooser-menu, #taxi-settings-menu, #taxi-history-menu { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); display: none; justify-content: center; align-items: center; z-index: 1000; opacity: 0; transition: opacity 0.3s ease; }
-        #settings-menu.visible, #stock-editor-menu.visible, #note-editor-menu.visible, #radio-menu.visible, #gif-chooser-menu.visible, #taxi-settings-menu.visible, #taxi-history-menu.visible { display: flex; opacity: 1; }
+        #settings-menu, #stock-editor-menu, #note-editor-menu, #radio-menu, #gif-chooser-menu, #media-browser-menu, #taxi-settings-menu, #taxi-history-menu { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); display: none; justify-content: center; align-items: center; z-index: 1000; opacity: 0; transition: opacity 0.3s ease; }
+        #settings-menu.visible, #stock-editor-menu.visible, #note-editor-menu.visible, #radio-menu.visible, #gif-chooser-menu.visible, #media-browser-menu.visible, #taxi-settings-menu.visible, #taxi-history-menu.visible { display: flex; opacity: 1; }
         .menu-content { background-color: #2c2c2e; padding: 30px; border-radius: 20px; width: 90%; max-width: 500px; color: #f2f2f7; text-align: left; position: relative; box-shadow: 0 5px 25px rgba(0,0,0,0.5); transform: scale(0.95); transition: transform 0.3s ease; }
         #radio-menu .menu-content, #gif-chooser-menu .menu-content { max-height: 80vh; overflow-y: auto; }
         #stock-editor-menu .menu-content { text-align: center; }
-        #settings-menu.visible .menu-content, #stock-editor-menu.visible .menu-content, #note-editor-menu.visible .menu-content, #radio-menu.visible .menu-content, #gif-chooser-menu.visible .menu-content, #taxi-settings-menu.visible .menu-content, #taxi-history-menu.visible .menu-content { transform: scale(1); }
+        #settings-menu.visible .menu-content, #stock-editor-menu.visible .menu-content, #note-editor-menu.visible .menu-content, #radio-menu.visible .menu-content, #gif-chooser-menu.visible .menu-content, #media-browser-menu.visible .menu-content, #taxi-settings-menu.visible .menu-content, #taxi-history-menu.visible .menu-content { transform: scale(1); }
         .menu-content h2 {text-align: center;}
-        #close-settings-btn, #close-stock-editor-btn, #close-note-editor-btn, #close-radio-btn, #close-gif-chooser-btn, #close-taxi-settings-btn, #close-taxi-history-btn { position: absolute; top: 10px; right: 15px; background: none; border: none; color: #aaa; font-size: 2rem; cursor: pointer; line-height: 1; z-index: 5; }
+        #close-settings-btn, #close-stock-editor-btn, #close-note-editor-btn, #close-radio-btn, #close-gif-chooser-btn, #close-media-browser-btn, #close-taxi-settings-btn, #close-taxi-history-btn { position: absolute; top: 10px; right: 15px; background: none; border: none; color: #aaa; font-size: 2rem; cursor: pointer; line-height: 1; z-index: 5; }
         #wallpaper-url-input, #stock-symbols-input, #weather-location-input, #font-select, #clock-color-input, #note-font-select, #note-font-size-input { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 10px; border: 1px solid #555; background-color: #3a3a3c; color: white; font-size: 1rem; outline: none; }
         #note-font-size-input { -moz-appearance: textfield; } #note-font-size-input::-webkit-outer-spin-button, #note-font-size-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
         #clock-color-input { padding: 5px; height: 50px; }
         #stock-symbols-input { margin: 10px 0; text-transform: uppercase; text-align: center; }
-        #save-stocks-btn, #qr-upload-btn, #reset-positions-btn, #add-new-gif-btn { background-color: #0a84ff; color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-size: 0.9em; margin-top: 10px; }
-        #add-new-gif-btn { width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        #save-stocks-btn, #qr-upload-btn, #browse-wallpapers-btn, #reset-positions-btn, #add-new-gif-btn, #browse-gifs-btn, #media-browser-search button, #media-browser-key button, #media-browser-more { background-color: #0a84ff; color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-size: 0.9em; margin-top: 10px; }
+        #add-new-gif-btn, #browse-gifs-btn { width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .wallpaper-actions { display: flex; gap: 8px; } .wallpaper-actions button { flex: 1; }
+        #media-browser-menu { z-index: 1001; }
+        #media-browser-menu .menu-content { max-width: 640px; max-height: 88vh; overflow-y: auto; }
+        #media-browser-search, #media-browser-key { display: flex; gap: 8px; margin-top: 10px; }
+        #media-browser-search button, #media-browser-key button { margin-top: 0; }
+        #media-browser-key { flex-wrap: wrap; } #media-browser-key p { width: 100%; color: #ccc; font-size: 0.9rem; line-height: 1.4; }
+        #media-browser-query, #media-browser-key-input { flex: 1; min-width: 0; padding: 12px; border-radius: 10px; border: 1px solid #555; background-color: #3a3a3c; color: white; font-size: 1rem; outline: none; }
+        #media-browser-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+        .browse-chip { background: #3a3a3c; color: #f2f2f7; border: 1px solid #555; border-radius: 999px; padding: 8px 14px; font-size: 0.9rem; cursor: pointer; }
+        .browse-chip.active { background: #0a84ff; border-color: #0a84ff; }
+        #media-browser-grid { display: grid; gap: 8px; }
+        .browse-tile { position: relative; width: 100%; padding: 0; border: 2px solid transparent; border-radius: 8px; overflow: hidden; background: #333; cursor: pointer; }
+        .browse-tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .browse-tile:hover, .browse-tile:focus-visible { border-color: #0a84ff; outline: none; }
+        #media-browser-status, #media-browser-credit { text-align: center; color: #8e8e93; font-size: 0.85rem; margin: 10px 0; }
+        #media-browser-more { width: 100%; }
         #reset-positions-btn { background-color: #e74c3c; width: 100%; }
         .settings-section { margin-top: 25px; border-top: 1px solid #444; padding-top: 20px; }
         .settings-section:first-child { margin-top: 0; border-top: none; padding-top: 0; }
@@ -486,9 +504,9 @@
             <div id="wallpaper-section">
                 <div class="settings-section">
                     <h3>Wallpaper</h3>
-                    <p>Paste an image URL below or add from phone.</p>
+                    <p>Paste an image URL below, browse free photos, or add from phone.</p>
                     <input type="text" id="wallpaper-url-input" placeholder="https://example.com/image.jpg">
-                    <button id="qr-upload-btn">Add from Phone</button>
+                    <div class="wallpaper-actions"><button id="browse-wallpapers-btn"><i class="fa-solid fa-magnifying-glass"></i> Browse</button><button id="qr-upload-btn">Add from Phone</button></div>
                     <h4>Your Wallpapers</h4>
                     <div id="wallpaper-choices"></div>
                 </div>
@@ -507,7 +525,20 @@
     <div id="stock-editor-menu"><div class="menu-content"><button id="close-stock-editor-btn">×</button><h2>Edit Stock Symbols</h2><p>Enter up to 7 stock symbols, separated by commas.</p><input type="text" id="stock-symbols-input" placeholder="TSLA, GOOGL, AKBA..."><div class="stock-flash-toggle"><label for="stock-flash-checkbox">Stock Flash 🎉</label><input type="checkbox" id="stock-flash-checkbox"></div><button id="save-stocks-btn">Save and Update</button></div></div>
     <div id="note-editor-menu"><div class="menu-content"><button id="close-note-editor-btn">×</button><h2>Edit Note Style</h2><div class="settings-section"><label for="note-font-select">Font Family</label><select id="note-font-select"><option value="'Roboto', sans-serif">Roboto (Default)</option><option value="'Lora', serif">Lora</option><option value="'Inter', sans-serif">Inter</option><option value="'Source Code Pro', monospace">Source Code Pro</option></select></div><div class="settings-section"><label for="note-font-size-input">Font Size (px)</label><input type="text" id="note-font-size-input" inputmode="numeric" pattern="[0-9]*" value="16"></div></div></div>
     <div id="radio-menu"><div class="menu-content"><button id="close-radio-btn">×</button><h2>Select a Radio Station</h2><div id="radio-channel-list"></div></div></div>
-    <div id="gif-chooser-menu"><div class="menu-content"><button id="close-gif-chooser-btn">×</button><h2>Choose a GIF</h2><div id="gif-choices"></div><button id="add-new-gif-btn"><i class="fa-solid fa-plus"></i> Add New GIF</button></div></div>
+    <div id="gif-chooser-menu"><div class="menu-content"><button id="close-gif-chooser-btn">×</button><h2>Choose a GIF</h2><div id="gif-choices"></div><button id="browse-gifs-btn"><i class="fa-solid fa-magnifying-glass"></i> Browse GIFs</button><button id="add-new-gif-btn"><i class="fa-solid fa-plus"></i> Add from Phone</button></div></div>
+    <div id="media-browser-menu">
+        <div class="menu-content">
+            <button id="close-media-browser-btn">×</button>
+            <h2 id="media-browser-title">Browse</h2>
+            <form id="media-browser-search" class="hidden"><input type="search" id="media-browser-query" maxlength="50" enterkeyhint="search" autocomplete="off"><button type="submit" title="Search"><i class="fa-solid fa-magnifying-glass"></i></button></form>
+            <div id="media-browser-chips"></div>
+            <form id="media-browser-key" class="hidden"><p id="media-browser-key-msg"></p><input type="text" id="media-browser-key-input" placeholder="Paste your GIPHY API key" autocomplete="off" autocapitalize="none" spellcheck="false"><button type="submit">Save key</button></form>
+            <div id="media-browser-grid"></div>
+            <p id="media-browser-status"></p>
+            <button id="media-browser-more" class="hidden">Load more</button>
+            <p id="media-browser-credit"></p>
+        </div>
+    </div>
     <div id="taxi-settings-menu">
         <div class="menu-content">
             <button id="close-taxi-settings-btn">×</button>
@@ -700,6 +731,10 @@
             }
 
             function initializeLockscreen() {
+                // Offline support and "install as app" (sw.js). Service workers only run over http(s), not from a file.
+                if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+                    navigator.serviceWorker.register('sw.js').catch(err => console.warn('Offline support unavailable:', err));
+                }
                 const settingsMenu = document.getElementById('settings-menu');
                 const closeSettingsBtn = document.getElementById('close-settings-btn');
                 const fullscreenHint = document.getElementById('fullscreen-hint');
@@ -1070,7 +1105,7 @@
                         const gifs = getGifs();
                         gifChoices.innerHTML = '';
                         if (gifs.length === 0) {
-                            gifChoices.innerHTML = '<p style="text-align:center;color:#aaa;">No GIFs added yet. Click the widget on the lockscreen to add one.</p>';
+                            gifChoices.innerHTML = '<p style="text-align:center;color:#aaa;">No GIFs yet. Browse GIPHY or add one from your phone.</p>';
                         } else {
                             gifs.forEach(gifUrl => {
                                 const thumb = document.createElement('div');
@@ -1113,7 +1148,8 @@
                         window.startPolling(`gif_session_${Date.now()}`, 'gif');
                     });
 
-                    gifWidget.addEventListener('click', (e) => { if (!e.target.hasMoved && !gifWidget.classList.contains('has-gif')) window.startPolling(`gif_session_${Date.now()}`, 'gif'); });
+                    gifWidget.addEventListener('click', (e) => { if (!e.target.hasMoved && !gifWidget.classList.contains('has-gif')) openGifChooser(); });
+                    document.getElementById('browse-gifs-btn').addEventListener('click', () => window.mediaBrowser.open('gifs'));
                     gifWidget.addEventListener('dblclick', (e) => { if (!e.target.hasMoved) openGifChooser(); });
                     closeGifChooserBtn.addEventListener('click', () => gifChooserMenu.classList.remove('visible'));
                     window.addGif = addGif;
@@ -2567,6 +2603,7 @@
                     // Capped at 60vh: the size follows screen width, so on a wide, short screen an enlarged clock would
                     // otherwise be taller than the screen and get pinned to the top.
                     const applyClockScale = (scale) => { const baseSizeVW = 15; const newSize = baseSizeVW * scale; timeElems.h.style.fontSize = `min(clamp(${newSize * 0.4}rem, ${newSize}vw, ${newSize * 0.8}rem), 60vh)`; timeElems.m.style.fontSize = `min(clamp(${newSize * 0.4}rem, ${newSize}vw, ${newSize * 0.8}rem), 60vh)`; clockScale = scale; };
+                    window.applyClockScale = applyClockScale;
                     
                     const savePos = () => {
                         const p = {};
@@ -2657,8 +2694,10 @@
                             const sR = lockScreen;
                             const maxX = sR.clientWidth - el.offsetWidth;
                             const maxY = sR.clientHeight - el.offsetHeight;
-                            nX = Math.max(0, Math.min(nX, maxX));
-                            nY = Math.max(0, Math.min(nY, maxY));
+                            // A widget bigger than the screen gets the overflow range instead of being pinned at 0,
+                            // so its far side (and resize handle) can still be brought into view.
+                            nX = Math.max(Math.min(0, maxX), Math.min(nX, Math.max(0, maxX)));
+                            nY = Math.max(Math.min(0, maxY), Math.min(nY, Math.max(0, maxY)));
                             el.style.left = `${nX}px`; 
                             el.style.top = `${nY}px`;
                             if(['clock', 'stock-widget'].indexOf(el.id) === -1) el.style.transform = 'none';
@@ -2797,6 +2836,27 @@
 
                 const getWps = () => JSON.parse(localStorage.getItem('lockscreenWallpapers_v2')) || [initialWallpaper];
                 const saveWps = (wps) => localStorage.setItem('lockscreenWallpapers_v2', JSON.stringify(wps));
+                // Offline: keep the saved wallpapers (and the one showing) in the cache sw.js serves images from.
+                // Runs a few seconds after a change so the wallpaper the screen is already loading is in the HTTP cache.
+                const WALLPAPER_CACHE = 'lockscreen-wallpapers';
+                let wallpaperSync = Promise.resolve(), wallpaperSyncTimer;
+                const syncOfflineWallpapers = (currentUrl) => {
+                    if (!window.caches || !navigator.serviceWorker) return;
+                    clearTimeout(wallpaperSyncTimer);
+                    wallpaperSyncTimer = setTimeout(() => {
+                        const keep = new Set();
+                        [...getWps().map(w => w.url), currentUrl].forEach(u => { try { const href = new URL(u, location.href).href; if (/^https?:/.test(href)) keep.add(href); } catch (e) { /* not a URL */ } });
+                        wallpaperSync = wallpaperSync.then(() => caches.open(WALLPAPER_CACHE)).then(async (cache) => {
+                            for (const req of await cache.keys()) if (!keep.has(req.url)) await cache.delete(req);
+                            for (const url of keep) {
+                                if (await cache.match(url, { ignoreVary: true })) continue;
+                                // A CORS copy when the host allows it (the album-art canvas needs one), an opaque copy otherwise.
+                                const res = await fetch(url, { mode: 'cors' }).catch(() => fetch(url, { mode: 'no-cors' })).catch(() => null);
+                                if (res && (res.ok || res.type === 'opaque')) await cache.put(url, res).catch(() => {});
+                            }
+                        }).catch(err => console.warn('Could not cache wallpapers for offline use:', err));
+                    }, 3000);
+                };
                 const setWp = (wpObj) => {
                     exitPanningMode();
                     lockScreen.style.backgroundImage = `url('${wpObj.url}')`;
@@ -2813,13 +2873,170 @@
                         wallpaperReady = false;
                         console.error("Failed to load wallpaper image for media art.");
                     };
+                    syncOfflineWallpapers(wpObj.url);
+                };
+                const addWallpaper = (url) => {
+                    const wps = getWps();
+                    let wp = wps.find(w => w.url === url);
+                    if (!wp) { wp = { url, position: 'center center' }; wps.push(wp); saveWps(wps); }
+                    setWp(wp); localStorage.setItem('lockscreenLastSelectedWp', wp.url); renderWpChoices();
                 };
 
                 const renderWpChoices = () => { const cont = document.getElementById('wallpaper-choices'); cont.innerHTML = ''; getWps().forEach(wp => { const thumb = document.createElement('div'); thumb.className = 'wallpaper-thumbnail'; thumb.style.backgroundImage = `url('${wp.url}')`; const rmvBtn = document.createElement('span'); rmvBtn.className = 'remove-thumb-btn'; rmvBtn.title = 'Remove wallpaper'; rmvBtn.addEventListener('click', (e) => { e.stopPropagation(); const newWps = getWps().filter(w => w.url !== wp.url); saveWps(newWps); renderWpChoices(); }); thumb.appendChild(rmvBtn); thumb.addEventListener('click', () => { setWp(wp); localStorage.setItem('lockscreenLastSelectedWp', wp.url); settingsMenu.classList.remove('visible'); }); cont.appendChild(thumb); }); };
                 document.getElementById('wallpaper-url-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') { const url = e.target.value.trim(); if(url.toLowerCase().endsWith('.gif')) { alert('Please use the GIF widget to add GIFs.'); e.target.value = ''; return; } if (url.match(/\.(jpeg|jpg|gif|png|webp)$/i)) { const wps = getWps(); if (!wps.some(w => w.url === url)) { const newWp = { url: url, position: 'center center' }; wps.push(newWp); saveWps(wps); setWp(newWp); localStorage.setItem('lockscreenLastSelectedWp', newWp.url); renderWpChoices(); } e.target.value = ''; settingsMenu.classList.remove('visible'); } else { alert('Invalid URL.'); } } });
                 function exitPanningMode() { exitPanningModeCompletely(); }
 
-                const resetInactivityPrompts = () => { clearTimeout(inactivityTimer); unlockPrompt.classList.remove('visible'); fullscreenHint.classList.remove('visible'); inactivityTimer = setTimeout(() => { if (document.fullscreenElement) { unlockPrompt.classList.add('visible'); } else { fullscreenHint.classList.add('visible'); } }, 60000); };
+                // --- Online browser: free photos for wallpapers (Lorem Picsum, no key) and GIFs (GIPHY, free key) ---
+                window.mediaBrowser = (() => {
+                    const menu = document.getElementById('media-browser-menu');
+                    const titleEl = document.getElementById('media-browser-title');
+                    const searchForm = document.getElementById('media-browser-search');
+                    const queryInput = document.getElementById('media-browser-query');
+                    const chipsEl = document.getElementById('media-browser-chips');
+                    const keyForm = document.getElementById('media-browser-key');
+                    const keyMsg = document.getElementById('media-browser-key-msg');
+                    const keyInput = document.getElementById('media-browser-key-input');
+                    const grid = document.getElementById('media-browser-grid');
+                    const statusEl = document.getElementById('media-browser-status');
+                    const moreBtn = document.getElementById('media-browser-more');
+                    const creditEl = document.getElementById('media-browser-credit');
+                    const GIPHY_KEY = 'lockscreenGiphyKey';
+                    const fail = (message, extra) => Object.assign(new Error(message), extra);
+
+                    // Picsum serves any size: ask for screen resolution, keeping the photo's shape so it can still be panned.
+                    const picsumWallpaperUrl = (p) => {
+                        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+                        const scale = Math.min(1, Math.max(lockScreen.clientWidth * dpr / p.width, lockScreen.clientHeight * dpr / p.height));
+                        return `https://picsum.photos/id/${p.id}/${Math.round(p.width * scale)}/${Math.round(p.height * scale)}.jpg`;
+                    };
+
+                    const SOURCES = {
+                        wallpapers: {
+                            title: 'Browse Wallpapers',
+                            credit: 'Free photos from Unsplash, via Lorem Picsum',
+                            chips: [{ label: 'Shuffle', query: 'shuffle' }],
+                            tileMin: 150, tileRatio: '16 / 10', perPage: 30,
+                            fetchPage(page, query) {
+                                // About 1,000 photos, starting at a random page (the first pages are mostly laptops on desks).
+                                if (page === 0) this.firstPage = 1 + Math.floor(Math.random() * 30);
+                                return fetch(`https://picsum.photos/v2/list?page=${this.firstPage + page}&limit=${this.perPage}`)
+                                    .then(r => { if (!r.ok) throw fail(`Picsum error ${r.status}. Try again.`); return r.json(); })
+                                    .then(list => ({
+                                        hasMore: list.length === this.perPage,
+                                        items: list.map(p => ({ title: `Photo by ${p.author}`, thumb: `https://picsum.photos/id/${p.id}/320/200.jpg`, url: picsumWallpaperUrl(p) })),
+                                    }));
+                            },
+                            pick(item) { addWallpaper(item.url); settingsMenu.classList.remove('visible'); },
+                        },
+                        gifs: {
+                            title: 'Browse GIFs',
+                            credit: 'Powered by GIPHY',
+                            search: 'Search GIPHY',
+                            chips: ['Trending', 'Cars', 'Funny', 'Cats', 'Dogs', 'Dance', 'Thumbs up'].map((label, i) => ({ label, query: i ? label.toLowerCase() : '' })),
+                            tileMin: 100, tileRatio: '1', perPage: 24,
+                            keyPrompt: 'GIF browsing uses GIPHY, which needs a free API key. Create an app at developers.giphy.com (choose "API"), then paste its key here. It is only stored on this screen.',
+                            fetchPage(page, query) {
+                                const params = new URLSearchParams({ api_key: localStorage.getItem(GIPHY_KEY) || '', limit: this.perPage, offset: page * this.perPage, rating: 'g', bundle: 'messaging_non_clips' });
+                                if (query) params.set('q', query.slice(0, 50));
+                                return fetch(`https://api.giphy.com/v1/gifs/${query ? 'search' : 'trending'}?${params}`)
+                                    .then(r => {
+                                        if (r.status === 401 || r.status === 403) throw fail('GIPHY rejected that API key. Check it and paste it again.', { badKey: true });
+                                        if (r.status === 429) throw fail("GIPHY's hourly limit is used up (a free key allows 100 requests an hour). Try again later.");
+                                        if (!r.ok) throw fail(`GIPHY error ${r.status}. Try again.`);
+                                        return r.json();
+                                    })
+                                    .then(d => {
+                                        const items = (d.data || []).map(g => {
+                                            const im = g.images || {};
+                                            const thumb = im.fixed_width_small || im.fixed_width;
+                                            // The original when it is small enough for mobile data, else the 200px-tall version.
+                                            const full = im.original && Number(im.original.size) <= 2500000 ? im.original : (im.fixed_height || im.original);
+                                            return thumb && full && full.url ? { title: g.title || 'GIF', thumb: thumb.webp || thumb.url, url: full.url.split('?')[0] } : null;
+                                        }).filter(Boolean);
+                                        const p = d.pagination || {};
+                                        return { items, hasMore: (p.offset || 0) + (p.count || 0) < Math.min(p.total_count || 0, query ? 5000 : 500) };
+                                    });
+                            },
+                            pick(item) { window.addGif(item.url); document.getElementById('gif-chooser-menu').classList.remove('visible'); },
+                        },
+                    };
+
+                    let source = null, page = 0, query = '', busy = false, requestId = 0;
+                    const setStatus = (text) => { statusEl.textContent = text; };
+                    const showKeyForm = (message) => { keyMsg.textContent = message; keyInput.value = ''; keyForm.classList.remove('hidden'); setStatus(''); };
+
+                    const load = (fresh) => {
+                        if (fresh) { page = 0; grid.innerHTML = ''; busy = false; }
+                        if (busy) return;
+                        const id = ++requestId;
+                        moreBtn.classList.add('hidden');
+                        if (source.keyPrompt && !localStorage.getItem(GIPHY_KEY)) { showKeyForm(source.keyPrompt); return; }
+                        keyForm.classList.add('hidden');
+                        if (!navigator.onLine) { setStatus("You're offline. Browsing needs a connection."); return; }
+                        busy = true; setStatus('Loading...');
+                        source.fetchPage(page, query).then(({ items, hasMore }) => {
+                            if (id !== requestId) return;
+                            items.forEach(item => {
+                                const tile = document.createElement('button');
+                                tile.className = 'browse-tile';
+                                tile.style.aspectRatio = source.tileRatio;
+                                tile.title = item.title;
+                                const img = document.createElement('img');
+                                img.loading = 'lazy'; img.alt = item.title; img.src = item.thumb;
+                                tile.appendChild(img);
+                                tile.addEventListener('click', () => { source.pick(item); close(); });
+                                grid.appendChild(tile);
+                            });
+                            page++;
+                            setStatus(grid.children.length ? '' : 'Nothing found. Try another search.');
+                            moreBtn.textContent = 'Load more';
+                            moreBtn.classList.toggle('hidden', !hasMore);
+                        }).catch(err => {
+                            if (id !== requestId) return;
+                            if (err.badKey) { showKeyForm(err.message); return; }
+                            setStatus(err instanceof TypeError ? "Couldn't connect. Check the signal and try again." : err.message);
+                            moreBtn.textContent = 'Try again';
+                            moreBtn.classList.remove('hidden');
+                        }).finally(() => { if (id === requestId) busy = false; });
+                    };
+
+                    const renderChips = () => {
+                        chipsEl.innerHTML = '';
+                        source.chips.forEach(chip => {
+                            const b = document.createElement('button');
+                            b.className = 'browse-chip' + (chip.query === query ? ' active' : '');
+                            b.textContent = chip.label;
+                            b.addEventListener('click', () => { query = chip.query; queryInput.value = ''; renderChips(); load(true); });
+                            chipsEl.appendChild(b);
+                        });
+                    };
+
+                    const open = (name) => {
+                        source = SOURCES[name];
+                        query = source.chips[0].query;
+                        titleEl.textContent = source.title;
+                        creditEl.textContent = source.credit;
+                        searchForm.classList.toggle('hidden', !source.search);
+                        queryInput.placeholder = source.search || '';
+                        queryInput.value = '';
+                        grid.style.gridTemplateColumns = `repeat(auto-fill, minmax(${source.tileMin}px, 1fr))`;
+                        renderChips();
+                        menu.classList.add('visible');
+                        load(true);
+                    };
+                    // Clearing the grid stops the animated previews (and their downloads) once the browser is closed.
+                    const close = () => { requestId++; busy = false; grid.innerHTML = ''; menu.classList.remove('visible'); };
+
+                    searchForm.addEventListener('submit', (e) => { e.preventDefault(); query = queryInput.value.trim(); queryInput.blur(); renderChips(); load(true); });
+                    keyForm.addEventListener('submit', (e) => { e.preventDefault(); const key = keyInput.value.trim(); if (!key) return; localStorage.setItem(GIPHY_KEY, key); keyInput.blur(); load(true); });
+                    moreBtn.addEventListener('click', () => load(false));
+                    document.getElementById('close-media-browser-btn').addEventListener('click', close);
+                    menu.addEventListener('click', (e) => { if (e.target === menu) close(); });
+                    document.getElementById('browse-wallpapers-btn').addEventListener('click', () => open('wallpapers'));
+                    return { open };
+                })();
+
+                const resetInactivityPrompts = () => { clearTimeout(inactivityTimer); unlockPrompt.classList.remove('visible'); fullscreenHint.classList.remove('visible'); inactivityTimer = setTimeout(() => { if (document.fullscreenElement) { unlockPrompt.classList.add('visible'); } else if (!window.matchMedia('(display-mode: fullscreen)').matches) { fullscreenHint.classList.add('visible'); } }, 60000); };
                 ['mousemove', 'mousedown', 'keydown'].forEach(evt => document.addEventListener(evt, resetInactivityPrompts));
                 resetInactivityPrompts();
                 unlockPrompt.addEventListener('click', () => { if (document.fullscreenElement) document.exitFullscreen(); });
@@ -3014,8 +3231,7 @@
                         const el = document.getElementById(id);
                         if (el) el.style.cssText = '';
                     });
-                    const applyClockScale = (scale) => { clockScale = scale; const baseSizeVW = 15; const newSize = baseSizeVW * scale; document.getElementById('hours').style.fontSize = `min(clamp(${newSize * 0.4}rem, ${newSize}vw, ${newSize * 0.8}rem), 60vh)`; document.getElementById('minutes').style.fontSize = `min(clamp(${newSize * 0.4}rem, ${newSize}vw, ${newSize * 0.8}rem), 60vh)`; };
-                    applyClockScale(1);
+                    window.applyClockScale(1);
                     settingsMenu.classList.remove('visible');
                 });
 
@@ -3053,10 +3269,7 @@
                                     } else if (type === 'video') {
                                         window.videoWidget.open(newUrl);
                                     } else {
-                                        const newWp = { url: newUrl, position: 'center center' };
-                                        const wps = getWps();
-                                        if (!wps.some(w => w.url === newWp.url)) { wps.push(newWp); saveWps(wps); }
-                                        setWp(newWp); localStorage.setItem('lockscreenLastSelectedWp', newWp.url); renderWpChoices();
+                                        addWallpaper(newUrl);
                                     }
                                 }
                             }).catch(err => { console.log("Polling... waiting for data."); });
