@@ -2896,7 +2896,7 @@
                 document.getElementById('wallpaper-url-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') { const url = e.target.value.trim(); if(url.toLowerCase().endsWith('.gif')) { alert('Please use the GIF widget to add GIFs.'); e.target.value = ''; return; } if (url.match(/\.(jpeg|jpg|gif|png|webp)$/i)) { const wps = getWps(); if (!wps.some(w => w.url === url)) { const newWp = { url: url, position: 'center center' }; wps.push(newWp); saveWps(wps); setWp(newWp); localStorage.setItem('lockscreenLastSelectedWp', newWp.url); renderWpChoices(); } e.target.value = ''; settingsMenu.classList.remove('visible'); } else { alert('Invalid URL.'); } } });
                 function exitPanningMode() { exitPanningModeCompletely(); }
 
-                // --- Online browser: free photos for wallpapers (Lorem Picsum) and GIFs (Lemmy communities); no keys needed ---
+                // --- Online browser: free photos for wallpapers (Lorem Picsum, no key) and GIFs (GIPHY) ---
                 window.mediaBrowser = (() => {
                     const menu = document.getElementById('media-browser-menu');
                     const titleEl = document.getElementById('media-browser-title');
@@ -2916,24 +2916,9 @@
                         return `https://picsum.photos/id/${p.id}/${Math.round(p.width * scale)}/${Math.round(p.height * scale)}.jpg`;
                     };
 
-                    // GIFs people post and vote on in Lemmy's two biggest GIF communities (public API, no key).
-                    const LEMMY_GIF_COMMUNITIES = [{ instance: 'lemmy.world', community: 'gifs' }, { instance: 'lemmy.ca', community: 'gifs' }];
-                    // A Lemmy post -> a GIF tile, or null when it isn't an https .gif file or is marked NSFW. Lemmy's image
-                    // server (pictrs) and Imgur can send a small preview; other hosts get the full GIF, loaded only when scrolled to.
-                    const lemmyGif = ({ post, community }) => {
-                        if (!post || !post.url || post.nsfw || post.removed || post.deleted || (community && community.nsfw)) return null;
-                        let url;
-                        try { url = new URL(post.url); } catch (e) { return null; }
-                        if (url.protocol !== 'https:') return null;
-                        url.search = ''; url.hash = '';
-                        if (url.hostname === 'i.imgur.com') url.pathname = url.pathname.replace(/\.gifv$/i, '.gif');
-                        if (!/\.gif$/i.test(url.pathname)) return null;
-                        const full = url.href;
-                        let thumb = full;
-                        if (url.pathname.includes('/pictrs/image/')) thumb = `${full}?thumbnail=200&format=webp`;
-                        else if (url.hostname === 'i.imgur.com') thumb = full.replace(/\.gif$/i, 'm.jpg');
-                        return { title: post.name || 'GIF', url: full, thumb, fallback: full };
-                    };
+                    // GIPHY's free tier (about 100 requests an hour), lightly obfuscated so bots that scan public repos
+                    // for API keys skip it. It still ships to every browser that opens the page, so it is not a secret.
+                    const GIPHY_API_KEY = atob('c2VPaDhVNDdZSTVvY1lmdWhvcmxwQXhNa3RGYlJUVTA=').split('').reverse().join('');
 
                     const SOURCES = {
                         wallpapers: {
@@ -2955,30 +2940,32 @@
                         },
                         gifs: {
                             title: 'Browse GIFs',
-                            credit: 'GIFs shared by people in the Lemmy communities gifs@lemmy.world and gifs@lemmy.ca',
-                            search: 'Search GIFs',
-                            chips: [{ label: 'Hot', query: '' }, { label: 'Cats', query: 'cat' }, { label: 'Dogs', query: 'dog' }, { label: 'Cars', query: 'car' }],
-                            tileMin: 110, tileRatio: '1', perPage: 15,
-                            // Reddit and Imgur answer deleted files with a small "removed" picture instead of an error.
-                            isPlaceholder: (img) => (img.naturalWidth === 130 && img.naturalHeight === 60) || (img.naturalWidth === 161 && img.naturalHeight === 81),
+                            credit: 'Powered by GIPHY',
+                            search: 'Search GIPHY',
+                            chips: ['Trending', 'Cars', 'Funny', 'Cats', 'Dogs', 'Dance', 'Thumbs up'].map((label, i) => ({ label, query: i ? label.toLowerCase() : '' })),
+                            tileMin: 100, tileRatio: '1', perPage: 24,
                             fetchPage(page, query) {
-                                const requests = LEMMY_GIF_COMMUNITIES.map(({ instance, community }) => {
-                                    const params = new URLSearchParams({ community_name: community, limit: this.perPage, page: page + 1 });
-                                    if (query) { params.set('q', query); params.set('type_', 'Posts'); params.set('sort', 'TopAll'); } else params.set('sort', 'Hot');
-                                    return fetch(`https://${instance}/api/v3/${query ? 'search' : 'post/list'}?${params}`)
-                                        .then(r => { if (!r.ok) throw fail(r.status === 429 ? 'Too many requests. Wait a minute and try again.' : `${instance} error ${r.status}. Try again.`); return r.json(); })
-                                        .then(d => d.posts || []);
-                                });
-                                // One community being down still leaves the other's GIFs.
-                                return Promise.allSettled(requests).then(results => {
-                                    const lists = results.filter(r => r.status === 'fulfilled').map(r => r.value);
-                                    if (!lists.length) throw results[0].reason;
-                                    const seen = new Set(), items = [];
-                                    for (let i = 0; i < this.perPage; i++) {
-                                        lists.forEach(posts => { const item = posts[i] && lemmyGif(posts[i]); if (item && !seen.has(item.url)) { seen.add(item.url); items.push(item); } });
-                                    }
-                                    return { items, hasMore: lists.some(posts => posts.length === this.perPage) };
-                                });
+                                const params = new URLSearchParams({ api_key: GIPHY_API_KEY, limit: this.perPage, offset: page * this.perPage, rating: 'g', bundle: 'messaging_non_clips' });
+                                if (query) params.set('q', query.slice(0, 50));
+                                return fetch(`https://api.giphy.com/v1/gifs/${query ? 'search' : 'trending'}?${params}`)
+                                    .then(r => {
+                                        if (r.status === 429) throw fail("GIPHY's hourly limit is used up (the free key allows about 100 requests an hour). Try again later.");
+                                        if (r.status === 401 || r.status === 403) throw fail('GIPHY turned down the app\'s API key.');
+                                        if (!r.ok) throw fail(`GIPHY error ${r.status}. Try again.`);
+                                        return r.json();
+                                    })
+                                    .then(d => {
+                                        const items = (d.data || []).map(g => {
+                                            const im = g.images || {};
+                                            const thumb = im.fixed_width_small || im.fixed_width;
+                                            // The original when it is small enough for mobile data, else the 200px-tall version.
+                                            const full = im.original && Number(im.original.size) <= 2500000 ? im.original : (im.fixed_height || im.original);
+                                            if (!thumb || !full || !full.url) return null;
+                                            return { title: g.title || 'GIF', thumb: thumb.webp || thumb.url, fallback: thumb.url, url: full.url.split('?')[0] };
+                                        }).filter(Boolean);
+                                        const p = d.pagination || {};
+                                        return { items, hasMore: (p.offset || 0) + (p.count || 0) < Math.min(p.total_count || 0, query ? 5000 : 500) };
+                                    });
                             },
                             pick(item) { window.addGif(item.url); document.getElementById('gif-chooser-menu').classList.remove('visible'); },
                         },
@@ -3005,7 +2992,6 @@
                                 img.loading = 'lazy'; img.alt = item.title; img.src = item.thumb;
                                 // Preview refused -> try the full file; that refused too (dead link, hotlink block) -> drop the tile.
                                 img.onerror = () => { if (item.fallback && img.src !== item.fallback) img.src = item.fallback; else tile.remove(); };
-                                if (source.isPlaceholder) img.onload = () => { if (source.isPlaceholder(img)) tile.remove(); };
                                 tile.appendChild(img);
                                 tile.addEventListener('click', () => { source.pick(item); close(); });
                                 grid.appendChild(tile);
