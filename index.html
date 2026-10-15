@@ -146,15 +146,14 @@
         #note-font-size-input { -moz-appearance: textfield; } #note-font-size-input::-webkit-outer-spin-button, #note-font-size-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
         #clock-color-input { padding: 5px; height: 50px; }
         #stock-symbols-input { margin: 10px 0; text-transform: uppercase; text-align: center; }
-        #save-stocks-btn, #qr-upload-btn, #browse-wallpapers-btn, #reset-positions-btn, #add-new-gif-btn, #browse-gifs-btn, #media-browser-search button, #media-browser-key button, #media-browser-more { background-color: #0a84ff; color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-size: 0.9em; margin-top: 10px; }
+        #save-stocks-btn, #qr-upload-btn, #browse-wallpapers-btn, #reset-positions-btn, #add-new-gif-btn, #browse-gifs-btn, #media-browser-search button, #media-browser-more { background-color: #0a84ff; color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-size: 0.9em; margin-top: 10px; }
         #add-new-gif-btn, #browse-gifs-btn { width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; }
         .wallpaper-actions { display: flex; gap: 8px; } .wallpaper-actions button { flex: 1; }
         #media-browser-menu { z-index: 1001; }
         #media-browser-menu .menu-content { max-width: 640px; max-height: 88vh; overflow-y: auto; }
-        #media-browser-search, #media-browser-key { display: flex; gap: 8px; margin-top: 10px; }
-        #media-browser-search button, #media-browser-key button { margin-top: 0; }
-        #media-browser-key { flex-wrap: wrap; } #media-browser-key p { width: 100%; color: #ccc; font-size: 0.9rem; line-height: 1.4; }
-        #media-browser-query, #media-browser-key-input { flex: 1; min-width: 0; padding: 12px; border-radius: 10px; border: 1px solid #555; background-color: #3a3a3c; color: white; font-size: 1rem; outline: none; }
+        #media-browser-search { display: flex; gap: 8px; margin-top: 10px; }
+        #media-browser-search button { margin-top: 0; }
+        #media-browser-query { flex: 1; min-width: 0; padding: 12px; border-radius: 10px; border: 1px solid #555; background-color: #3a3a3c; color: white; font-size: 1rem; outline: none; }
         #media-browser-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
         .browse-chip { background: #3a3a3c; color: #f2f2f7; border: 1px solid #555; border-radius: 999px; padding: 8px 14px; font-size: 0.9rem; cursor: pointer; }
         .browse-chip.active { background: #0a84ff; border-color: #0a84ff; }
@@ -532,7 +531,6 @@
             <h2 id="media-browser-title">Browse</h2>
             <form id="media-browser-search" class="hidden"><input type="search" id="media-browser-query" maxlength="50" enterkeyhint="search" autocomplete="off"><button type="submit" title="Search"><i class="fa-solid fa-magnifying-glass"></i></button></form>
             <div id="media-browser-chips"></div>
-            <form id="media-browser-key" class="hidden"><p id="media-browser-key-msg"></p><input type="text" id="media-browser-key-input" placeholder="Paste your GIPHY API key" autocomplete="off" autocapitalize="none" spellcheck="false"><button type="submit">Save key</button></form>
             <div id="media-browser-grid"></div>
             <p id="media-browser-status"></p>
             <button id="media-browser-more" class="hidden">Load more</button>
@@ -1105,7 +1103,7 @@
                         const gifs = getGifs();
                         gifChoices.innerHTML = '';
                         if (gifs.length === 0) {
-                            gifChoices.innerHTML = '<p style="text-align:center;color:#aaa;">No GIFs yet. Browse GIPHY or add one from your phone.</p>';
+                            gifChoices.innerHTML = '<p style="text-align:center;color:#aaa;">No GIFs yet. Browse GIFs or add one from your phone.</p>';
                         } else {
                             gifs.forEach(gifUrl => {
                                 const thumb = document.createElement('div');
@@ -2886,28 +2884,43 @@
                 document.getElementById('wallpaper-url-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') { const url = e.target.value.trim(); if(url.toLowerCase().endsWith('.gif')) { alert('Please use the GIF widget to add GIFs.'); e.target.value = ''; return; } if (url.match(/\.(jpeg|jpg|gif|png|webp)$/i)) { const wps = getWps(); if (!wps.some(w => w.url === url)) { const newWp = { url: url, position: 'center center' }; wps.push(newWp); saveWps(wps); setWp(newWp); localStorage.setItem('lockscreenLastSelectedWp', newWp.url); renderWpChoices(); } e.target.value = ''; settingsMenu.classList.remove('visible'); } else { alert('Invalid URL.'); } } });
                 function exitPanningMode() { exitPanningModeCompletely(); }
 
-                // --- Online browser: free photos for wallpapers (Lorem Picsum, no key) and GIFs (GIPHY, free key) ---
+                // --- Online browser: free photos for wallpapers (Lorem Picsum) and GIFs (Lemmy communities); no keys needed ---
                 window.mediaBrowser = (() => {
                     const menu = document.getElementById('media-browser-menu');
                     const titleEl = document.getElementById('media-browser-title');
                     const searchForm = document.getElementById('media-browser-search');
                     const queryInput = document.getElementById('media-browser-query');
                     const chipsEl = document.getElementById('media-browser-chips');
-                    const keyForm = document.getElementById('media-browser-key');
-                    const keyMsg = document.getElementById('media-browser-key-msg');
-                    const keyInput = document.getElementById('media-browser-key-input');
                     const grid = document.getElementById('media-browser-grid');
                     const statusEl = document.getElementById('media-browser-status');
                     const moreBtn = document.getElementById('media-browser-more');
                     const creditEl = document.getElementById('media-browser-credit');
-                    const GIPHY_KEY = 'lockscreenGiphyKey';
-                    const fail = (message, extra) => Object.assign(new Error(message), extra);
+                    const fail = (message) => new Error(message);
 
                     // Picsum serves any size: ask for screen resolution, keeping the photo's shape so it can still be panned.
                     const picsumWallpaperUrl = (p) => {
                         const dpr = Math.min(window.devicePixelRatio || 1, 2);
                         const scale = Math.min(1, Math.max(lockScreen.clientWidth * dpr / p.width, lockScreen.clientHeight * dpr / p.height));
                         return `https://picsum.photos/id/${p.id}/${Math.round(p.width * scale)}/${Math.round(p.height * scale)}.jpg`;
+                    };
+
+                    // GIFs people post and vote on in Lemmy's two biggest GIF communities (public API, no key).
+                    const LEMMY_GIF_COMMUNITIES = [{ instance: 'lemmy.world', community: 'gifs' }, { instance: 'lemmy.ca', community: 'gifs' }];
+                    // A Lemmy post -> a GIF tile, or null when it isn't an https .gif file or is marked NSFW. Lemmy's image
+                    // server (pictrs) and Imgur can send a small preview; other hosts get the full GIF, loaded only when scrolled to.
+                    const lemmyGif = ({ post, community }) => {
+                        if (!post || !post.url || post.nsfw || post.removed || post.deleted || (community && community.nsfw)) return null;
+                        let url;
+                        try { url = new URL(post.url); } catch (e) { return null; }
+                        if (url.protocol !== 'https:') return null;
+                        url.search = ''; url.hash = '';
+                        if (url.hostname === 'i.imgur.com') url.pathname = url.pathname.replace(/\.gifv$/i, '.gif');
+                        if (!/\.gif$/i.test(url.pathname)) return null;
+                        const full = url.href;
+                        let thumb = full;
+                        if (url.pathname.includes('/pictrs/image/')) thumb = `${full}?thumbnail=200&format=webp`;
+                        else if (url.hostname === 'i.imgur.com') thumb = full.replace(/\.gif$/i, 'm.jpg');
+                        return { title: post.name || 'GIF', url: full, thumb, fallback: full };
                     };
 
                     const SOURCES = {
@@ -2930,32 +2943,30 @@
                         },
                         gifs: {
                             title: 'Browse GIFs',
-                            credit: 'Powered by GIPHY',
-                            search: 'Search GIPHY',
-                            chips: ['Trending', 'Cars', 'Funny', 'Cats', 'Dogs', 'Dance', 'Thumbs up'].map((label, i) => ({ label, query: i ? label.toLowerCase() : '' })),
-                            tileMin: 100, tileRatio: '1', perPage: 24,
-                            keyPrompt: 'GIF browsing uses GIPHY, which needs a free API key. Create an app at developers.giphy.com (choose "API"), then paste its key here. It is only stored on this screen.',
+                            credit: 'GIFs shared by people in the Lemmy communities gifs@lemmy.world and gifs@lemmy.ca',
+                            search: 'Search GIFs',
+                            chips: [{ label: 'Hot', query: '' }, { label: 'Cats', query: 'cat' }, { label: 'Dogs', query: 'dog' }, { label: 'Cars', query: 'car' }],
+                            tileMin: 110, tileRatio: '1', perPage: 15,
+                            // Reddit and Imgur answer deleted files with a small "removed" picture instead of an error.
+                            isPlaceholder: (img) => (img.naturalWidth === 130 && img.naturalHeight === 60) || (img.naturalWidth === 161 && img.naturalHeight === 81),
                             fetchPage(page, query) {
-                                const params = new URLSearchParams({ api_key: localStorage.getItem(GIPHY_KEY) || '', limit: this.perPage, offset: page * this.perPage, rating: 'g', bundle: 'messaging_non_clips' });
-                                if (query) params.set('q', query.slice(0, 50));
-                                return fetch(`https://api.giphy.com/v1/gifs/${query ? 'search' : 'trending'}?${params}`)
-                                    .then(r => {
-                                        if (r.status === 401 || r.status === 403) throw fail('GIPHY rejected that API key. Check it and paste it again.', { badKey: true });
-                                        if (r.status === 429) throw fail("GIPHY's hourly limit is used up (a free key allows 100 requests an hour). Try again later.");
-                                        if (!r.ok) throw fail(`GIPHY error ${r.status}. Try again.`);
-                                        return r.json();
-                                    })
-                                    .then(d => {
-                                        const items = (d.data || []).map(g => {
-                                            const im = g.images || {};
-                                            const thumb = im.fixed_width_small || im.fixed_width;
-                                            // The original when it is small enough for mobile data, else the 200px-tall version.
-                                            const full = im.original && Number(im.original.size) <= 2500000 ? im.original : (im.fixed_height || im.original);
-                                            return thumb && full && full.url ? { title: g.title || 'GIF', thumb: thumb.webp || thumb.url, url: full.url.split('?')[0] } : null;
-                                        }).filter(Boolean);
-                                        const p = d.pagination || {};
-                                        return { items, hasMore: (p.offset || 0) + (p.count || 0) < Math.min(p.total_count || 0, query ? 5000 : 500) };
-                                    });
+                                const requests = LEMMY_GIF_COMMUNITIES.map(({ instance, community }) => {
+                                    const params = new URLSearchParams({ community_name: community, limit: this.perPage, page: page + 1 });
+                                    if (query) { params.set('q', query); params.set('type_', 'Posts'); params.set('sort', 'TopAll'); } else params.set('sort', 'Hot');
+                                    return fetch(`https://${instance}/api/v3/${query ? 'search' : 'post/list'}?${params}`)
+                                        .then(r => { if (!r.ok) throw fail(r.status === 429 ? 'Too many requests. Wait a minute and try again.' : `${instance} error ${r.status}. Try again.`); return r.json(); })
+                                        .then(d => d.posts || []);
+                                });
+                                // One community being down still leaves the other's GIFs.
+                                return Promise.allSettled(requests).then(results => {
+                                    const lists = results.filter(r => r.status === 'fulfilled').map(r => r.value);
+                                    if (!lists.length) throw results[0].reason;
+                                    const seen = new Set(), items = [];
+                                    for (let i = 0; i < this.perPage; i++) {
+                                        lists.forEach(posts => { const item = posts[i] && lemmyGif(posts[i]); if (item && !seen.has(item.url)) { seen.add(item.url); items.push(item); } });
+                                    }
+                                    return { items, hasMore: lists.some(posts => posts.length === this.perPage) };
+                                });
                             },
                             pick(item) { window.addGif(item.url); document.getElementById('gif-chooser-menu').classList.remove('visible'); },
                         },
@@ -2963,15 +2974,12 @@
 
                     let source = null, page = 0, query = '', busy = false, requestId = 0;
                     const setStatus = (text) => { statusEl.textContent = text; };
-                    const showKeyForm = (message) => { keyMsg.textContent = message; keyInput.value = ''; keyForm.classList.remove('hidden'); setStatus(''); };
 
                     const load = (fresh) => {
                         if (fresh) { page = 0; grid.innerHTML = ''; busy = false; }
                         if (busy) return;
                         const id = ++requestId;
                         moreBtn.classList.add('hidden');
-                        if (source.keyPrompt && !localStorage.getItem(GIPHY_KEY)) { showKeyForm(source.keyPrompt); return; }
-                        keyForm.classList.add('hidden');
                         if (!navigator.onLine) { setStatus("You're offline. Browsing needs a connection."); return; }
                         busy = true; setStatus('Loading...');
                         source.fetchPage(page, query).then(({ items, hasMore }) => {
@@ -2983,6 +2991,9 @@
                                 tile.title = item.title;
                                 const img = document.createElement('img');
                                 img.loading = 'lazy'; img.alt = item.title; img.src = item.thumb;
+                                // Preview refused -> try the full file; that refused too (dead link, hotlink block) -> drop the tile.
+                                img.onerror = () => { if (item.fallback && img.src !== item.fallback) img.src = item.fallback; else tile.remove(); };
+                                if (source.isPlaceholder) img.onload = () => { if (source.isPlaceholder(img)) tile.remove(); };
                                 tile.appendChild(img);
                                 tile.addEventListener('click', () => { source.pick(item); close(); });
                                 grid.appendChild(tile);
@@ -2993,7 +3004,6 @@
                             moreBtn.classList.toggle('hidden', !hasMore);
                         }).catch(err => {
                             if (id !== requestId) return;
-                            if (err.badKey) { showKeyForm(err.message); return; }
                             setStatus(err instanceof TypeError ? "Couldn't connect. Check the signal and try again." : err.message);
                             moreBtn.textContent = 'Try again';
                             moreBtn.classList.remove('hidden');
@@ -3028,7 +3038,6 @@
                     const close = () => { requestId++; busy = false; grid.innerHTML = ''; menu.classList.remove('visible'); };
 
                     searchForm.addEventListener('submit', (e) => { e.preventDefault(); query = queryInput.value.trim(); queryInput.blur(); renderChips(); load(true); });
-                    keyForm.addEventListener('submit', (e) => { e.preventDefault(); const key = keyInput.value.trim(); if (!key) return; localStorage.setItem(GIPHY_KEY, key); keyInput.blur(); load(true); });
                     moreBtn.addEventListener('click', () => load(false));
                     document.getElementById('close-media-browser-btn').addEventListener('click', close);
                     menu.addEventListener('click', (e) => { if (e.target === menu) close(); });
