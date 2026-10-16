@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebRTC Car Test</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%232c2c2e'/%3E%3Ccircle cx='50' cy='50' r='30' fill='none' stroke='white' stroke-width='8'/%3E%3C/svg%3E">
+    <meta name="theme-color" content="#1a1a1a">
+    <!-- Standalone check of what phone-to-car screen mirroring needs from this browser.
+         Shows plain PASS/FAIL lines because car browsers have no developer console.
+         Written for old Chromium too: no optional chaining, no external scripts. -->
+    <style>
+        :root {
+            --bg: #1a1a1a;
+            --panel: #262628;
+            --text: #f2f2f2;
+            --muted: #a1a1a6;
+            --line: #3a3a3c;
+            --pass: #34c759;
+            --fail: #ff453a;
+            --warn: #ffcc00;
+            --info: #0a84ff;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: var(--bg); color: var(--text); font-family: Roboto, system-ui, -apple-system, 'Segoe UI', sans-serif; font-size: 18px; line-height: 1.4; padding: 24px 16px 48px; }
+        main { max-width: 1100px; margin: 0 auto; }
+        h1 { font-size: 28px; margin-bottom: 4px; }
+        h2 { font-size: 20px; margin: 28px 0 8px; }
+        .sub { color: var(--muted); margin-bottom: 20px; }
+        #summary { background: var(--panel); border-left: 6px solid var(--line); border-radius: 12px; padding: 16px 20px; margin-bottom: 8px; font-size: 22px; font-weight: 500; }
+        #summary.pass { border-left-color: var(--pass); }
+        #summary.fail { border-left-color: var(--fail); }
+        #summary.warn { border-left-color: var(--warn); }
+        #summary small { display: block; margin-top: 6px; font-size: 17px; font-weight: 400; color: var(--muted); }
+        .row { display: flex; gap: 16px; align-items: flex-start; padding: 12px 0; border-bottom: 1px solid var(--line); }
+        .badge { flex: 0 0 84px; text-align: center; font-weight: 700; font-size: 15px; letter-spacing: 0.5px; border-radius: 8px; padding: 5px 0; color: #000; background: var(--muted); }
+        .badge.pass { background: var(--pass); }
+        .badge.fail { background: var(--fail); color: #fff; }
+        .badge.warn { background: var(--warn); }
+        .badge.info { background: var(--info); color: #fff; }
+        .name { font-weight: 500; }
+        .detail { color: var(--muted); font-size: 16px; word-break: break-word; }
+        .media { display: flex; gap: 16px; flex-wrap: wrap; }
+        .media figure { flex: 1 1 260px; }
+        .media figcaption { color: var(--muted); font-size: 15px; margin-top: 6px; }
+        canvas, video { display: block; width: 100%; height: auto; min-height: 120px; background: #000; border-radius: 8px; }
+        .actions { margin-top: 24px; display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+        button { font: inherit; font-size: 20px; font-weight: 600; padding: 14px 28px; border: none; border-radius: 12px; background: var(--info); color: #fff; cursor: pointer; }
+        button:disabled { background: var(--line); color: var(--muted); }
+        #stamp { color: var(--muted); font-size: 15px; }
+    </style>
+</head>
+<body>
+<main>
+    <h1>Car browser test: screen mirroring</h1>
+    <p class="sub">Checks whether this browser can play a live video stream sent from a phone. Takes about 20 seconds.</p>
+
+    <div id="summary">Testing...</div>
+
+    <div id="rows"></div>
+
+    <h2>Video loopback</h2>
+    <p class="sub">The "Sent" picture goes through WebRTC inside this page. When it works, the same moving picture shows in the "Received" boxes.</p>
+    <div class="media">
+        <figure><canvas id="source" width="640" height="360"></canvas><figcaption>Sent</figcaption></figure>
+        <figure><video id="received-default" width="640" height="360" playsinline autoplay muted></video><figcaption>Received (browser's default codec)</figcaption></figure>
+        <figure><video id="received-h264" width="640" height="360" playsinline autoplay muted></video><figcaption>Received (H.264)</figcaption></figure>
+    </div>
+
+    <div class="actions">
+        <button id="rerun" disabled>Run again</button>
+        <span id="stamp"></span>
+    </div>
+</main>
+
+<script>
+(function () {
+    'use strict';
+
+    var RTC = window.RTCPeerConnection || window.webkitRTCPeerConnection;
+    var LABELS = { pass: 'PASS', fail: 'FAIL', warn: 'WARN', info: 'INFO', run: '...' };
+    var NON_VIDEO_CODECS = ['RTX', 'RED', 'ULPFEC', 'FLEXFEC-03'];
+
+    var rowsEl = document.getElementById('rows');
+    var summaryEl = document.getElementById('summary');
+    var rerunBtn = document.getElementById('rerun');
+    var stampEl = document.getElementById('stamp');
+    var canvas = document.getElementById('source');
+    var videoDefault = document.getElementById('received-default');
+    var videoH264 = document.getElementById('received-h264');
+    var openConnections = [];
+
+    function delay(ms) { return new Promise(function (resolve) { setTimeout(resolve, ms); }); }
+
+    function addRow(name) {
+        var row = document.createElement('div');
+        row.className = 'row';
+        var badge = document.createElement('div');
+        var text = document.createElement('div');
+        var title = document.createElement('div');
+        var detail = document.createElement('div');
+        title.className = 'name';
+        title.textContent = name;
+        detail.className = 'detail';
+        text.appendChild(title);
+        text.appendChild(detail);
+        row.appendChild(badge);
+        row.appendChild(text);
+        rowsEl.appendChild(row);
+        function set(status, message) {
+            badge.className = 'badge ' + status;
+            badge.textContent = LABELS[status];
+            detail.textContent = message || '';
+        }
+        set('run', 'Testing...');
+        return set;
+    }
+
+    function setSummary(status, headline, note) {
+        summaryEl.className = status;
+        summaryEl.textContent = headline;
+        if (note) {
+            var small = document.createElement('small');
+            small.textContent = note;
+            summaryEl.appendChild(small);
+        }
+    }
+
+    function errorText(e) { return (e && (e.name || e.message)) ? [e.name, e.message].filter(Boolean).join(': ') : String(e); }
+
+    function uniqueCodecs(names) {
+        var out = [];
+        names.forEach(function (n) {
+            var name = String(n).replace(/^video\//i, '').toUpperCase();
+            if (NON_VIDEO_CODECS.indexOf(name) < 0 && out.indexOf(name) < 0) out.push(name);
+        });
+        return out;
+    }
+
+    // Decodable video codecs. Older browsers lack getCapabilities, so read them from an offer instead.
+    async function receiveCodecs() {
+        if (window.RTCRtpReceiver && RTCRtpReceiver.getCapabilities) {
+            var caps = RTCRtpReceiver.getCapabilities('video');
+            if (caps && caps.codecs) return uniqueCodecs(caps.codecs.map(function (c) { return c.mimeType; }));
+        }
+        var pc = new RTC();
+        try {
+            var offer;
+            if (pc.addTransceiver) {
+                pc.addTransceiver('video', { direction: 'recvonly' });
+                offer = await pc.createOffer();
+            } else {
+                offer = await pc.createOffer({ offerToReceiveVideo: true });
+            }
+            var names = [];
+            offer.sdp.split(/\r?\n/).forEach(function (line) {
+                var m = /^a=rtpmap:\d+ ([\w-]+)\/90000/.exec(line);
+                if (m) names.push(m[1]);
+            });
+            return uniqueCodecs(names);
+        } finally {
+            pc.close();
+        }
+    }
+
+    function sendCodecs() {
+        if (!window.RTCRtpSender || !RTCRtpSender.getCapabilities) return null;
+        var caps = RTCRtpSender.getCapabilities('video');
+        return caps && caps.codecs ? uniqueCodecs(caps.codecs.map(function (c) { return c.mimeType; })) : null;
+    }
+
+    // Collects the network routes ("ICE candidates") this browser offers for a connection.
+    async function gatherCandidates() {
+        var pc = new RTC({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+        var found = [];
+        var done = new Promise(function (resolve) {
+            pc.onicecandidate = function (e) {
+                if (e.candidate && e.candidate.candidate) found.push(e.candidate.candidate);
+                else if (!e.candidate) resolve();
+            };
+            pc.onicegatheringstatechange = function () { if (pc.iceGatheringState === 'complete') resolve(); };
+        });
+        pc.createDataChannel('probe');
+        await pc.setLocalDescription(await pc.createOffer());
+        await Promise.race([done, delay(8000)]);
+        pc.close();
+        var counts = { host: 0, srflx: 0, relay: 0, prflx: 0 };
+        var hidden = 0;
+        found.forEach(function (c) {
+            var m = / typ (\w+)/.exec(c);
+            if (m && counts.hasOwnProperty(m[1])) counts[m[1]]++;
+            if (/\.local /.test(c)) hidden++;
+        });
+        return { counts: counts, hidden: hidden, total: found.length };
+    }
+
+    function startCanvasAnimation() {
+        var ctx = canvas.getContext('2d');
+        var frame = 0;
+        function draw() {
+            frame++;
+            var w = canvas.width, h = canvas.height;
+            ctx.fillStyle = '#0a3d62';
+            ctx.fillRect(0, 0, w, h);
+            ctx.fillStyle = '#34c759';
+            ctx.fillRect((frame * 6) % (w + 140) - 140, h * 0.25, 140, h * 0.4);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 44px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('Frame ' + frame, w / 2, h * 0.88);
+            requestAnimationFrame(draw);
+        }
+        draw();
+    }
+
+    // Puts only `name` codecs on the video transceiver, so the call must use that codec or fail.
+    function forceCodec(pc, name) {
+        if (!pc.getTransceivers || !window.RTCRtpReceiver || !RTCRtpReceiver.getCapabilities) return false;
+        var transceiver = pc.getTransceivers().filter(function (t) { return t.sender.track && t.sender.track.kind === 'video'; })[0];
+        if (!transceiver || !transceiver.setCodecPreferences) return false;
+        var wanted = RTCRtpReceiver.getCapabilities('video').codecs.filter(function (c) {
+            return c.mimeType.toLowerCase() === 'video/' + name.toLowerCase();
+        });
+        if (!wanted.length) return false;
+        transceiver.setCodecPreferences(wanted);
+        return true;
+    }
+
+    async function inboundVideoStats(pc) {
+        var out = { frames: 0, codec: null };
+        var report = await pc.getStats();
+        var codecs = {};
+        report.forEach(function (s) { if (s.type === 'codec') codecs[s.id] = s.mimeType; });
+        report.forEach(function (s) {
+            if (s.type === 'inbound-rtp' && (s.kind === 'video' || s.mediaType === 'video')) {
+                out.frames = s.framesDecoded || 0;
+                if (s.codecId && codecs[s.codecId]) out.codec = codecs[s.codecId].replace(/^video\//i, '').toUpperCase();
+            }
+        });
+        return out;
+    }
+
+    // Sends the canvas from one connection to another inside this page and watches the video arrive.
+    async function runLoopback(stream, video, codec) {
+        var pc1 = new RTC();
+        var pc2 = new RTC();
+        openConnections.push(pc1, pc2);
+        pc1.onicecandidate = function (e) { if (e.candidate) pc2.addIceCandidate(e.candidate).catch(function () {}); };
+        pc2.onicecandidate = function (e) { if (e.candidate) pc1.addIceCandidate(e.candidate).catch(function () {}); };
+
+        var gotMessage = new Promise(function (resolve) {
+            pc2.ondatachannel = function (e) { e.channel.onmessage = function (m) { if (m.data === 'ping') resolve(true); }; };
+        });
+        var channel = pc1.createDataChannel('ping');
+        channel.onopen = function () { channel.send('ping'); };
+
+        var gotStream = new Promise(function (resolve) {
+            pc2.ontrack = function (e) { resolve(e.streams && e.streams[0] ? e.streams[0] : new MediaStream([e.track])); };
+        });
+        stream.getVideoTracks().forEach(function (track) { pc1.addTrack(track, stream); });
+        if (codec && !forceCodec(pc1, codec)) return { skipped: true };
+
+        var offer = await pc1.createOffer();
+        await pc1.setLocalDescription(offer);
+        await pc2.setRemoteDescription(offer);
+        var answer = await pc2.createAnswer();
+        await pc2.setLocalDescription(answer);
+        await pc1.setRemoteDescription(answer);
+
+        var remote = await Promise.race([gotStream, delay(5000).then(function () { return null; })]);
+        if (remote) {
+            video.srcObject = remote;
+            var playing = video.play();
+            if (playing && playing.catch) playing.catch(function () {});
+        }
+
+        var result = { frames: 0, codec: null, ice: pc2.iceConnectionState };
+        var deadline = Date.now() + 10000;
+        while (Date.now() < deadline) {
+            await delay(500);
+            var stats = await inboundVideoStats(pc2);
+            result.frames = stats.frames;
+            result.codec = stats.codec || result.codec;
+            result.ice = pc2.iceConnectionState;
+            if (result.frames > 15 && video.videoWidth > 0) break;
+            if (result.ice === 'failed') break;
+        }
+        result.width = video.videoWidth;
+        result.height = video.videoHeight;
+        result.dataChannel = await Promise.race([gotMessage, delay(1500).then(function () { return false; })]);
+        var before = video.currentTime;
+        await delay(800);
+        result.advancing = video.currentTime > before;
+        result.connected = result.ice === 'connected' || result.ice === 'completed';
+        result.ok = (result.frames > 0 || result.advancing) && result.width > 0;
+        return result;
+    }
+
+    function describeLoopback(r) {
+        var parts = [];
+        if (r.codec) parts.push('codec ' + r.codec);
+        parts.push(r.frames + ' frames decoded');
+        if (r.width) parts.push(r.width + 'x' + r.height);
+        parts.push('connection: ' + r.ice);
+        return parts.join(', ');
+    }
+
+    function loopbackFailure(r) {
+        if (!r.connected) return 'The connection never formed (state: ' + r.ice + '). WebRTC networking is blocked in this browser, often by a company policy, privacy setting or extension.';
+        if (r.frames > 0) return 'Video was decoded (' + describeLoopback(r) + ') but the video box did not play it. A canvas-drawing fallback would be needed.';
+        return 'Connected, but no video frames were decoded (' + describeLoopback(r) + ').';
+    }
+
+    async function run() {
+        rerunBtn.disabled = true;
+        rowsEl.innerHTML = '';
+        setSummary('', 'Testing...');
+        stampEl.textContent = '';
+        openConnections.forEach(function (pc) { try { pc.close(); } catch (e) {} });
+        openConnections = [];
+        videoDefault.srcObject = null;
+        videoH264.srcObject = null;
+
+        var r = {};
+
+        addRow('Browser')('info', navigator.userAgent + ' | screen ' + screen.width + 'x' + screen.height + ' @' + (window.devicePixelRatio || 1) + 'x');
+
+        var setApi = addRow('WebRTC available');
+        r.api = typeof RTC === 'function';
+        setApi(r.api ? 'pass' : 'fail', r.api ? 'RTCPeerConnection exists.' : 'RTCPeerConnection is missing. This browser has WebRTC switched off or does not support it.');
+
+        var setCodecs = addRow('Video codecs it can play over WebRTC');
+        if (r.api) {
+            try {
+                r.codecs = await receiveCodecs();
+                r.h264 = r.codecs.indexOf('H264') >= 0;
+                var sending = sendCodecs();
+                var detail = 'Can play: ' + (r.codecs.join(', ') || 'none') + (sending ? ' | Can send: ' + (sending.join(', ') || 'none') : '');
+                if (r.h264) setCodecs('pass', detail + '. H.264 is supported, which is what phones send most efficiently.');
+                else setCodecs(r.codecs.length ? 'warn' : 'fail', detail + '. No H.264: the phone app would have to send VP8 instead.');
+            } catch (e) {
+                setCodecs('fail', 'Could not read codecs: ' + errorText(e));
+            }
+        } else {
+            setCodecs('fail', 'Skipped: no WebRTC.');
+        }
+
+        var setIce = addRow('Network routes (ICE candidates)');
+        if (r.api) {
+            try {
+                var ice = await gatherCandidates();
+                r.ice = ice;
+                var c = ice.counts;
+                var line = 'Local network: ' + c.host + (ice.hidden ? ' (' + ice.hidden + ' shown as private .local names)' : '') + ' | Internet via STUN: ' + c.srflx;
+                if (!ice.total) setIce('fail', 'No routes at all. WebRTC networking is switched off here (company policy, privacy setting or extension).');
+                else if (c.host && c.srflx) setIce('pass', line + '. Direct connections over Wi-Fi or a hotspot, and across the internet, should both be possible.');
+                else if (c.host) setIce('pass', line + '. Local Wi-Fi/hotspot connections should work. The STUN server was not reachable, so connections across the internet may not.');
+                else setIce('warn', line + '. No local route: a phone on the same hotspot may not be able to connect directly.');
+            } catch (e) {
+                setIce('fail', 'Could not gather routes: ' + errorText(e));
+            }
+        } else {
+            setIce('fail', 'Skipped: no WebRTC.');
+        }
+
+        var setLoop = addRow('Live video loopback (default codec)');
+        var setH264 = addRow('Live video loopback (H.264)');
+        var setChannel = addRow('Data channel (for touch control later)');
+        var stream = null;
+        if (r.api && canvas.captureStream) {
+            try { stream = canvas.captureStream(30); } catch (e) { stream = null; }
+        }
+        if (!r.api) {
+            setLoop('fail', 'Skipped: no WebRTC.');
+            setH264('fail', 'Skipped: no WebRTC.');
+            setChannel('fail', 'Skipped: no WebRTC.');
+        } else if (!stream) {
+            setLoop('warn', 'Skipped: this browser cannot capture a canvas, so the test has nothing to send. This does not affect receiving from a phone.');
+            setH264('warn', 'Skipped: no canvas capture.');
+            setChannel('warn', 'Skipped: no canvas capture.');
+        } else {
+            try {
+                var loop = await runLoopback(stream, videoDefault, null);
+                r.loop = loop;
+                setLoop(loop.ok ? 'pass' : 'fail', loop.ok ? 'Video arrived and played: ' + describeLoopback(loop) + '.' : loopbackFailure(loop));
+                setChannel(loop.dataChannel ? 'pass' : 'fail', loop.dataChannel ? 'Messages arrive, so taps on the car screen could be sent back to the phone.' : 'No message arrived over the data channel.');
+            } catch (e) {
+                r.loop = { ok: false, connected: false };
+                setLoop('fail', 'Error: ' + errorText(e));
+                setChannel('fail', 'Skipped after the error above.');
+            }
+            if (r.h264) {
+                try {
+                    var h264 = await runLoopback(stream, videoH264, 'H264');
+                    r.loopH264 = h264;
+                    if (h264.skipped) setH264('warn', 'This browser is too old to force a codec for the test. Rely on the codec list above.');
+                    else setH264(h264.ok ? 'pass' : 'fail', h264.ok ? 'H.264 video arrived and played: ' + describeLoopback(h264) + '.' : loopbackFailure(h264));
+                } catch (e) {
+                    setH264('fail', 'Error: ' + errorText(e));
+                }
+            } else {
+                setH264('warn', 'Skipped: H.264 is not in the codec list.');
+            }
+        }
+
+        var setMse = addRow('Fallback: H.264 through Media Source');
+        r.mse = !!(window.MediaSource && MediaSource.isTypeSupported && MediaSource.isTypeSupported('video/mp4; codecs="avc1.42E01F"'));
+        setMse(r.mse ? 'pass' : 'warn', r.mse ? 'Supported. A non-WebRTC stream (over a WebSocket) could be played this way.' : 'Not supported.');
+
+        var setCodecsApi = addRow('Fallback: WebCodecs H.264 decoder');
+        if (typeof window.VideoDecoder === 'function' && VideoDecoder.isConfigSupported) {
+            try {
+                var support = await VideoDecoder.isConfigSupported({ codec: 'avc1.42E01F' });
+                setCodecsApi(support.supported ? 'pass' : 'warn', support.supported ? 'Supported. Raw H.264 could be decoded and drawn directly.' : 'WebCodecs exists but cannot decode H.264.');
+            } catch (e) {
+                setCodecsApi('warn', 'WebCodecs check failed: ' + errorText(e));
+            }
+        } else {
+            setCodecsApi('warn', 'Not available in this browser.');
+        }
+
+        var setRelay = addRow('Pairing relay (ntfy.sh)');
+        try {
+            var topic = 'nio-carlock-9f3a2b-diag-' + Math.random().toString(36).slice(2, 10);
+            var res = await Promise.race([
+                fetch('https://ntfy.sh/' + topic + '/json?poll=1', { cache: 'no-store' }),
+                delay(8000).then(function () { throw new Error('timed out'); })
+            ]);
+            setRelay(res.ok ? 'pass' : 'fail', res.ok ? 'Reachable. The QR-code pairing used by the lockscreen works from here.' : 'Answered with HTTP ' + res.status + '.');
+        } catch (e) {
+            setRelay('fail', 'Not reachable: ' + errorText(e));
+        }
+
+        // Overall verdict.
+        if (!r.api) {
+            setSummary('fail', 'No WebRTC in this browser.', r.mse ? 'A slower fallback over a WebSocket might still work, but it needs a different design.' : 'Live phone-to-car video is unlikely to work in this browser.');
+        } else if (r.loop && r.loop.ok) {
+            var h264Note = 'H.264 is listed but did not play, so the phone app should send VP8.';
+            if (!r.h264) h264Note = 'This browser has no H.264, so the phone app should send VP8.';
+            else if (r.loopH264 && r.loopH264.ok) h264Note = 'H.264 also works, so the phone can send the most efficient format.';
+            else if (r.loopH264 && r.loopH264.skipped) h264Note = 'H.264 is listed but could not be tested on its own.';
+            setSummary('pass', 'WebRTC works here. Phone-to-car screen mirroring should be possible.', h264Note);
+        } else if (r.loop && r.loop.connected) {
+            setSummary('warn', 'WebRTC connects, but the video does not play properly.', 'See the loopback row below for details.');
+        } else if (r.loop) {
+            setSummary('fail', 'WebRTC exists but cannot connect: it is blocked in this browser.', 'See the network routes and loopback rows below.');
+        } else {
+            setSummary('warn', 'WebRTC exists, but the live video test could not run.', 'See the rows below.');
+        }
+
+        stampEl.textContent = 'Finished ' + new Date().toLocaleString() + '. Take a photo of this screen to share the results.';
+        rerunBtn.disabled = false;
+    }
+
+    // If autoplay was blocked, any tap starts the received videos.
+    document.addEventListener('click', function () {
+        [videoDefault, videoH264].forEach(function (v) {
+            if (v.srcObject && v.paused) { var p = v.play(); if (p && p.catch) p.catch(function () {}); }
+        });
+    });
+    rerunBtn.addEventListener('click', run);
+
+    startCanvasAnimation();
+    run().catch(function (e) {
+        setSummary('fail', 'The test itself crashed: ' + errorText(e), 'Take a photo of this screen to share it.');
+        rerunBtn.disabled = false;
+    });
+})();
+</script>
+</body>
+</html>
