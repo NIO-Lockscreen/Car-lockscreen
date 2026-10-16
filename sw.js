@@ -3,7 +3,7 @@
 //   signal or the network takes longer than NAV_TIMEOUT_MS (tunnels, rural areas).
 // - Fonts, icons and the QR library from the CDNs: served from cache, refreshed in the background.
 // - Wallpapers: the page keeps its saved wallpapers in WALLPAPER_CACHE; images found there are served from it.
-// Everything else (weather, stocks, radio, video, the phone relay) goes straight to the network.
+// Everything else (weather, stocks, radio, video, the phone relay, the phone mirror) goes straight to the network.
 // Bump STATIC_CACHE when this file changes in a way that needs the old static cache dropped.
 const STATIC_CACHE = 'lockscreen-static-v1';
 const WALLPAPER_CACHE = 'lockscreen-wallpapers';
@@ -62,6 +62,9 @@ self.addEventListener('fetch', (event) => {
     const req = event.request;
     if (req.method !== 'GET') return;
     const url = new URL(req.url);
+    // Plain-HTTP requests to other hosts (the phone mirror's stream on the local network) must go straight from the page:
+    // fetched from here they count as blocked mixed content, and an endless MJPEG stream has no business in a cache.
+    if (url.protocol === 'http:' && url.origin !== self.location.origin) return;
     if (req.mode === 'navigate') {
         if (isShell(url)) event.respondWith(shellResponse(event));
         return;

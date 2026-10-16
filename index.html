@@ -118,6 +118,51 @@
         #video-widget.mode-media.is-full:not(.show-ui) #video-header, #video-widget.mode-media.is-full:not(.show-ui) #video-controls { opacity: 0; pointer-events: none; }
         #video-widget.mode-media.is-full.show-ui #video-stage, #video-widget.is-full { cursor: default; }
 
+        /* Phone Mirror widget: the iPhone screen from the Banyan MJPEG app (phone-mirror/), shaped like the phone.
+           Its width and height are set from the script to keep the picture's exact shape. */
+        #phone-widget { top: 12%; left: 62%; width: 230px; height: 498px; padding: 0; overflow: hidden; background: #000; border: 1px solid rgba(255,255,255,0.16); border-radius: var(--phone-radius, 26px); box-shadow: 0 10px 30px rgba(0,0,0,0.45); color: #fff; text-align: left; }
+        #phone-stage { position: absolute; inset: 0; overflow: hidden; background: #000; }
+        #phone-screen { position: absolute; left: 50%; top: 50%; width: 100%; height: 100%; object-fit: fill; transform: translate(-50%, -50%); display: none; pointer-events: none; -webkit-user-drag: none; }
+        #phone-widget.has-frame #phone-screen { display: block; }
+        #phone-header { position: absolute; top: 0; left: 0; right: 0; z-index: 3; display: flex; align-items: center; gap: 6px; height: 42px; padding: 0 4px 0 12px; background: linear-gradient(rgba(12,12,14,0.88), rgba(12,12,14,0)); font-size: 0.78rem; transition: opacity 0.3s; }
+        #phone-status-dot { flex: 0 0 8px; height: 8px; border-radius: 50%; background: #8e8e93; }
+        #phone-widget.connecting #phone-status-dot { background: #ffcc00; }
+        #phone-widget.live #phone-status-dot { background: #34c759; }
+        #phone-widget.error #phone-status-dot { background: #ff453a; }
+        #phone-label { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: 0.9; }
+        #phone-header-actions { display: flex; gap: 1px; flex: 0 0 auto; }
+        #phone-widget button { background: none; border: none; color: #fff; cursor: pointer; font-size: 0.95rem; width: 34px; height: 34px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; padding: 0; }
+        #phone-widget button:active { background: rgba(255,255,255,0.18); }
+        #phone-rotate-btn i { transition: transform 0.25s; }
+        #phone-rotate-btn.active { background: rgba(10,132,255,0.45); }
+        #phone-rotate-btn.active i { transform: rotate(90deg); }
+        #phone-overlay { position: absolute; inset: 0; z-index: 2; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 46px 12px 14px; text-align: center; background: rgba(0,0,0,0.62); font-size: 0.82rem; line-height: 1.35; }
+        #phone-overlay.show { display: flex; }
+        #phone-overlay-icon { font-size: 1.8rem; }
+        #phone-overlay.kind-error #phone-overlay-icon { color: #ff6b6b; }
+        #phone-overlay.kind-loading #phone-overlay-icon { width: 34px; height: 34px; border-radius: 50%; border: 4px solid rgba(255,255,255,0.25); border-top-color: #fff; font-size: 0; animation: video-spin 0.9s linear infinite; }
+        #phone-overlay-actions { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+        #phone-widget #phone-overlay-actions button { width: auto; height: auto; padding: 8px 12px; background: rgba(255,255,255,0.16); font-size: 0.8rem; }
+        #phone-resize-grip { position: absolute; right: 2px; bottom: 2px; z-index: 4; width: 36px; height: 36px; display: flex; align-items: flex-end; justify-content: flex-end; padding: 7px; color: rgba(255,255,255,0.75); cursor: nwse-resize; touch-action: none; transition: opacity 0.3s; }
+        #phone-widget.live:not(.show-ui) #phone-header, #phone-widget.live:not(.show-ui) #phone-resize-grip { opacity: 0; pointer-events: none; }
+        #phone-widget.is-full { position: fixed !important; inset: 0 !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important; border-radius: 0; border: none; z-index: 1000; cursor: default; transform: none !important; }
+        #phone-widget.is-full #phone-resize-grip { display: none; }
+        #phone-settings-menu .menu-content { max-height: 88vh; overflow-y: auto; }
+        .phone-hint { color: #8e8e93; font-size: 0.82rem; margin: 6px 0; }
+        .phone-row { display: flex; gap: 10px; }
+        .phone-field { flex: 1 1 auto; min-width: 0; margin-bottom: 10px; }
+        .phone-field.port { flex: 0 0 96px; }
+        .phone-field > label { display: block; margin-bottom: 6px; font-size: 0.92rem; color: #d6d6d8; }
+        .phone-input { width: 100%; padding: 12px 14px; border-radius: 10px; border: 1px solid #555; background-color: #3a3a3c; color: #fff; font-size: 1.05rem; font-family: 'Roboto Mono', monospace; outline: none; }
+        .phone-input:focus { border-color: #0a84ff; box-shadow: 0 0 0 3px rgba(10,132,255,0.25); }
+        .phone-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+        .phone-chip { padding: 8px 14px; border-radius: 20px; border: 1px solid #4b4b4d; background: #2f2f31; color: #d6d6d8; font-size: 0.85rem; cursor: pointer; }
+        .phone-chip.active { background: rgba(10,132,255,0.2); border-color: #0a84ff; color: #fff; }
+        .phone-actions { display: flex; gap: 8px; margin-top: 6px; }
+        .phone-actions button { flex: 1; padding: 12px; border: none; border-radius: 10px; background: #0a84ff; color: #fff; font-size: 0.95rem; cursor: pointer; }
+        .phone-actions button.secondary { background: #3a3a3c; }
+        #phone-size-range { width: 100%; accent-color: #0a84ff; }
+
         /* NEW: Webcam Toggle Button */
         #webcam-toggle-btn {
             top: 80%;
@@ -136,14 +181,14 @@
         #lock-screen.light-theme #music-artist { color: #555; }
         #settings-btn { top: 80%; left: 50px; }
         #settings-btn svg circle:nth-child(2) { stroke: var(--icon-stroke-color); }
-        #settings-menu, #stock-editor-menu, #note-editor-menu, #radio-menu, #gif-chooser-menu, #media-browser-menu, #taxi-settings-menu, #taxi-history-menu { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); display: none; justify-content: center; align-items: center; z-index: 1000; opacity: 0; transition: opacity 0.3s ease; }
-        #settings-menu.visible, #stock-editor-menu.visible, #note-editor-menu.visible, #radio-menu.visible, #gif-chooser-menu.visible, #media-browser-menu.visible, #taxi-settings-menu.visible, #taxi-history-menu.visible { display: flex; opacity: 1; }
+        #settings-menu, #stock-editor-menu, #note-editor-menu, #radio-menu, #gif-chooser-menu, #media-browser-menu, #taxi-settings-menu, #taxi-history-menu, #phone-settings-menu { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); display: none; justify-content: center; align-items: center; z-index: 1000; opacity: 0; transition: opacity 0.3s ease; }
+        #settings-menu.visible, #stock-editor-menu.visible, #note-editor-menu.visible, #radio-menu.visible, #gif-chooser-menu.visible, #media-browser-menu.visible, #taxi-settings-menu.visible, #taxi-history-menu.visible, #phone-settings-menu.visible { display: flex; opacity: 1; }
         .menu-content { background-color: #2c2c2e; padding: 30px; border-radius: 20px; width: 90%; max-width: 500px; color: #f2f2f7; text-align: left; position: relative; box-shadow: 0 5px 25px rgba(0,0,0,0.5); transform: scale(0.95); transition: transform 0.3s ease; }
         #radio-menu .menu-content, #gif-chooser-menu .menu-content { max-height: 80vh; overflow-y: auto; }
         #stock-editor-menu .menu-content { text-align: center; }
-        #settings-menu.visible .menu-content, #stock-editor-menu.visible .menu-content, #note-editor-menu.visible .menu-content, #radio-menu.visible .menu-content, #gif-chooser-menu.visible .menu-content, #media-browser-menu.visible .menu-content, #taxi-settings-menu.visible .menu-content, #taxi-history-menu.visible .menu-content { transform: scale(1); }
+        #settings-menu.visible .menu-content, #stock-editor-menu.visible .menu-content, #note-editor-menu.visible .menu-content, #radio-menu.visible .menu-content, #gif-chooser-menu.visible .menu-content, #media-browser-menu.visible .menu-content, #taxi-settings-menu.visible .menu-content, #taxi-history-menu.visible .menu-content, #phone-settings-menu.visible .menu-content { transform: scale(1); }
         .menu-content h2 {text-align: center;}
-        #close-settings-btn, #close-stock-editor-btn, #close-note-editor-btn, #close-radio-btn, #close-gif-chooser-btn, #close-media-browser-btn, #close-taxi-settings-btn, #close-taxi-history-btn { position: absolute; top: 10px; right: 15px; background: none; border: none; color: #aaa; font-size: 2rem; cursor: pointer; line-height: 1; z-index: 5; }
+        #close-settings-btn, #close-stock-editor-btn, #close-note-editor-btn, #close-radio-btn, #close-gif-chooser-btn, #close-media-browser-btn, #close-taxi-settings-btn, #close-taxi-history-btn, #close-phone-settings-btn { position: absolute; top: 10px; right: 15px; background: none; border: none; color: #aaa; font-size: 2rem; cursor: pointer; line-height: 1; z-index: 5; }
         #wallpaper-url-input, #stock-symbols-input, #weather-location-input, #font-select, #clock-color-input, #note-font-select, #note-font-size-input { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 10px; border: 1px solid #555; background-color: #3a3a3c; color: white; font-size: 1rem; outline: none; }
         #note-font-size-input { -moz-appearance: textfield; } #note-font-size-input::-webkit-outer-spin-button, #note-font-size-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
         #clock-color-input { padding: 5px; height: 50px; }
@@ -447,6 +492,23 @@
             </div>
         </div>
 
+        <div id="phone-widget" class="draggable-item hidden" title="Double-click for phone mirror settings">
+            <div id="phone-stage">
+                <img id="phone-screen" alt="Phone screen" draggable="false">
+                <div id="phone-overlay"><div id="phone-overlay-icon"></div><div id="phone-overlay-text"></div><div id="phone-overlay-actions"></div></div>
+            </div>
+            <div id="phone-header">
+                <span id="phone-status-dot"></span>
+                <span id="phone-label">Phone</span>
+                <div id="phone-header-actions">
+                    <button id="phone-rotate-btn" type="button" title="Horizontal view"><i class="fa-solid fa-mobile-screen-button"></i></button>
+                    <button id="phone-fs-btn" type="button" title="Fullscreen"><i class="fa-solid fa-expand"></i></button>
+                    <button id="phone-settings-btn" type="button" title="Phone mirror settings"><i class="fa-solid fa-gear"></i></button>
+                </div>
+            </div>
+            <div id="phone-resize-grip" title="Drag to resize"><i class="fa-solid fa-up-right-and-down-left-from-center"></i></div>
+        </div>
+
         <div id="webcam-widget" class="draggable-item widget" title="Long-press feed to mirror | Dbl-click feed for pan/zoom">
             <div class="webcam-video-wrapper">
                 <canvas id="webcam-canvas"></canvas>
@@ -484,6 +546,7 @@
                     <div class="setting-toggle"><label for="toggle-gif-widget">GIF Widget</label><input type="checkbox" id="toggle-gif-widget"></div>
                     <div class="setting-toggle"><label for="toggle-webcam-widget">Rear Seat Cam</label><input type="checkbox" id="toggle-webcam-widget"></div>
                     <div class="setting-toggle"><label for="toggle-taxi-widget">Taxi Meter</label><input type="checkbox" id="toggle-taxi-widget"></div>
+                    <div class="setting-toggle"><label for="toggle-phone-widget">Phone Mirror</label><input type="checkbox" id="toggle-phone-widget"></div>
                 </div>
                 <div class="settings-section">
                     <h3>Theme & Style</h3>
@@ -613,6 +676,58 @@
             </div>
             <div id="taxi-history-list"></div>
             <button id="taxi-clear-history-btn"><i class="fa-solid fa-trash"></i> Clear all trips</button>
+        </div>
+    </div>
+    <div id="phone-settings-menu">
+        <div class="menu-content">
+            <button id="close-phone-settings-btn">×</button>
+            <h2>Phone Mirror</h2>
+            <p class="phone-hint">Shows your iPhone's screen, sent by the Banyan MJPEG app over the iPhone's Personal Hotspot or a shared Wi-Fi. Start the broadcast on the iPhone first, and only use it while parked.</p>
+            <div class="settings-section">
+                <div class="phone-row">
+                    <div class="phone-field"><label for="phone-host-input">iPhone address</label><input type="text" id="phone-host-input" class="phone-input" inputmode="decimal" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="172.20.10.1"></div>
+                    <div class="phone-field port"><label for="phone-port-input">Port</label><input type="text" id="phone-port-input" class="phone-input" inputmode="numeric" autocomplete="off" placeholder="8765"></div>
+                </div>
+                <div class="phone-chips"><button class="phone-chip" id="phone-hotspot-chip" type="button">Personal Hotspot · 172.20.10.1</button></div>
+                <div class="phone-field"><label for="phone-pin-input">PIN (shown in the iPhone app)</label><input type="text" id="phone-pin-input" class="phone-input" inputmode="numeric" autocomplete="off" maxlength="12" placeholder="684293"></div>
+                <div class="phone-actions"><button id="phone-connect-btn" type="button">Save &amp; connect</button><button id="phone-open-page-btn" class="secondary" type="button">Open phone screen</button></div>
+                <p class="phone-hint" id="phone-settings-status"></p>
+                <p class="phone-hint">If the car's browser won't show the phone inside the lockscreen, <b>Open phone screen</b> leaves for the iPhone's own page, which has a button back here.</p>
+            </div>
+            <div class="settings-section">
+                <h3>Screen shape</h3>
+                <div class="phone-chips" id="phone-shape-chips">
+                    <button class="phone-chip" type="button" data-shape="smart">Smart (cuts black bars)</button>
+                    <button class="phone-chip" type="button" data-shape="auto">Whole picture</button>
+                    <button class="phone-chip" type="button" data-shape="iphone">iPhone · 19.5:9</button>
+                    <button class="phone-chip" type="button" data-shape="iphone-classic">iPhone SE / 8 · 16:9</button>
+                    <button class="phone-chip" type="button" data-shape="ipad">iPad · 4:3</button>
+                </div>
+                <p class="phone-hint" id="phone-shape-hint"></p>
+                <h4>Horizontal view</h4>
+                <div class="phone-chips" id="phone-turn-chips">
+                    <button class="phone-chip" type="button" data-horizontal="off">Off</button>
+                    <button class="phone-chip" type="button" data-horizontal="cw">On · turn ↻</button>
+                    <button class="phone-chip" type="button" data-horizontal="ccw">On · turn ↺</button>
+                </div>
+                <p class="phone-hint">Lays an upright picture on its side, e.g. a video or game shown sideways while the phone's rotation is locked. The <i class="fa-solid fa-mobile-screen-button"></i> button on the widget switches it on and off.</p>
+                <h4>Picture</h4>
+                <div class="phone-chips" id="phone-fit-chips">
+                    <button class="phone-chip" type="button" data-fit="contain">Whole screen</button>
+                    <button class="phone-chip" type="button" data-fit="cover">Fill (crop edges)</button>
+                </div>
+                <h4>Size</h4>
+                <input type="range" id="phone-size-range" min="240" max="1200" step="10" value="560">
+                <p class="phone-hint">You can also pinch the widget, or drag its corner.</p>
+            </div>
+            <div class="settings-section">
+                <h3>Stream</h3>
+                <div class="phone-chips" id="phone-transport-chips">
+                    <button class="phone-chip" type="button" data-transport="mjpeg">Live stream (fastest)</button>
+                    <button class="phone-chip" type="button" data-transport="jpeg">Snapshots (most compatible)</button>
+                </div>
+                <p class="phone-hint">Use Snapshots only if the live stream stays black in this browser.</p>
+            </div>
         </div>
     </div>
     <div id="qr-modal"><div id="qr-modal-content"><h2>Scan with your phone</h2><div id="qr-code"></div><p id="qr-modal-note">Scan to send an image URL from your phone.</p></div></div>
@@ -2564,9 +2679,601 @@
                     window.videoWidget = { open, close, teardown, keepOnScreen };
                 })();
 
+                // =================================================================
+                // PHONE MIRROR WIDGET
+                //  - Shows the iPhone screen sent by the Banyan MJPEG app (phone-mirror/ in this repo): an MJPEG stream on
+                //    the local network at http://<phone>:<port>/stream?pin=...
+                //  - The widget has the phone's exact shape (or a chosen iOS shape) and can lay an upright picture on its side.
+                //  - This page is HTTPS and the phone is plain HTTP on a private address. Browsers with Local Network Access
+                //    (Chrome 142+) show it once the user allows a prompt; older ones block it. "Open phone screen" is the way
+                //    out then: the iPhone's own page, which links back here.
+                //  - Chrome gives no event when an MJPEG stream stops, so while live the widget loads the phone's tiny
+                //    /alive.gif every few seconds and reconnects when that fails.
+                // =================================================================
+                (function setupPhoneWidget() {
+                    const widget = document.getElementById('phone-widget');
+                    const stage = document.getElementById('phone-stage');
+                    const screenImg = document.getElementById('phone-screen');
+                    const label = document.getElementById('phone-label');
+                    const overlay = document.getElementById('phone-overlay');
+                    const overlayIcon = document.getElementById('phone-overlay-icon');
+                    const overlayText = document.getElementById('phone-overlay-text');
+                    const overlayActions = document.getElementById('phone-overlay-actions');
+                    const rotateBtn = document.getElementById('phone-rotate-btn');
+                    const fsBtn = document.getElementById('phone-fs-btn');
+                    const grip = document.getElementById('phone-resize-grip');
+                    const menu = document.getElementById('phone-settings-menu');
+                    const hostInput = document.getElementById('phone-host-input');
+                    const portInput = document.getElementById('phone-port-input');
+                    const pinInput = document.getElementById('phone-pin-input');
+                    const sizeRange = document.getElementById('phone-size-range');
+                    const settingsStatus = document.getElementById('phone-settings-status');
+                    const shapeHint = document.getElementById('phone-shape-hint');
+                    const SETTINGS_KEY = 'lockscreenPhoneMirror_v1';
+                    const HOTSPOT_HOST = '172.20.10.1'; // iPhone Personal Hotspot always gives the phone this address
+                    // Short side / long side of each screen shape.
+                    const SHAPES = { iphone: 9 / 19.5, 'iphone-classic': 9 / 16, ipad: 3 / 4 };
+                    const DEFAULTS = { host: HOTSPOT_HOST, port: 8765, pin: '684293', shape: 'smart', horizontal: false, turn: 'cw', fit: 'contain', transport: 'mjpeg', size: 0 };
+                    const MIN_SIZE = 240, MAX_SIZE = 4000;
+                    const HINT_MS = 6000, RETRY_MS = 8000, ALIVE_MS = 4000, PROBE_TIMEOUT_MS = 3000, UI_MS = 3500, CROP_MS = 1500;
+                    // Smart crop: a black band counts as a bar from 7% of the picture, and only with a matching one opposite.
+                    const CROP_HISTORY = 3, BAR_MIN = 0.07, BAR_MISMATCH = 0.04, DARK_LUMA = 22;
+                    const FULL_FRAME = { x: 0, y: 0, w: 1, h: 1 };
+                    const state = { phase: 'off', attempt: 0, frameW: 0, frameH: 0, visible: false, timers: {}, uiTimer: null, statusWorks: null, lastStatus: null,
+                        crop: null, cropHistory: [], cropFails: 0, cropUnavailable: false };
+
+                    const isPreset = (v) => Object.prototype.hasOwnProperty.call(SHAPES, v);
+                    const isShape = (v) => v === 'smart' || v === 'auto' || isPreset(v);
+                    const validHost = (h) => typeof h === 'string' && h.length <= 253 && /^([a-zA-Z0-9-]+\.)*[a-zA-Z0-9-]+$|^\[[0-9a-fA-F:.]+\]$/.test(h);
+                    const validPort = (p) => Number.isInteger(p) && p > 0 && p < 65536;
+                    const validPin = (p) => typeof p === 'string' && /^\d{1,12}$/.test(p);
+                    function loadSettings() {
+                        let saved = {};
+                        try { saved = JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {}; } catch (e) { saved = {}; }
+                        const s = Object.assign({}, DEFAULTS);
+                        if (validHost(saved.host)) s.host = saved.host;
+                        if (validPort(saved.port)) s.port = saved.port;
+                        if (validPin(saved.pin)) s.pin = saved.pin;
+                        if (isShape(saved.shape)) s.shape = saved.shape;
+                        if (typeof saved.horizontal === 'boolean') s.horizontal = saved.horizontal;
+                        if (saved.turn === 'cw' || saved.turn === 'ccw') s.turn = saved.turn;
+                        if (saved.fit === 'contain' || saved.fit === 'cover') s.fit = saved.fit;
+                        if (saved.transport === 'mjpeg' || saved.transport === 'jpeg') s.transport = saved.transport;
+                        if (Number.isFinite(saved.size) && saved.size >= 0) s.size = saved.size;
+                        return s;
+                    }
+                    const settings = loadSettings();
+                    const saveSettings = () => { try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (e) { /* storage unavailable */ } };
+                    const savePositions = () => { if (window.saveItemPositions) window.saveItemPositions(); };
+                    const phoneBase = () => `http://${settings.host}:${settings.port}`;
+                    const phoneUrl = (path, withPin = true) => `${phoneBase()}${path}?${withPin ? `pin=${encodeURIComponent(settings.pin)}&` : ''}t=${Date.now()}`;
+                    const clearTimers = () => { Object.keys(state.timers).forEach((k) => clearTimeout(state.timers[k])); state.timers = {}; };
+
+                    // ---- shape ----
+                    // The part of the frame on show, as fractions of it: everything, or with Smart, the picture without its black bars.
+                    const shownPart = () => (settings.shape === 'smart' && state.crop) || FULL_FRAME;
+                    // Until the first frame arrives the phone is assumed upright.
+                    function shownPortrait() {
+                        if (!state.frameW) return true;
+                        const part = shownPart();
+                        return state.frameH * part.h >= state.frameW * part.w;
+                    }
+                    function shortOverLong() {
+                        if (isPreset(settings.shape)) return SHAPES[settings.shape];
+                        if (!state.frameW || !state.frameH) return SHAPES.iphone;
+                        const part = shownPart(), w = state.frameW * part.w, h = state.frameH * part.h;
+                        return Math.min(w, h) / Math.max(w, h);
+                    }
+                    // "Horizontal" lays an upright picture on its side. A picture that is already landscape (the phone itself was
+                    // turned, or Smart cut a widescreen video out of an upright screen) is shown as it comes.
+                    const turnDegrees = () => (settings.horizontal && shownPortrait() ? (settings.turn === 'ccw' ? 270 : 90) : 0);
+                    // Width / height of the picture as shown.
+                    const displayAspect = () => (shownPortrait() && turnDegrees() === 0 ? shortOverLong() : 1 / shortOverLong());
+                    const fsElement = () => document.fullscreenElement || document.webkitFullscreenElement || null;
+                    const isFull = () => fsElement() === widget || widget.classList.contains('maximized');
+                    const isHidden = () => widget.classList.contains('hidden');
+                    const defaultSize = () => Math.round(Math.min(lockScreen.clientHeight * 0.72, 640));
+                    const currentSize = () => Math.max(widget.offsetWidth, widget.offsetHeight);
+                    // Longest side of the widget, limited to what fits on the lockscreen.
+                    function fitSize(size, aspect) {
+                        const W = lockScreen.clientWidth, H = lockScreen.clientHeight;
+                        const max = aspect >= 1 ? Math.min(W, H * aspect) : Math.min(H, W / aspect);
+                        return Math.max(Math.min(MIN_SIZE, max), Math.min(size, max));
+                    }
+                    function applyLayout() {
+                        if (!isFull()) {
+                            const aspect = displayAspect();
+                            const long = fitSize(settings.size || defaultSize(), aspect);
+                            const w = aspect >= 1 ? long : long * aspect, h = aspect >= 1 ? long / aspect : long;
+                            widget.style.width = `${Math.round(w)}px`;
+                            widget.style.height = `${Math.round(h)}px`;
+                            // iPhone screens have rounded corners: about 12% of the short side.
+                            widget.style.setProperty('--phone-radius', `${Math.round(Math.min(w, h) * 0.12)}px`);
+                        }
+                        layoutPicture();
+                        rotateBtn.classList.toggle('active', settings.horizontal);
+                        rotateBtn.title = settings.horizontal ? 'Upright view' : 'Horizontal view';
+                    }
+                    // Scales, turns and shifts the whole frame so the part on show fills the stage (fits it, in fullscreen or with
+                    // a fixed shape; covers it with "Fill"). The stage cuts off the rest: the black bars, when Smart crops.
+                    function layoutPicture() {
+                        const SW = stage.clientWidth, SH = stage.clientHeight, fw = state.frameW, fh = state.frameH;
+                        if (!fw || !fh || !SW || !SH) return;
+                        const turn = turnDegrees(), sideways = turn % 180 !== 0, part = shownPart();
+                        const partW = fw * part.w, partH = fh * part.h;
+                        const scale = (settings.fit === 'cover' ? Math.max : Math.min)(SW / (sideways ? partH : partW), SH / (sideways ? partW : partH));
+                        // Distance from the frame's centre to the part's centre, scaled and then turned like the picture.
+                        const dx = (part.x + part.w / 2 - 0.5) * fw * scale, dy = (part.y + part.h / 2 - 0.5) * fh * scale;
+                        const cos = Math.round(Math.cos((turn * Math.PI) / 180)), sin = Math.round(Math.sin((turn * Math.PI) / 180));
+                        const tx = -(dx * cos - dy * sin), ty = -(dx * sin + dy * cos);
+                        screenImg.style.width = `${fw * scale}px`;
+                        screenImg.style.height = `${fh * scale}px`;
+                        screenImg.style.transform = `translate(-50%, -50%) translate(${tx.toFixed(1)}px, ${ty.toFixed(1)}px) rotate(${turn}deg)`;
+                    }
+                    function setSize(size) {
+                        settings.size = Math.max(MIN_SIZE, Math.min(size, MAX_SIZE));
+                        applyLayout();
+                    }
+                    function keepOnScreen() {
+                        if (isHidden() || isFull()) return;
+                        const maxL = Math.max(0, lockScreen.clientWidth - widget.offsetWidth), maxT = Math.max(0, lockScreen.clientHeight - widget.offsetHeight);
+                        widget.style.left = `${Math.min(Math.max(0, widget.offsetLeft), maxL)}px`;
+                        widget.style.top = `${Math.min(Math.max(0, widget.offsetTop), maxT)}px`;
+                    }
+                    // Reshape around the widget's centre, so turning it doesn't throw it across the screen.
+                    function relayout(change) {
+                        if (isHidden() || isFull()) { if (change) change(); else applyLayout(); return; }
+                        const cx = widget.offsetLeft + widget.offsetWidth / 2, cy = widget.offsetTop + widget.offsetHeight / 2;
+                        if (change) change(); else applyLayout();
+                        widget.style.left = `${cx - widget.offsetWidth / 2}px`;
+                        widget.style.top = `${cy - widget.offsetHeight / 2}px`;
+                        keepOnScreen();
+                    }
+
+                    // ---- overlay & header ----
+                    const ACTIONS = {
+                        retry: ['Retry', () => connect()],
+                        open: ['Open phone screen', () => openPhonePage()],
+                        settings: ['Settings', () => openMenu()],
+                    };
+                    function setOverlay(kind, text, actions = []) {
+                        if (!kind) { overlay.className = ''; return; }
+                        overlay.className = `show kind-${kind}`;
+                        overlayIcon.innerHTML = kind === 'error' ? '<i class="fa-solid fa-triangle-exclamation"></i>' : kind === 'idle' ? '<i class="fa-solid fa-mobile-screen-button"></i>' : '';
+                        overlayText.textContent = text;
+                        overlayActions.innerHTML = '';
+                        actions.forEach((key) => {
+                            const btn = document.createElement('button');
+                            btn.type = 'button';
+                            btn.textContent = ACTIONS[key][0];
+                            btn.addEventListener('click', (e) => { e.stopPropagation(); ACTIONS[key][1](); });
+                            overlayActions.appendChild(btn);
+                        });
+                    }
+                    function setPhase(phase) {
+                        state.phase = phase;
+                        ['connecting', 'live', 'error'].forEach((p) => widget.classList.toggle(p, p === phase));
+                    }
+                    function updateLabel() {
+                        const s = state.lastStatus;
+                        let text = `iPhone · ${settings.host}`;
+                        if (state.phase === 'live' && s) text = s.paused ? 'iPhone · paused' : `iPhone · live${s.fps !== null ? ` · ${s.fps} fps` : ''}`;
+                        label.textContent = text;
+                    }
+                    // The header hides itself while the picture plays; a tap brings it back.
+                    function showUi() {
+                        widget.classList.add('show-ui');
+                        clearTimeout(state.uiTimer);
+                        state.uiTimer = setTimeout(() => { if (state.phase === 'live') widget.classList.remove('show-ui'); }, UI_MS);
+                    }
+
+                    // ---- connection ----
+                    function stopStream() {
+                        clearTimers();
+                        screenImg.onload = screenImg.onerror = null;
+                        screenImg.removeAttribute('src'); // closes the stream
+                        widget.classList.remove('has-frame');
+                    }
+                    // quiet: a retry behind an error message, which stays up until a picture arrives.
+                    function connect(quiet = false) {
+                        stopStream();
+                        const attempt = ++state.attempt;
+                        const current = () => attempt === state.attempt;
+                        state.lastStatus = null;
+                        state.statusWorks = null;
+                        state.crop = null; state.cropHistory = []; state.cropFails = 0; state.cropUnavailable = false;
+                        if (!validHost(settings.host) || !validPin(settings.pin)) {
+                            setPhase('off');
+                            setOverlay('idle', 'Enter the iPhone address and PIN to show its screen here.', ['settings']);
+                            return;
+                        }
+                        updateLabel();
+                        if (!quiet) {
+                            setPhase('connecting');
+                            setOverlay('loading', `Connecting to ${settings.host}…`);
+                            state.timers.hint = setTimeout(() => {
+                                if (!current() || state.phase !== 'connecting') return;
+                                setOverlay('loading', 'Still connecting. If the browser asks about devices on your local network, tap Allow. Is the broadcast running on the iPhone?', ['open', 'settings']);
+                            }, HINT_MS);
+                        }
+                        screenImg.onerror = () => { if (current()) failed(); };
+                        if (settings.transport === 'jpeg') {
+                            screenImg.onload = () => {
+                                if (!current()) return;
+                                gotFrame();
+                                state.timers.poll = setTimeout(() => { if (current()) screenImg.src = phoneUrl('/frame.jpg'); }, 80);
+                            };
+                            screenImg.src = phoneUrl('/frame.jpg');
+                            return;
+                        }
+                        screenImg.onload = () => { if (current()) gotFrame(); };
+                        screenImg.src = phoneUrl('/stream');
+                        // Chrome fires load once for the whole stream (some builds never do), so the picture size is watched
+                        // instead. It also shows the phone turning between portrait and landscape.
+                        const watch = () => { if (!current()) return; if (screenImg.naturalWidth) gotFrame(); state.timers.watch = setTimeout(watch, 400); };
+                        state.timers.watch = setTimeout(watch, 400);
+                    }
+                    function gotFrame() {
+                        const w = screenImg.naturalWidth, h = screenImg.naturalHeight;
+                        if (!w || !h) return;
+                        const reshaped = w !== state.frameW || h !== state.frameH;
+                        state.frameW = w; state.frameH = h;
+                        if (state.phase !== 'live') {
+                            clearTimeout(state.timers.hint);
+                            setPhase('live');
+                            widget.classList.add('has-frame');
+                            setOverlay(null);
+                            updateLabel();
+                            showUi();
+                            watchAlive(state.attempt);
+                            watchCrop(state.attempt);
+                        }
+                        if (reshaped) {
+                            // A turned phone: earlier bar measurements no longer apply.
+                            state.crop = null; state.cropHistory = [];
+                            relayout();
+                        }
+                    }
+
+                    // ---- smart crop ----
+                    // Every 1.5 s a snapshot of the screen is checked for black bars, as around a widescreen video. Bars are cut off
+                    // and the widget takes the shape of what is left. The snapshot is fetched with CORS so its pixels can be read
+                    // (the stream itself can't be); a phone that doesn't allow that just gets the whole picture.
+                    let cropCanvas = null;
+                    function watchCrop(attempt) {
+                        const tick = () => {
+                            if (attempt !== state.attempt || state.cropUnavailable) return;
+                            if (settings.shape !== 'smart') { state.timers.crop = setTimeout(tick, CROP_MS); return; }
+                            const shot = new Image();
+                            shot.crossOrigin = 'anonymous';
+                            shot.onload = () => {
+                                if (attempt !== state.attempt) return;
+                                state.cropFails = 0;
+                                sampleBars(shot);
+                                state.timers.crop = setTimeout(tick, CROP_MS);
+                            };
+                            shot.onerror = () => {
+                                if (attempt !== state.attempt) return;
+                                // The stream plays but this keeps failing: the phone doesn't send CORS headers (an older app).
+                                if (++state.cropFails >= 3) { state.cropUnavailable = true; syncMenu(); return; }
+                                state.timers.crop = setTimeout(tick, CROP_MS * 2);
+                            };
+                            shot.src = phoneUrl('/frame.jpg');
+                        };
+                        state.timers.crop = setTimeout(tick, 300);
+                    }
+                    function sampleBars(shot) {
+                        if (shot.naturalWidth !== state.frameW || shot.naturalHeight !== state.frameH) return; // the phone is turning
+                        let part;
+                        try { part = findPicture(shot); } catch (e) { state.cropUnavailable = true; syncMenu(); return; } // pixels not readable
+                        if (!part) return; // (nearly) all black: a dark scene says nothing about bars
+                        // The union of the last few samples, so a dark moment in a film doesn't cut into the picture. Bars that go
+                        // away (the video ends) show up at once.
+                        state.cropHistory.push(part);
+                        if (state.cropHistory.length > CROP_HISTORY) state.cropHistory.shift();
+                        const h = state.cropHistory;
+                        const x0 = Math.min(...h.map((b) => b.x)), y0 = Math.min(...h.map((b) => b.y));
+                        const x1 = Math.max(...h.map((b) => b.x + b.w)), y1 = Math.max(...h.map((b) => b.y + b.h));
+                        const next = x1 - x0 > 0.985 && y1 - y0 > 0.985 ? null : { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+                        const a = state.crop || FULL_FRAME, b = next || FULL_FRAME;
+                        if (Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y), Math.abs(a.x + a.w - b.x - b.w), Math.abs(a.y + a.h - b.y - b.h)) < 0.015) return;
+                        state.crop = next;
+                        relayout();
+                        savePositions();
+                    }
+                    // The lit part of a frame, as fractions of it: black bars on opposite sides are left out. Null when the frame
+                    // is (nearly) all black.
+                    function findPicture(shot) {
+                        const k = 320 / Math.max(shot.naturalWidth, shot.naturalHeight);
+                        const w = Math.max(16, Math.round(shot.naturalWidth * k)), h = Math.max(16, Math.round(shot.naturalHeight * k));
+                        if (!cropCanvas) cropCanvas = document.createElement('canvas');
+                        cropCanvas.width = w;
+                        cropCanvas.height = h;
+                        const ctx = cropCanvas.getContext('2d', { willReadFrequently: true });
+                        ctx.drawImage(shot, 0, 0, w, h);
+                        const px = ctx.getImageData(0, 0, w, h).data; // throws if the picture came without CORS
+                        const litInRow = new Uint16Array(h), litInCol = new Uint16Array(w);
+                        for (let y = 0, i = 0; y < h; y++) {
+                            for (let x = 0; x < w; x++, i += 4) {
+                                if (px[i] * 0.3 + px[i + 1] * 0.59 + px[i + 2] * 0.11 > DARK_LUMA) { litInRow[y]++; litInCol[x]++; }
+                            }
+                        }
+                        // A row (column) is part of the picture once 2% of it is lit: JPEG noise in a bar stays below that.
+                        const span = (lit, length) => {
+                            const min = Math.max(1, length * 0.02);
+                            let a = 0, b = lit.length - 1;
+                            while (a <= b && lit[a] < min) a++;
+                            while (b >= a && lit[b] < min) b--;
+                            return a > b ? null : [a / lit.length, (b + 1) / lit.length];
+                        };
+                        const rows = span(litInRow, w), cols = span(litInCol, h);
+                        if (!rows || !cols || (rows[1] - rows[0]) * (cols[1] - cols[0]) < 0.08) return null;
+                        // Bars come in pairs around a centred picture. Dark space on one side only (say a dark-mode app) is not a bar.
+                        // The edge rows of a picture are blurred into its bars by the scaling, so one more is trimmed off each side.
+                        const bars = ([start, end], step) => {
+                            const before = start, after = 1 - end;
+                            return before >= BAR_MIN && after >= BAR_MIN && Math.abs(before - after) <= BAR_MISMATCH ? [start + step, end - step] : [0, 1];
+                        };
+                        const [y0, y1] = bars(rows, 1 / h), [x0, x1] = bars(cols, 1 / w);
+                        return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+                    }
+                    // While live: the stream itself gives no sign when the phone stops, so check the phone is still there.
+                    // Where the browser lets fetch() reach the phone, /status also gives the frame rate for the header.
+                    function watchAlive(attempt) {
+                        let misses = 0, lastFrames = null, lastTime = 0;
+                        const tick = async () => {
+                            if (attempt !== state.attempt) return;
+                            const alive = await probeImage(phoneUrl('/alive.gif', false), PROBE_TIMEOUT_MS);
+                            if (attempt !== state.attempt) return;
+                            misses = alive ? 0 : misses + 1;
+                            if (misses >= 2) { failed(); return; }
+                            if (alive && state.statusWorks !== false) {
+                                const s = await readStatus();
+                                if (attempt !== state.attempt) return;
+                                state.statusWorks = !!(s && s.ok);
+                                if (state.statusWorks) {
+                                    const now = Date.now();
+                                    const fps = lastFrames !== null ? Math.round(((s.frames - lastFrames) * 1000) / (now - lastTime)) : null;
+                                    lastFrames = s.frames; lastTime = now;
+                                    state.lastStatus = { paused: !!s.paused, fps };
+                                    updateLabel();
+                                }
+                            }
+                            state.timers.alive = setTimeout(tick, ALIVE_MS);
+                        };
+                        state.timers.alive = setTimeout(tick, ALIVE_MS);
+                    }
+                    async function failed() {
+                        const attempt = state.attempt;
+                        const wasLive = state.phase === 'live';
+                        stopStream();
+                        setPhase('error');
+                        if (wasLive) setOverlay('loading', 'Connection lost. Reconnecting…', ['open', 'settings']);
+                        const why = await diagnose();
+                        if (attempt !== state.attempt || !state.visible) return;
+                        setOverlay('error', why.text, why.actions);
+                        state.timers.retry = setTimeout(() => { if (attempt === state.attempt && state.visible) connect(true); }, wasLive ? 1500 : RETRY_MS);
+                    }
+                    // Why no picture came. An image shows whether the phone answers at all (/alive.gif needs no PIN);
+                    // fetch(), where the browser allows it to reach the phone, can also tell a wrong PIN from a paused broadcast.
+                    async function diagnose() {
+                        const all = ['retry', 'open', 'settings'];
+                        if (await probeImage(phoneUrl('/alive.gif', false), PROBE_TIMEOUT_MS)) {
+                            const s = await readStatus();
+                            if (s === 403) return { text: 'The iPhone refused the PIN. Enter the PIN shown in the Banyan MJPEG app.', actions: ['settings'] };
+                            if (s && s.paused) return { text: 'The broadcast is paused on the iPhone.', actions: all };
+                            if (s && s.ok && !s.live) return { text: 'Connected. Waiting for the first picture: open any app on the iPhone.', actions: all };
+                            return { text: "The iPhone answers but sent no picture. Check the PIN, or try Snapshots under Settings › Stream.", actions: all };
+                        }
+                        if (location.protocol === 'https:') {
+                            const permission = await localNetworkPermission();
+                            if (permission === 'denied') return { text: 'This browser is set to keep the lockscreen away from devices on your local network. Allow "local network access" for this site in the browser settings, or open the phone screen instead.', actions: ['open', 'settings'] };
+                            if (permission === 'unsupported') return { text: `Can't reach the iPhone at ${settings.host}. Check that the broadcast is running and the car is on the iPhone's hotspot. This car browser may also block the phone inside the lockscreen: then use Open phone screen.`, actions: all };
+                        }
+                        return { text: `Can't reach the iPhone at ${settings.host}. Start the broadcast in the Banyan MJPEG app, and connect the car to the iPhone's hotspot or the same Wi-Fi.`, actions: all };
+                    }
+                    function probeImage(src, timeoutMs) {
+                        return new Promise((resolve) => {
+                            const img = new Image();
+                            let timer = null;
+                            const done = (ok) => { clearTimeout(timer); img.onload = img.onerror = null; resolve(ok); };
+                            timer = setTimeout(() => { done(false); img.removeAttribute('src'); }, timeoutMs);
+                            img.onload = () => done(true);
+                            img.onerror = () => done(false);
+                            img.src = src;
+                        });
+                    }
+                    // 403 for a wrong PIN, the status object, or null when the phone can't be read with fetch().
+                    async function readStatus() {
+                        const ctrl = window.AbortController ? new AbortController() : null;
+                        const timer = ctrl ? setTimeout(() => ctrl.abort(), 2500) : null;
+                        const options = { cache: 'no-store', signal: ctrl ? ctrl.signal : undefined };
+                        // From an HTTPS page, this marks the request as one for the local network, which exempts it from the
+                        // mixed-content block once the user has allowed local network access.
+                        if (location.protocol === 'https:') options.targetAddressSpace = 'local';
+                        try {
+                            const res = await fetch(phoneUrl('/status'), options);
+                            if (res.status === 403) return 403;
+                            if (!res.ok) return null;
+                            const s = await res.json();
+                            s.ok = true;
+                            return s;
+                        } catch (e) {
+                            return null;
+                        } finally {
+                            clearTimeout(timer);
+                        }
+                    }
+                    // 'granted' | 'prompt' | 'denied', or 'unsupported' in browsers without Local Network Access.
+                    async function localNetworkPermission() {
+                        if (!navigator.permissions || !navigator.permissions.query) return 'unsupported';
+                        for (const name of ['local-network-access', 'local-network']) {
+                            try { return (await navigator.permissions.query({ name })).state; } catch (e) { /* not this name */ }
+                        }
+                        return 'unsupported';
+                    }
+                    function openPhonePage() {
+                        const rot = settings.horizontal ? (settings.turn === 'ccw' ? 270 : 90) : 0;
+                        const back = location.href.split('#')[0];
+                        location.href = `${phoneBase()}/?pin=${encodeURIComponent(settings.pin)}&rot=${rot}&back=${encodeURIComponent(back)}`;
+                    }
+
+                    // Streams only while the widget is on screen and the page is visible.
+                    function syncVisibility() {
+                        const shown = !isHidden() && !document.hidden;
+                        if (shown === state.visible) return;
+                        state.visible = shown;
+                        if (shown) { applyLayout(); keepOnScreen(); connect(); return; }
+                        if (isFull()) exitFull();
+                        stopStream();
+                        state.attempt++;
+                        setPhase('off');
+                    }
+                    new MutationObserver(syncVisibility).observe(widget, { attributes: true, attributeFilter: ['class'] });
+                    document.addEventListener('visibilitychange', syncVisibility);
+
+                    // ---- fullscreen (same approach as the video widget) ----
+                    function syncFull() {
+                        const full = isFull();
+                        widget.classList.toggle('is-full', full);
+                        fsBtn.firstElementChild.className = `fa-solid ${full ? 'fa-compress' : 'fa-expand'}`;
+                        fsBtn.title = full ? 'Exit fullscreen' : 'Fullscreen';
+                        applyLayout();
+                        if (!full) keepOnScreen();
+                        showUi();
+                    }
+                    function exitFull() {
+                        widget.classList.remove('maximized');
+                        if (fsElement() === widget) { const ex = document.exitFullscreen || document.webkitExitFullscreen; try { const p = ex.call(document); if (p && p.catch) p.catch(() => {}); } catch (e) { /* ignore */ } }
+                        syncFull();
+                    }
+                    function toggleFullscreen() {
+                        if (isFull()) { exitFull(); return; }
+                        const req = widget.requestFullscreen || widget.webkitRequestFullscreen;
+                        const fallback = () => { widget.classList.add('maximized'); syncFull(); }; // browsers without the Fullscreen API
+                        if (!req) { fallback(); return; }
+                        try { const p = req.call(widget); if (p && p.catch) p.catch(fallback); } catch (e) { fallback(); }
+                    }
+                    fsBtn.addEventListener('click', toggleFullscreen);
+                    document.addEventListener('fullscreenchange', syncFull);
+                    document.addEventListener('webkitfullscreenchange', syncFull);
+                    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && widget.classList.contains('maximized')) exitFull(); });
+
+                    // ---- widget controls ----
+                    rotateBtn.addEventListener('click', () => {
+                        settings.horizontal = !settings.horizontal;
+                        saveSettings();
+                        relayout();
+                        savePositions();
+                        showUi();
+                    });
+                    document.getElementById('phone-settings-btn').addEventListener('click', () => openMenu());
+                    widget.addEventListener('dblclick', (e) => {
+                        if (e.target.hasMoved || e.target.closest('#phone-header-actions, #phone-overlay-actions, #phone-resize-grip')) return;
+                        openMenu();
+                    });
+                    stage.addEventListener('click', (e) => { if (!e.target.hasMoved) showUi(); });
+                    widget.addEventListener('mousemove', () => { if (state.phase === 'live') showUi(); });
+                    // Corner grip: resize keeping the phone's shape. (Touchscreens can also pinch.)
+                    grip.addEventListener('pointerdown', (e) => {
+                        if (isFull()) return;
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const start = { x: e.clientX, y: e.clientY, w: widget.offsetWidth, h: widget.offsetHeight, size: currentSize() };
+                        try { grip.setPointerCapture(e.pointerId); } catch (err) { /* not supported */ }
+                        const move = (ev) => setSize(start.size * Math.max((start.w + ev.clientX - start.x) / start.w, (start.h + ev.clientY - start.y) / start.h));
+                        const end = () => {
+                            grip.removeEventListener('pointermove', move);
+                            grip.removeEventListener('pointerup', end);
+                            grip.removeEventListener('pointercancel', end);
+                            settings.size = currentSize();
+                            saveSettings();
+                            keepOnScreen();
+                            savePositions();
+                        };
+                        grip.addEventListener('pointermove', move);
+                        grip.addEventListener('pointerup', end);
+                        grip.addEventListener('pointercancel', end);
+                    });
+                    window.addEventListener('resize', () => { if (state.visible) { applyLayout(); keepOnScreen(); } });
+                    if (window.ResizeObserver) new ResizeObserver(layoutPicture).observe(stage);
+
+                    // ---- settings menu ----
+                    function syncMenu() {
+                        const mark = (attr, value) => menu.querySelectorAll(`[data-${attr}]`).forEach((c) => c.classList.toggle('active', c.dataset[attr] === value));
+                        mark('shape', settings.shape);
+                        shapeHint.textContent = settings.shape === 'smart' && state.cropUnavailable
+                            ? "This phone doesn't let the lockscreen read its picture, so Smart can't find black bars: update the iPhone app."
+                            : 'Smart follows the phone and cuts off black bars, e.g. around a widescreen video, so the picture fills the widget. Whole picture always shows everything the phone sends.';
+                        mark('horizontal', settings.horizontal ? settings.turn : 'off');
+                        mark('fit', settings.fit);
+                        mark('transport', settings.transport);
+                        sizeRange.max = String(Math.max(MIN_SIZE + 10, lockScreen.clientWidth, lockScreen.clientHeight));
+                        sizeRange.value = String(Math.round(isHidden() ? (settings.size || defaultSize()) : currentSize()));
+                    }
+                    function openMenu() {
+                        if (isFull()) exitFull(); // the menu can't appear above a fullscreen element
+                        hostInput.value = settings.host;
+                        portInput.value = String(settings.port);
+                        pinInput.value = settings.pin;
+                        settingsStatus.textContent = '';
+                        syncMenu();
+                        menu.classList.add('visible');
+                    }
+                    const closeMenu = () => menu.classList.remove('visible');
+                    function readForm() {
+                        const host = hostInput.value.trim(), port = parseInt(portInput.value.trim() || '8765', 10), pin = pinInput.value.replace(/\s+/g, '');
+                        if (!validHost(host)) { settingsStatus.textContent = 'Enter the iPhone address shown in the app, e.g. 172.20.10.1.'; return false; }
+                        if (!validPort(port)) { settingsStatus.textContent = 'The port is a number, normally 8765.'; return false; }
+                        if (!validPin(pin)) { settingsStatus.textContent = 'The PIN is the number shown in the iPhone app.'; return false; }
+                        settings.host = host; settings.port = port; settings.pin = pin;
+                        saveSettings();
+                        return true;
+                    }
+                    function changed() { saveSettings(); relayout(); syncMenu(); savePositions(); }
+                    document.getElementById('close-phone-settings-btn').addEventListener('click', closeMenu);
+                    menu.addEventListener('click', (e) => { if (e.target === menu) closeMenu(); });
+                    document.getElementById('phone-hotspot-chip').addEventListener('click', () => { hostInput.value = HOTSPOT_HOST; if (!portInput.value.trim()) portInput.value = '8765'; });
+                    document.getElementById('phone-connect-btn').addEventListener('click', () => {
+                        if (!readForm()) return;
+                        closeMenu();
+                        if (state.visible) connect();
+                    });
+                    document.getElementById('phone-open-page-btn').addEventListener('click', () => { if (readForm()) openPhonePage(); });
+                    menu.querySelectorAll('[data-shape]').forEach((c) => c.addEventListener('click', () => {
+                        settings.shape = c.dataset.shape;
+                        state.cropHistory = []; // measure afresh
+                        changed();
+                    }));
+                    menu.querySelectorAll('[data-horizontal]').forEach((c) => c.addEventListener('click', () => {
+                        const v = c.dataset.horizontal;
+                        settings.horizontal = v !== 'off';
+                        if (v !== 'off') settings.turn = v;
+                        changed();
+                    }));
+                    menu.querySelectorAll('[data-fit]').forEach((c) => c.addEventListener('click', () => { settings.fit = c.dataset.fit; changed(); }));
+                    menu.querySelectorAll('[data-transport]').forEach((c) => c.addEventListener('click', () => {
+                        const before = settings.transport;
+                        settings.transport = c.dataset.transport;
+                        changed();
+                        if (before !== settings.transport && state.visible) connect();
+                    }));
+                    sizeRange.addEventListener('input', () => relayout(() => setSize(parseInt(sizeRange.value, 10))));
+                    sizeRange.addEventListener('change', () => { settings.size = currentSize(); saveSettings(); savePositions(); });
+
+                    applyLayout();
+                    window.phoneMirror = {
+                        keepOnScreen,
+                        get size() { return currentSize(); },
+                        setSize,
+                        pinchEnd() { settings.size = currentSize(); saveSettings(); keepOnScreen(); },
+                        resetSize() { settings.size = 0; saveSettings(); applyLayout(); },
+                    };
+                })();
+
                 (function setupBaseFeatures() {
                     const webcamToggleBtn = document.getElementById('webcam-toggle-btn');
-                    const DRAGGABLE_ELEMENT_IDS = ['clock', 'youtube-music-btn', 'youtube-btn', 'stock-widget', 'settings-btn', 'fun-stock-name-display', 'note-widget', 'music-widget', 'gif-widget', 'webcam-widget', 'webcam-toggle-btn', 'taxi-widget', 'video-widget'];
+                    const DRAGGABLE_ELEMENT_IDS = ['clock', 'youtube-music-btn', 'youtube-btn', 'stock-widget', 'settings-btn', 'fun-stock-name-display', 'note-widget', 'music-widget', 'gif-widget', 'webcam-widget', 'webcam-toggle-btn', 'taxi-widget', 'video-widget', 'phone-widget'];
                     const WIDGETS = {
                         stock: { el: document.getElementById('stock-widget'), toggle: document.getElementById('toggle-stock-widget'), default: true },
                         note: { el: document.getElementById('note-widget'), toggle: document.getElementById('toggle-note-widget'), default: false },
@@ -2574,6 +3281,7 @@
                         gif: { el: document.getElementById('gif-widget'), toggle: document.getElementById('toggle-gif-widget'), default: false },
                         webcam: { el: document.getElementById('webcam-widget'), toggle: document.getElementById('toggle-webcam-widget'), default: false },
                         taxi: { el: document.getElementById('taxi-widget'), toggle: document.getElementById('toggle-taxi-widget'), default: false },
+                        phone: { el: document.getElementById('phone-widget'), toggle: document.getElementById('toggle-phone-widget'), default: false },
                     };
                     
                     function initializeWidgetToggles() {
@@ -2647,8 +3355,8 @@
                         DRAGGABLE_ELEMENT_IDS.forEach(id => {
                             const e = document.getElementById(id);
                             if (e) {
-                                // A closed video widget is display:none (offsets read 0) - keep its last saved spot instead.
-                                if (id === 'video-widget' && e.classList.contains('hidden')) { if (prev[id]) p[id] = prev[id]; return; }
+                                // A closed video or phone widget is display:none (offsets read 0) - keep its last saved spot instead.
+                                if ((id === 'video-widget' || id === 'phone-widget') && e.classList.contains('hidden')) { if (prev[id]) p[id] = prev[id]; return; }
                                 p[id] = { t: `${(e.offsetTop / lockScreen.clientHeight) * 100}%`, l: `${(e.offsetLeft / lockScreen.clientWidth) * 100}%` };
                                 if (id === 'clock') p[id].s = clockScale;
                                 if (id === 'note-widget' || id === 'gif-widget' || id === 'webcam-widget' || id === 'video-widget') { p[id].w = e.style.width; p[id].h = e.style.height; }
@@ -2697,6 +3405,13 @@
                                 min: 260, max: 4000
                             };
                         })(),
+                        // Longest side in px; the widget keeps the phone's shape.
+                        'phone-widget': {
+                            get: () => window.phoneMirror.size,
+                            set: (s) => window.phoneMirror.setSize(s),
+                            onEnd: () => { window.phoneMirror.pinchEnd(); savePos(); },
+                            min: 240, max: 4000
+                        },
                     };
 
                     const makeDraggable = (el) => {
@@ -2786,8 +3501,8 @@
                                 return;
                             }
                             if (el.isEditing) return;
-                            if (el.id === 'video-widget' && el.classList.contains('is-full')) return; // no dragging while fullscreen
-                            if (e.target.closest('#music-controls, #remove-gif-btn, #webcam-controls, #note-settings-btn, #webcam-portrait-btn, #taxi-controls, #video-controls, #video-header-actions, #video-iframe')) return;
+                            if ((el.id === 'video-widget' || el.id === 'phone-widget') && el.classList.contains('is-full')) return; // no dragging while fullscreen
+                            if (e.target.closest('#music-controls, #remove-gif-btn, #webcam-controls, #note-settings-btn, #webcam-portrait-btn, #taxi-controls, #video-controls, #video-header-actions, #video-iframe, #phone-header-actions, #phone-overlay-actions, #phone-resize-grip')) return;
                             if (e.touches && e.touches.length === 2 && pinch) {
                                 if (!isD) hasMoved = false;
                                 isPinching = true;
@@ -3282,11 +3997,12 @@
                     window.webcamPlayer.stop();
                     window.videoWidget.close();
                     document.getElementById('gif-display').src = '';
-                    ['clock', 'youtube-music-btn', 'youtube-btn', 'stock-widget', 'settings-btn', 'fun-stock-name-display', 'note-widget', 'music-widget', 'gif-widget', 'webcam-widget', 'webcam-toggle-btn', 'taxi-widget', 'video-widget'].forEach(id => {
+                    ['clock', 'youtube-music-btn', 'youtube-btn', 'stock-widget', 'settings-btn', 'fun-stock-name-display', 'note-widget', 'music-widget', 'gif-widget', 'webcam-widget', 'webcam-toggle-btn', 'taxi-widget', 'video-widget', 'phone-widget'].forEach(id => {
                         const el = document.getElementById(id);
                         if (el) el.style.cssText = '';
                     });
                     window.applyClockScale(1);
+                    window.phoneMirror.resetSize();
                     settingsMenu.classList.remove('visible');
                 });
 

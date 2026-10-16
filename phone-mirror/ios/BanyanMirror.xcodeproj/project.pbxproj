@@ -1,0 +1,471 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		D47783EE50C53AD7D000DF84 /* build:App:BanyanMirrorApp.swift */ = {
+			isa = PBXBuildFile;
+			fileRef = 408EDF21D9BEDA227398BCA6;
+		};
+		48B94E1F710447C805BD2F32 /* build:App:ContentView.swift */ = {
+			isa = PBXBuildFile;
+			fileRef = E16464F79FC74E7EB621AACB;
+		};
+		C532F95D96B5DA142EFC5EC6 /* build:App:LocalNetworkPermission.swift */ = {
+			isa = PBXBuildFile;
+			fileRef = 2ED7B35C52E9D7DE42657394;
+		};
+		9EEB985FF446F97134F3B792 /* build:App:MirrorSettings.swift */ = {
+			isa = PBXBuildFile;
+			fileRef = B99093E111D72E241913143B;
+		};
+		54443E8475FE032BEFCF7D8D /* build:Ext:MirrorSettings.swift */ = {
+			isa = PBXBuildFile;
+			fileRef = B99093E111D72E241913143B;
+		};
+		CDFE5D55ED45917AE0970912 /* build:Ext:ReceiverHTML.swift */ = {
+			isa = PBXBuildFile;
+			fileRef = 8F72DDCEFB9BC0081E36CCF3;
+		};
+		BD5E7EDD239F3C41892E61E1 /* build:Ext:ReceiverServer.swift */ = {
+			isa = PBXBuildFile;
+			fileRef = 448830670A82B8B4C2758E74;
+		};
+		B375AAEC6F8714E1D43C19F5 /* build:Ext:SampleHandler.swift */ = {
+			isa = PBXBuildFile;
+			fileRef = 42968095BA91ABBB51BAAC8A;
+		};
+		02F8E98A24EE42B36AA1052E /* build:embed */ = {
+			isa = PBXBuildFile;
+			fileRef = 06200877422A221EEC15A686;
+			settings = {
+				ATTRIBUTES = (
+					RemoveHeadersOnCopy,
+					CodeSignOnCopy,
+				);
+			};
+		};
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		2DA387D6452210B102357631 /* proxy:extension */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 77F631A3E465A025F9C1026C;
+			proxyType = 1;
+			remoteGlobalIDString = 93AC60425A31EBD87C20E6AD;
+			remoteInfo = BroadcastUpload;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		81CD1A80271BC6D06532AF0F /* phase:embed */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				02F8E98A24EE42B36AA1052E,
+			);
+			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		9A5A3CA4CA30E289A8921338 /* file:AppInfo */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = text.plist.xml;
+			path = BanyanMirror/Info.plist;
+			sourceTree = "<group>";
+		};
+		408EDF21D9BEDA227398BCA6 /* file:BanyanMirrorApp.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = BanyanMirror/BanyanMirrorApp.swift;
+			sourceTree = "<group>";
+		};
+		E16464F79FC74E7EB621AACB /* file:ContentView.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = BanyanMirror/ContentView.swift;
+			sourceTree = "<group>";
+		};
+		757076228E0AFBCE48EDBB5B /* file:ExtInfo */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = text.plist.xml;
+			path = BroadcastUpload/Info.plist;
+			sourceTree = "<group>";
+		};
+		2ED7B35C52E9D7DE42657394 /* file:LocalNetworkPermission.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = BanyanMirror/LocalNetworkPermission.swift;
+			sourceTree = "<group>";
+		};
+		B99093E111D72E241913143B /* file:MirrorSettings.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = Shared/MirrorSettings.swift;
+			sourceTree = "<group>";
+		};
+		8F72DDCEFB9BC0081E36CCF3 /* file:ReceiverHTML.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = BroadcastUpload/ReceiverHTML.swift;
+			sourceTree = "<group>";
+		};
+		448830670A82B8B4C2758E74 /* file:ReceiverServer.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = BroadcastUpload/ReceiverServer.swift;
+			sourceTree = "<group>";
+		};
+		42968095BA91ABBB51BAAC8A /* file:SampleHandler.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = BroadcastUpload/SampleHandler.swift;
+			sourceTree = "<group>";
+		};
+		3DECC175B03489E4924A20FF /* product:App */ = {
+			isa = PBXFileReference;
+			explicitFileType = wrapper.application;
+			includeInIndex = 0;
+			path = BanyanMirror.app;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		06200877422A221EEC15A686 /* product:Ext */ = {
+			isa = PBXFileReference;
+			explicitFileType = wrapper.app-extension;
+			includeInIndex = 0;
+			path = BroadcastUpload.appex;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		FD4FDCC98EA988AE7A7C7CA7 /* phase:frameworks:App */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = ();
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		83186055DE95C5D72513C10D /* phase:frameworks:Ext */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = ();
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		FD31D455793E48EC990DA81F /* group:app */ = {
+			isa = PBXGroup;
+			children = (
+				408EDF21D9BEDA227398BCA6,
+				E16464F79FC74E7EB621AACB,
+				2ED7B35C52E9D7DE42657394,
+				9A5A3CA4CA30E289A8921338,
+			);
+			name = BanyanMirror;
+			sourceTree = "<group>";
+		};
+		96188FEC859E166888AE1301 /* group:ext */ = {
+			isa = PBXGroup;
+			children = (
+				42968095BA91ABBB51BAAC8A,
+				448830670A82B8B4C2758E74,
+				8F72DDCEFB9BC0081E36CCF3,
+				757076228E0AFBCE48EDBB5B,
+			);
+			name = BroadcastUpload;
+			sourceTree = "<group>";
+		};
+		2A5CB66B42A5B38AC364CC30 /* group:products */ = {
+			isa = PBXGroup;
+			children = (
+				3DECC175B03489E4924A20FF,
+				06200877422A221EEC15A686,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		9FCDC9B7C4948354936D23E0 /* group:root */ = {
+			isa = PBXGroup;
+			children = (
+				FD31D455793E48EC990DA81F,
+				96188FEC859E166888AE1301,
+				E3A406FC9CE5B430259AD62D,
+				2A5CB66B42A5B38AC364CC30,
+			);
+			sourceTree = "<group>";
+		};
+		E3A406FC9CE5B430259AD62D /* group:shared */ = {
+			isa = PBXGroup;
+			children = (
+				B99093E111D72E241913143B,
+			);
+			name = Shared;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		F6EA9A1A84F2F16763CA6D4A /* target:App */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 27D2BA5B6D49BA5C967D02F8;
+			buildPhases = (
+				D19A3B4DF7B7AB1D1579F404,
+				FD4FDCC98EA988AE7A7C7CA7,
+				E45721C662E28CC6E56278CE,
+				81CD1A80271BC6D06532AF0F,
+			);
+			buildRules = ();
+			dependencies = (
+				4CCF9277586B10D1F42FF4F3,
+			);
+			name = BanyanMirror;
+			productName = BanyanMirror;
+			productReference = 3DECC175B03489E4924A20FF;
+			productType = com.apple.product-type.application;
+		};
+		93AC60425A31EBD87C20E6AD /* target:Ext */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D19FE77D7C636E5AADD5637A;
+			buildPhases = (
+				29619FE98C058131289F2917,
+				83186055DE95C5D72513C10D,
+				9F827BC1CB317AF062AE5571,
+			);
+			buildRules = ();
+			dependencies = ();
+			name = BroadcastUpload;
+			productName = BroadcastUpload;
+			productReference = 06200877422A221EEC15A686;
+			productType = com.apple.product-type.app-extension;
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		77F631A3E465A025F9C1026C /* project */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					F6EA9A1A84F2F16763CA6D4A = {
+						CreatedOnToolsVersion = 16.0;
+					};
+					93AC60425A31EBD87C20E6AD = {
+						CreatedOnToolsVersion = 16.0;
+					};
+				};
+			};
+			buildConfigurationList = 1A98E18B28E083A9D660ADC6;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 9FCDC9B7C4948354936D23E0;
+			productRefGroup = 2A5CB66B42A5B38AC364CC30;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				F6EA9A1A84F2F16763CA6D4A,
+				93AC60425A31EBD87C20E6AD,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		E45721C662E28CC6E56278CE /* phase:resources:App */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = ();
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9F827BC1CB317AF062AE5571 /* phase:resources:Ext */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = ();
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		D19A3B4DF7B7AB1D1579F404 /* phase:source:App */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D47783EE50C53AD7D000DF84,
+				48B94E1F710447C805BD2F32,
+				C532F95D96B5DA142EFC5EC6,
+				9EEB985FF446F97134F3B792,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		29619FE98C058131289F2917 /* phase:source:Ext */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B375AAEC6F8714E1D43C19F5,
+				BD5E7EDD239F3C41892E61E1,
+				CDFE5D55ED45917AE0970912,
+				54443E8475FE032BEFCF7D8D,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		4CCF9277586B10D1F42FF4F3 /* dependency:extension */ = {
+			isa = PBXTargetDependency;
+			target = 93AC60425A31EBD87C20E6AD;
+			targetProxy = 2DA387D6452210B102357631;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		FFE717516F3B59F768D827DA /* config:App:Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.banyanmirror.ios;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = BanyanMirror/Info.plist;
+				CODE_SIGN_STYLE = Automatic;
+				SWIFT_VERSION = 5.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+			};
+			name = Debug;
+		};
+		8856A66B8BE1F1D59223FEF4 /* config:App:Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.banyanmirror.ios;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = BanyanMirror/Info.plist;
+				CODE_SIGN_STYLE = Automatic;
+				SWIFT_VERSION = 5.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+			};
+			name = Release;
+		};
+		7C9AA8F616E8A87CC5BCC2E3 /* config:Ext:Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.banyanmirror.ios.BroadcastUpload;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = BroadcastUpload/Info.plist;
+				CODE_SIGN_STYLE = Automatic;
+				SWIFT_VERSION = 5.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				SKIP_INSTALL = YES;
+				APPLICATION_EXTENSION_API_ONLY = YES;
+			};
+			name = Debug;
+		};
+		D4E363A8756E8F304A2B808D /* config:Ext:Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.banyanmirror.ios.BroadcastUpload;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = BroadcastUpload/Info.plist;
+				CODE_SIGN_STYLE = Automatic;
+				SWIFT_VERSION = 5.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				SKIP_INSTALL = YES;
+				APPLICATION_EXTENSION_API_ONLY = YES;
+			};
+			name = Release;
+		};
+		36BFF0A2F9E9AB8EB2381D5F /* config:Project:Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				CLANG_ENABLE_MODULES = YES;
+				ENABLE_BITCODE = NO;
+				SWIFT_OPTIMIZATION_LEVEL = -Onone;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				GCC_OPTIMIZATION_LEVEL = 0;
+			};
+			name = Debug;
+		};
+		34C4AF631B364E6D7A4B682A /* config:Project:Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				CLANG_ENABLE_MODULES = YES;
+				ENABLE_BITCODE = NO;
+				SWIFT_OPTIMIZATION_LEVEL = -O;
+				DEBUG_INFORMATION_FORMAT = dwarf-with-dsym;
+				GCC_OPTIMIZATION_LEVEL = s;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		27D2BA5B6D49BA5C967D02F8 /* list:App */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				FFE717516F3B59F768D827DA,
+				8856A66B8BE1F1D59223FEF4,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D19FE77D7C636E5AADD5637A /* list:Ext */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7C9AA8F616E8A87CC5BCC2E3,
+				D4E363A8756E8F304A2B808D,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		1A98E18B28E083A9D660ADC6 /* list:Project */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				36BFF0A2F9E9AB8EB2381D5F,
+				34C4AF631B364E6D7A4B682A,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 77F631A3E465A025F9C1026C /* Project object */;
+}

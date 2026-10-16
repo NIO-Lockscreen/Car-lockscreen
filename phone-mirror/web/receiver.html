@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#080e17">
+<title>Banyan MJPEG</title>
+<!-- Served by the iPhone itself, over plain HTTP. This page is the fallback for car browsers that will not show
+     the stream inside the HTTPS lockscreen. Opened from the lockscreen widget it receives ?pin=, ?rot= and ?back=,
+     connects on its own and offers a button back to the lockscreen. -->
+<style>
+:root { --bg: #080d14; --ink: #f1f8ff; --muted: #97afc2; --mint: #69f2c3; }
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; width: 100%; overflow: hidden; background: var(--bg); color: var(--ink); font: 14px system-ui, -apple-system, Arial, sans-serif; }
+button, a.btn { border: 1px solid #354e61; background: #1d3445; color: var(--ink); border-radius: 10px; padding: 10px 14px; font-size: 13px; touch-action: manipulation; text-decoration: none; white-space: nowrap; }
+button:active, a.btn:active { background: #286459; }
+button.selected { border-color: var(--mint); background: #1c4b48; }
+#stage { position: absolute; inset: 0; background: #030608; overflow: hidden; }
+#screen { display: none; position: absolute; left: 50%; top: 50%; width: 100%; height: 100%; object-fit: contain; transform: translate(-50%, -50%); }
+#waiting { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 30px; color: #aebdcf; line-height: 1.8; }
+#waiting b { display: block; color: #fafcff; font-size: 26px; letter-spacing: .1em; }
+#hud { position: absolute; top: 0; left: 0; right: 0; display: flex; align-items: center; gap: 8px; z-index: 4; padding: 10px 13px; background: linear-gradient(#0d1d2bf5, #0d1d2be9, #0d1d2b00); transition: opacity .2s; }
+.brand { white-space: nowrap; font-weight: 800; letter-spacing: .08em; font-size: 13px; }
+.brand span { color: var(--mint); }
+#stats { flex: 1; font-size: 12px; color: #9eb9c4; white-space: nowrap; text-align: right; overflow: hidden; text-overflow: ellipsis; }
+#hud button, #hud a.btn { padding: 8px 9px; }
+#hud.hidden { opacity: 0; pointer-events: none; }
+#unhide { display: none; position: absolute; top: 0; left: 48%; width: 50px; height: 13px; border-radius: 0 0 8px 8px; background: #3b5d69bb; z-index: 5; padding: 0; border: 0; }
+#hud.hidden + #unhide { display: block; }
+#pair { position: absolute; z-index: 8; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(94vw, 410px); padding: 26px; background: linear-gradient(145deg, #172d40, #0a1420); border: 1px solid #375263; border-radius: 21px; box-shadow: 0 25px 100px #000b; }
+#pair h1 { font-size: 26px; line-height: 1.1; margin: 0 0 8px; }
+#pair h1 span { color: var(--mint); }
+#pair p { color: var(--muted); line-height: 1.6; }
+#pair form { display: flex; gap: 10px; margin-top: 18px; }
+#pin { min-width: 0; width: 100%; padding: 12px; background: #050e18; color: white; border: 1px solid #466170; border-radius: 9px; font-size: 24px; letter-spacing: .23em; font-family: monospace; }
+#pair button { background: #55ddb2; border: 0; color: #062619; font-weight: 800; }
+#error { color: #ffa8a8; min-height: 16px; font-size: 12px; margin-top: 10px; }
+#foot { position: absolute; bottom: 10px; left: 13px; font-size: 11px; color: #8c99a5aa; z-index: 2; }
+@media (max-width: 760px) { #hud { gap: 4px; padding: 5px; } .brand { display: none; } #stats { display: none; } #hud button, #hud a.btn { font-size: 11px; padding: 7px; } }
+</style>
+</head>
+<body>
+<div id="stage"><img id="screen" alt="Live phone screen"><div id="waiting"><b>BANYAN / MIRROR</b>Waiting for your iPhone broadcast.<br>Keep the car parked.</div></div>
+<div id="hud">
+    <a id="back" class="btn" href="#">&#9664; Lockscreen</a>
+    <div class="brand">BANYAN <span>MJPEG</span></div>
+    <div id="stats">Connect using your PIN</div>
+    <button id="mode">MJPEG</button>
+    <button id="rotate">Horizontal: off</button>
+    <button id="fit">Fit</button>
+    <button id="fullscreen">Fullscreen</button>
+    <button id="hide">Hide</button>
+</div><button id="unhide" title="Show controls">&#9660;</button>
+<div id="foot">Local stream · View only · Do not use while driving</div>
+<div id="pair"><h1>Local <span>screen mirror</span></h1><p>Enter the PIN shown in the iPhone Banyan MJPEG app. The screen travels directly over your private Wi-Fi, without any cloud server.</p><form id="pairform"><input id="pin" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="6-digit PIN" autocomplete="off" required><button>Connect</button></form><div id="error"></div></div>
+<script>
+(function () {
+    'use strict';
+    var LOCKSCREEN_URL = 'https://nio-lockscreen.github.io/Car-lockscreen/';
+    var ROTATIONS = [0, 90, 270]; // off, horizontal turned clockwise, horizontal turned counter-clockwise
+    var $ = function (id) { return document.getElementById(id); };
+    var screen = $('screen'), stage = $('stage'), waiting = $('waiting'), stats = $('stats'), pair = $('pair'), error = $('error');
+    var params = new URLSearchParams(location.search);
+    var store = {
+        get: function (k) { try { return localStorage.getItem('banyan_' + k); } catch (e) { return null; } },
+        set: function (k, v) { try { localStorage.setItem('banyan_' + k, v); } catch (e) { /* storage unavailable */ } }
+    };
+    var pin = '', mode = 'mjpeg', fill = false, connected = false, lastSeq = 0, lastStatTime = 0, pollTimer = 0, statsTimer = 0, mjpegCheck = 0;
+    var rotation = parseInt(params.get('rot') || store.get('rot') || '0', 10);
+    if (ROTATIONS.indexOf(rotation) < 0) rotation = 0;
+
+    var back = params.get('back');
+    $('back').href = back && /^https?:\/\//i.test(back) ? back : LOCKSCREEN_URL;
+
+    function makeURL(path) { return path + '?pin=' + encodeURIComponent(pin) + '&t=' + Date.now(); }
+    function showFrame() { screen.style.display = 'block'; waiting.style.display = 'none'; layout(); }
+    function showWait() { screen.style.display = 'none'; waiting.style.display = 'flex'; }
+
+    // "Horizontal" turns a portrait frame on its side to fill a landscape screen. A frame that is already
+    // landscape (the phone itself was turned) is shown as it comes.
+    function layout() {
+        var portrait = screen.naturalHeight > screen.naturalWidth;
+        var turn = portrait ? rotation : 0;
+        var w = stage.clientWidth, h = stage.clientHeight;
+        var sideways = turn === 90 || turn === 270;
+        screen.style.width = (sideways ? h : w) + 'px';
+        screen.style.height = (sideways ? w : h) + 'px';
+        screen.style.transform = 'translate(-50%, -50%) rotate(' + turn + 'deg)';
+    }
+    function syncRotateButton() {
+        $('rotate').textContent = 'Horizontal: ' + (rotation === 0 ? 'off' : rotation === 90 ? '↻' : '↺');
+        $('rotate').classList.toggle('selected', rotation !== 0);
+    }
+
+    function setMode(next) {
+        mode = next;
+        $('mode').textContent = mode === 'mjpeg' ? 'MJPEG' : 'JPEG snapshots';
+        clearTimeout(pollTimer); clearInterval(mjpegCheck);
+        screen.onload = null; screen.onerror = null; screen.removeAttribute('src'); showWait();
+        if (!connected) return;
+        if (mode === 'mjpeg') {
+            screen.onerror = function () { stats.textContent = 'Stream interrupted, try JPEG snapshots'; };
+            screen.onload = showFrame;
+            screen.src = makeURL('/stream');
+            // Some Chromium builds never fire onload for an endless MJPEG stream: watch the picture size instead,
+            // which also follows the phone turning between portrait and landscape.
+            var lastShape = '';
+            mjpegCheck = setInterval(function () {
+                var shape = screen.naturalWidth + 'x' + screen.naturalHeight;
+                if (screen.naturalWidth && shape !== lastShape) { lastShape = shape; showFrame(); }
+            }, 500);
+        } else {
+            pollFrame();
+        }
+    }
+    function pollFrame() {
+        if (!connected || mode !== 'jpeg') return;
+        screen.onload = function () { showFrame(); pollTimer = setTimeout(pollFrame, 65); };
+        screen.onerror = function () { stats.textContent = 'Waiting for JPEG frame'; pollTimer = setTimeout(pollFrame, 500); };
+        screen.src = makeURL('/frame.jpg');
+    }
+    function refreshStatus() {
+        if (!connected) return;
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', makeURL('/status'), true);
+        xhr.timeout = 2600;
+        xhr.onload = function () {
+            if (xhr.status === 403) { disconnect('Incorrect PIN'); return; }
+            if (xhr.status !== 200) return;
+            try {
+                var s = JSON.parse(xhr.responseText);
+                var now = Date.now();
+                var measured = (lastStatTime && now > lastStatTime) ? Math.round((s.frames - lastSeq) * 1000 / (now - lastStatTime)) : 0;
+                lastSeq = s.frames; lastStatTime = now;
+                if (!s.live) stats.textContent = s.paused ? 'Broadcast paused on the iPhone' : 'Waiting for screen broadcast…';
+                else stats.textContent = 'LIVE · ' + measured + ' fps' + (measured === 0 ? ' (screen still)' : '') + ' · ' + Math.round(s.bytes / 1024) + ' KB/frame · ' + mode.toUpperCase();
+            } catch (e) { /* ignore a garbled status */ }
+        };
+        xhr.onerror = function () { stats.textContent = 'Connection lost, check Wi-Fi'; };
+        xhr.send();
+    }
+    function disconnect(message) {
+        connected = false;
+        clearInterval(statsTimer); clearTimeout(pollTimer); clearInterval(mjpegCheck);
+        screen.removeAttribute('src'); showWait();
+        pair.style.display = 'block'; error.textContent = message;
+    }
+    function connect(value) {
+        pin = value; store.set('pin', value);
+        error.textContent = ''; connected = true; lastStatTime = 0; lastSeq = 0;
+        pair.style.display = 'none';
+        setMode(mode); refreshStatus();
+        statsTimer = setInterval(refreshStatus, 1800);
+    }
+
+    $('pairform').onsubmit = function (e) {
+        e.preventDefault();
+        var entered = $('pin').value.trim();
+        if (!/^\d{6}$/.test(entered)) { error.textContent = 'Enter exactly six digits'; return; }
+        connect(entered);
+    };
+    $('mode').onclick = function () { setMode(mode === 'mjpeg' ? 'jpeg' : 'mjpeg'); };
+    $('rotate').onclick = function () {
+        rotation = ROTATIONS[(ROTATIONS.indexOf(rotation) + 1) % ROTATIONS.length];
+        store.set('rot', String(rotation)); syncRotateButton(); layout();
+    };
+    $('fit').onclick = function () { fill = !fill; screen.style.objectFit = fill ? 'cover' : 'contain'; this.textContent = fill ? 'Fill' : 'Fit'; };
+    $('fullscreen').onclick = function () {
+        try {
+            if (document.fullscreenElement) document.exitFullscreen();
+            else if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
+        } catch (e) { /* not supported */ }
+    };
+    $('hide').onclick = function () { $('hud').classList.add('hidden'); };
+    $('unhide').onclick = function () { $('hud').classList.remove('hidden'); };
+    window.addEventListener('resize', layout);
+    syncRotateButton();
+
+    var startPin = params.get('pin') || store.get('pin');
+    if (startPin && /^\d{6}$/.test(startPin)) { $('pin').value = startPin; connect(startPin); }
+})();
+</script>
+</body>
+</html>
