@@ -708,11 +708,11 @@
             <div class="settings-section">
                 <div id="phone-address-fields">
                 <div class="phone-row">
-                    <div class="phone-field"><label for="phone-host-input">iPhone address</label><input type="text" id="phone-host-input" class="phone-input" inputmode="decimal" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="172.20.10.1"></div>
+                    <div class="phone-field"><label for="phone-host-input">iPhone address</label><input type="text" id="phone-host-input" class="phone-input" inputmode="decimal" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="192.0.0.6"></div>
                     <div class="phone-field port"><label for="phone-port-input">Port</label><input type="text" id="phone-port-input" class="phone-input" inputmode="numeric" autocomplete="off" placeholder="8765"></div>
                 </div>
                 <div class="phone-chips"><button class="phone-chip" id="phone-hotspot-chip" type="button">Personal Hotspot · 172.20.10.1</button></div>
-                <p class="phone-hint">In the car on the iPhone's hotspot: 172.20.10.1. On Wi-Fi (at home): the address the iPhone app lists, e.g. 10.0.0.18.</p>
+                <p class="phone-hint">Default: Other network · 192.0.0.6. Use the address shown in the iPhone app if it changes. Personal Hotspot is an alternative.</p>
                 </div>
                 <p class="phone-hint hidden" id="phone-served-note">Phone mode: this lockscreen runs on your iPhone's own page, so the browser can't block its picture. Changes made here stay in phone mode.</p>
                 <div class="phone-field"><label for="phone-pin-input">PIN (shown in the iPhone app)</label><input type="text" id="phone-pin-input" class="phone-input" inputmode="numeric" autocomplete="off" maxlength="12" placeholder="684293"></div>
@@ -2737,10 +2737,11 @@
                     const settingsStatus = document.getElementById('phone-settings-status');
                     const shapeHint = document.getElementById('phone-shape-hint');
                     const SETTINGS_KEY = 'lockscreenPhoneMirror_v1';
-                    const HOTSPOT_HOST = '172.20.10.1'; // iPhone Personal Hotspot always gives the phone this address
+                    const HOTSPOT_HOST = '172.20.10.1'; // Optional Personal Hotspot address.
+                    const DEFAULT_PHONE_HOST = '192.0.0.6'; // Other network address used by the car.
                     // Short side / long side of each screen shape.
                     const SHAPES = { iphone: 9 / 19.5, 'iphone-classic': 9 / 16, ipad: 3 / 4 };
-                    const DEFAULTS = { host: HOTSPOT_HOST, port: 8765, pin: '684293', shape: 'smart', horizontal: false, turn: 'cw', fit: 'contain', transport: 'mjpeg', size: 0 };
+                    const DEFAULTS = { host: DEFAULT_PHONE_HOST, port: 8765, pin: '684293', shape: 'smart', horizontal: false, turn: 'cw', fit: 'contain', transport: 'mjpeg', size: 0 };
                     const MIN_SIZE = 360, MAX_SIZE = 4000; // 360: the header's four buttons still fit an upright widget
                     const HINT_MS = 6000, RETRY_MS = 8000, ALIVE_MS = 4000, PROBE_TIMEOUT_MS = 3000, UI_MS = 3500, CROP_MS = 1500;
                     // Smart crop: a black band counts as a bar from 7% of the picture, and only with a matching one opposite.
@@ -2763,6 +2764,8 @@
                         try { saved = JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {}; } catch (e) { saved = {}; }
                         const s = Object.assign({}, DEFAULTS);
                         if (validHost(saved.host)) s.host = saved.host;
+                        // Migrate the old default while keeping manually configured addresses.
+                        if (s.host === HOTSPOT_HOST) s.host = DEFAULT_PHONE_HOST;
                         if (validPort(saved.port)) s.port = saved.port;
                         if (validPin(saved.pin)) s.pin = saved.pin;
                         if (isShape(saved.shape)) s.shape = saved.shape;
