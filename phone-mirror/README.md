@@ -30,18 +30,18 @@ If you add or rename Swift files, run `python3 ios/generate_xcode_project.py` to
 1. Open the **Banyan MJPEG** app. When iOS asks to find devices on your local network, tap **Allow**. The app's first box shows whether access is on; without it the car can't connect.
 2. Turn on **Personal Hotspot** and connect the parked car to it (or put both on the same Wi-Fi).
 3. In the app, tap the round broadcast button, pick **Banyan MJPEG Broadcast**, then **Start Broadcast**. Switch to any app; the red status pill shows it is sharing.
-4. In the car's browser, open the lockscreen **through the iPhone**: `http://172.20.10.1:8765/lockscreen/` on Personal Hotspot (on Wi-Fi, use the address the app lists). This is your normal lockscreen, fetched by the iPhone from this repository's `main` branch, with the Phone Mirror widget already on and connected. Bookmark it.
+4. In the car's browser, open **phone mode**: `http://172.20.10.1:8765/?lockscreen=1` on Personal Hotspot (on Wi-Fi, use the address the app lists). That is the iPhone's own page with your whole lockscreen built on top of it, the Phone Mirror widget on and connected. Bookmark it. From the normal lockscreen, the widget's **Start phone mode** button gets you there too, with your settings.
 
-### Why through the iPhone
+### Why phone mode
 
-The normal lockscreen is a secure (HTTPS) page and the iPhone serves plain HTTP. Browsers block plain-HTTP pictures inside secure pages: newer Chrome allows a local-network address after a permission prompt, while most other browsers, including older car browsers, refuse outright. Opened through the iPhone, the lockscreen and the picture come from the same address, so nothing is blocked and there is no prompt.
+The normal lockscreen is a secure (HTTPS) page and the iPhone serves plain HTTP. Browsers block plain-HTTP pictures inside secure pages: newer Chrome allows a local-network address after a permission prompt, while most other browsers, including older car browsers, refuse outright. In phone mode the lockscreen runs on the iPhone's own page, so it and the picture come from the same address: nothing is blocked and there is no prompt. The page takes the lockscreen from the iPhone's copy (`/lockscreen/`, downloaded from this repository's `main`), else downloads it from GitHub itself, else uses the copy it saved last time.
 
-You can still use the widget on the normal lockscreen: turn on **Settings › Show Full Settings › Widget Visibility › Phone Mirror**, tap its gear, and enter the iPhone's address, port `8765` and the PIN. If the browser blocks the picture, the widget says so and offers **Open via iPhone**. That opens the copy served by the iPhone and brings your settings along: wallpaper, widget positions, clock, notes and the PIN. Its settings have **Back to normal lockscreen**. Changes made in the copy stay in the copy.
+You can still use the widget on the normal lockscreen: turn on **Settings › Show Full Settings › Widget Visibility › Phone Mirror**, tap its gear, and enter the iPhone's address, port `8765` and the PIN. If the browser blocks the picture, press the widget's **Start phone mode**. It brings your settings along: wallpaper, widget positions, clock, notes and the PIN (phone mode prefers a PIN you typed into the iPhone's page). **Normal mode**, top left, goes back. Changes made in phone mode stay in phone mode.
 
-Notes on the copy served by the iPhone:
+Notes on phone mode:
 - It only loads while the broadcast is running, because the server lives in the broadcast extension. An open page keeps working after the broadcast stops, but reloading it won't.
-- The iPhone downloads it from `MirrorSettings.lockscreenSource` (this repository's `main`) and keeps the last copy, so it still loads without mobile data once it has been fetched.
-- Offline mode and the rear-seat camera need a secure page, so they don't work in this copy.
+- It still loads without internet once it has been loaded before (the iPhone and the page each keep a copy).
+- Offline mode and the rear-seat camera need a secure page, so they don't work in phone mode.
 - The widget's settings also have **phone screen** only: the iPhone's bare page, without the lockscreen.
 
 ### Widget controls
@@ -82,8 +82,8 @@ It serves the lockscreen at `http://<PC address>:8765/lockscreen/` too (from thi
 | Xcode won't sign or build | Both targets need the same team, and the extension's identifier must start with the app's. Read Xcode's exact error. |
 | No **Banyan MJPEG Broadcast** in the broadcast list | `MirrorSettings.extensionBundleID` must equal the extension's real Bundle Identifier. |
 | App shows Local Network as off | iPhone Settings › Privacy & Security › Local Network › Banyan MJPEG. |
-| Widget on the normal lockscreen: no picture, or "blocked" | Use the lockscreen through the iPhone (**Open via iPhone**, or `http://<address>:8765/lockscreen/`). |
-| `http://<address>:8765/lockscreen/` doesn't load | Is the broadcast running (red pill)? Is the car on the iPhone's hotspot? Is the address right? Try `http://<address>:8765/health` from another device on the same network. The first time, the iPhone needs mobile data to download the lockscreen. |
+| Widget on the normal lockscreen: no picture, or "blocked" | Press **Start phone mode**, or open `http://<address>:8765/?lockscreen=1`. |
+| `http://<address>:8765/?lockscreen=1` doesn't load | Is the broadcast running (red pill)? Is the car on the iPhone's hotspot? Is the address right? Try `http://<address>:8765/health` from another device on the same network. The first time, the iPhone needs mobile data to download the lockscreen. |
 | Widget: "refused the PIN" | Enter the PIN from the app. |
 | Widget connects but stays black | Settings › Stream › Snapshots. |
 | Stutters | In `MirrorSettings.swift`, lower `maxLongEdge` (960 → 720), `targetFPS` (10 → 8) or `jpegQuality` (0.60 → 0.45), and rebuild. |

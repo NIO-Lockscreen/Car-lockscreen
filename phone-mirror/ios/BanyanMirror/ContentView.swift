@@ -49,12 +49,12 @@ struct ContentView: View {
                             ForEach(addresses) { addr in
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text("\(addr.name) · \(addr.label)").font(.caption).foregroundStyle(.secondary)
-                                    Text(verbatim: "http://\(addr.ip):\(MirrorSettings.port)/lockscreen/")
+                                    Text(verbatim: "http://\(addr.ip):\(MirrorSettings.port)/?lockscreen=1")
                                         .font(.system(.subheadline, design: .monospaced))
                                         .textSelection(.enabled)
                                 }
                             }
-                            Text("Or, in the normal lockscreen, turn on **Phone Mirror** (Settings › Show Full Settings › Widget Visibility), enter one of these addresses and the PIN in its settings, and tap **Open via iPhone** if the picture is blocked.")
+                            Text("Or, in the normal lockscreen, turn on **Phone Mirror** (Settings › Show Full Settings › Widget Visibility), enter one of these addresses and the PIN in its settings, and tap **Start phone mode** if the picture is blocked.")
                                 .font(.caption).foregroundStyle(.secondary)
                             Button("Refresh IP addresses") { refreshCount += 1 }
                                 .buttonStyle(.bordered)
