@@ -52,6 +52,14 @@ class ServerTest(unittest.TestCase):
         self.assertEqual((code, typ), (200, 'image/gif'))
         self.assertTrue(data.startswith(b'GIF89a'))
 
+    def test_lockscreen_served_from_the_phone(self):
+        code, typ, body, _ = self.request('/lockscreen/')
+        self.assertEqual((code, typ), (200, 'text/html; charset=utf-8'))
+        self.assertIn(b'id="phone-widget"', body)
+        code, _, _, headers = self.request('/lockscreen')
+        self.assertEqual((code, headers.get('Location')), (302, '/lockscreen/'))
+        self.assertEqual(self.request('/lockscreen/secret.txt')[0], 404)
+
     def test_pin_rejected(self):
         self.assertEqual(self.request('/frame.jpg?pin=wrong')[0], 403)
         self.assertEqual(self.request('/stream?pin=wrong')[0], 403)

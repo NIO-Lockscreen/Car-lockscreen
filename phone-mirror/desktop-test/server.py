@@ -10,6 +10,7 @@ import json
 import math
 import threading
 import time
+import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
@@ -17,6 +18,12 @@ from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parents[1]
 HTML = (ROOT / 'web/receiver.html').read_bytes()
+# The lockscreen served at /lockscreen/, as the phone does: from the repository this folder sits in when there is one
+# (so lockscreen edits show up at once), else downloaded like the phone downloads it.
+REPO = ROOT.parent
+LOCKSCREEN_SOURCE = 'https://raw.githubusercontent.com/NIO-Lockscreen/Car-lockscreen/main/'
+LOCKSCREEN_FILES = {'index.html': 'text/html; charset=utf-8', 'manifest.webmanifest': 'application/manifest+json',
+                    'icon-192.png': 'image/png', 'icon-512.png': 'image/png'}
 BOUNDARY = 'banyanframe'
 HEARTBEAT_SECONDS = 2
 # 1x1 GIF behind /alive.gif: an <img> can load it where fetch() is not allowed.
@@ -133,6 +140,19 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def send_lockscreen(self, name):
+        mime = LOCKSCREEN_FILES.get(name)
+        if not mime:
+            return self.send_body(b'Not found', code=404)
+        local = REPO / name
+        if (REPO / 'index.html').is_file() and local.is_file():
+            return self.send_body(local.read_bytes(), mime)
+        try:
+            with urllib.request.urlopen(LOCKSCREEN_SOURCE + name, timeout=8) as response:
+                return self.send_body(response.read(), mime)
+        except OSError:
+            return self.send_body(b"Couldn't download the lockscreen.", code=502)
+
     def do_OPTIONS(self):
         # Preflight for the HTTPS lockscreen reading /status across the local network.
         self.send_response(204)
@@ -152,6 +172,14 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_body(b'{"server":"BanyanMJPEG","listening":true}', 'application/json')
         if parsed.path == '/alive.gif':
             return self.send_body(PIXEL_GIF, 'image/gif')
+        if parsed.path == '/lockscreen':
+            self.send_response(302)
+            self.send_header('Location', '/lockscreen/')
+            self.send_header('Content-Length', '0')
+            self.end_headers()
+            return
+        if parsed.path.startswith('/lockscreen/'):
+            return self.send_lockscreen(parsed.path[len('/lockscreen/'):] or 'index.html')
         if parse_qs(parsed.query).get('pin', [''])[0] != self.server.pin:
             return self.send_body(b'Wrong PIN', code=403)
         frames = self.server.frames

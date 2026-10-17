@@ -3,6 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <script>
+        // Phone Mirror "via iPhone": the iPhone serves this lockscreen at http://<phone>:8765/lockscreen/, where the phone's
+        // picture is same-origin and no browser blocks it. The normal lockscreen hands its settings over in the address
+        // (#import=...), and they are stored here before any other script reads them.
+        (function () {
+            if (location.protocol !== 'http:' || !/^\/lockscreen(\/|$)/.test(location.pathname)) return;
+            try {
+                var m = location.hash.match(/^#import=(.+)$/);
+                if (m) {
+                    var data = JSON.parse(decodeURIComponent(m[1]));
+                    Object.keys(data).forEach(function (k) { if (typeof data[k] === 'string') localStorage.setItem(k, data[k]); });
+                    history.replaceState(null, '', location.pathname + location.search);
+                }
+                if (localStorage.getItem('widget_phone_visible') === null) localStorage.setItem('widget_phone_visible', 'true');
+            } catch (e) { /* storage unavailable or a damaged hand-over: start with defaults */ }
+        })();
+    </script>
     <title>Dynamic Lockscreen</title>
     <!-- MODIFIED: Favicons for Car Dash / Browser Tabs -->
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%232c2c2e'/%3E%3Ccircle cx='50' cy='50' r='30' fill='none' stroke='white' stroke-width='8'/%3E%3C/svg%3E">
@@ -149,6 +166,7 @@
         #phone-widget.is-full #phone-resize-grip { display: none; }
         #phone-settings-menu .menu-content { max-height: 88vh; overflow-y: auto; }
         .phone-hint { color: #8e8e93; font-size: 0.82rem; margin: 6px 0; }
+        .phone-hint a { color: #0a84ff; }
         .phone-row { display: flex; gap: 10px; }
         .phone-field { flex: 1 1 auto; min-width: 0; margin-bottom: 10px; }
         .phone-field.port { flex: 0 0 96px; }
@@ -684,15 +702,18 @@
             <h2>Phone Mirror</h2>
             <p class="phone-hint">Shows your iPhone's screen, sent by the Banyan MJPEG app over the iPhone's Personal Hotspot or a shared Wi-Fi. Start the broadcast on the iPhone first, and only use it while parked.</p>
             <div class="settings-section">
+                <div id="phone-address-fields">
                 <div class="phone-row">
                     <div class="phone-field"><label for="phone-host-input">iPhone address</label><input type="text" id="phone-host-input" class="phone-input" inputmode="decimal" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="172.20.10.1"></div>
                     <div class="phone-field port"><label for="phone-port-input">Port</label><input type="text" id="phone-port-input" class="phone-input" inputmode="numeric" autocomplete="off" placeholder="8765"></div>
                 </div>
                 <div class="phone-chips"><button class="phone-chip" id="phone-hotspot-chip" type="button">Personal Hotspot · 172.20.10.1</button></div>
+                </div>
+                <p class="phone-hint hidden" id="phone-served-note">This copy of the lockscreen comes from your iPhone, so the browser can't block its picture. Changes made here stay in this copy.</p>
                 <div class="phone-field"><label for="phone-pin-input">PIN (shown in the iPhone app)</label><input type="text" id="phone-pin-input" class="phone-input" inputmode="numeric" autocomplete="off" maxlength="12" placeholder="684293"></div>
-                <div class="phone-actions"><button id="phone-connect-btn" type="button">Save &amp; connect</button><button id="phone-open-page-btn" class="secondary" type="button">Open phone screen</button></div>
+                <div class="phone-actions"><button id="phone-connect-btn" type="button">Save &amp; connect</button><button id="phone-via-btn" class="secondary" type="button">Open via iPhone</button></div>
                 <p class="phone-hint" id="phone-settings-status"></p>
-                <p class="phone-hint">If the car's browser won't show the phone inside the lockscreen, <b>Open phone screen</b> leaves for the iPhone's own page, which has a button back here.</p>
+                <p class="phone-hint" id="phone-via-hint">Picture blocked? Many browsers won't show the iPhone inside this secure page. <b>Open via iPhone</b> loads this same lockscreen, with your settings, from the iPhone itself, where nothing blocks it. Or open just the <a href="#" id="phone-screen-only">phone screen</a>.</p>
             </div>
             <div class="settings-section">
                 <h3>Screen shape</h3>
@@ -2745,7 +2766,12 @@
                     const settings = loadSettings();
                     const saveSettings = () => { try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (e) { /* storage unavailable */ } };
                     const savePositions = () => { if (window.saveItemPositions) window.saveItemPositions(); };
-                    const phoneBase = () => `http://${settings.host}:${settings.port}`;
+                    // Served by the iPhone itself (see the hand-over script in <head>): the phone is this page's own origin.
+                    const SERVED_BY_PHONE = location.protocol === 'http:' && /^\/lockscreen(\/|$)/.test(location.pathname);
+                    const BACK_KEY = 'lockscreenPhoneMirror_back';
+                    const NORMAL_LOCKSCREEN = 'https://nio-lockscreen.github.io/Car-lockscreen/';
+                    const phoneBase = () => (SERVED_BY_PHONE ? location.origin : `http://${settings.host}:${settings.port}`);
+                    const phoneName = () => (SERVED_BY_PHONE ? 'your iPhone' : settings.host);
                     const phoneUrl = (path, withPin = true) => `${phoneBase()}${path}?${withPin ? `pin=${encodeURIComponent(settings.pin)}&` : ''}t=${Date.now()}`;
                     const clearTimers = () => { Object.keys(state.timers).forEach((k) => clearTimeout(state.timers[k])); state.timers = {}; };
 
@@ -2833,7 +2859,7 @@
                     // ---- overlay & header ----
                     const ACTIONS = {
                         retry: ['Retry', () => connect()],
-                        open: ['Open phone screen', () => openPhonePage()],
+                        via: ['Open via iPhone', () => openViaPhone()],
                         settings: ['Settings', () => openMenu()],
                     };
                     function setOverlay(kind, text, actions = []) {
@@ -2842,7 +2868,7 @@
                         overlayIcon.innerHTML = kind === 'error' ? '<i class="fa-solid fa-triangle-exclamation"></i>' : kind === 'idle' ? '<i class="fa-solid fa-mobile-screen-button"></i>' : '';
                         overlayText.textContent = text;
                         overlayActions.innerHTML = '';
-                        actions.forEach((key) => {
+                        actions.filter((key) => ACTIONS[key]).forEach((key) => {
                             const btn = document.createElement('button');
                             btn.type = 'button';
                             btn.textContent = ACTIONS[key][0];
@@ -2856,7 +2882,7 @@
                     }
                     function updateLabel() {
                         const s = state.lastStatus;
-                        let text = `iPhone · ${settings.host}`;
+                        let text = SERVED_BY_PHONE ? 'iPhone' : `iPhone · ${settings.host}`;
                         if (state.phase === 'live' && s) text = s.paused ? 'iPhone · paused' : `iPhone · live${s.fps !== null ? ` · ${s.fps} fps` : ''}`;
                         label.textContent = text;
                     }
@@ -2882,7 +2908,7 @@
                         state.lastStatus = null;
                         state.statusWorks = null;
                         state.crop = null; state.cropHistory = []; state.cropFails = 0; state.cropUnavailable = false;
-                        if (!validHost(settings.host) || !validPin(settings.pin)) {
+                        if ((!SERVED_BY_PHONE && !validHost(settings.host)) || !validPin(settings.pin)) {
                             setPhase('off');
                             setOverlay('idle', 'Enter the iPhone address and PIN to show its screen here.', ['settings']);
                             return;
@@ -2890,10 +2916,10 @@
                         updateLabel();
                         if (!quiet) {
                             setPhase('connecting');
-                            setOverlay('loading', `Connecting to ${settings.host}…`);
+                            setOverlay('loading', `Connecting to ${phoneName()}…`);
                             state.timers.hint = setTimeout(() => {
                                 if (!current() || state.phase !== 'connecting') return;
-                                setOverlay('loading', 'Still connecting. If the browser asks about devices on your local network, tap Allow. Is the broadcast running on the iPhone?', ['open', 'settings']);
+                                setOverlay('loading', 'Still connecting. If the browser asks about devices on your local network, tap Allow. Is the broadcast running on the iPhone?', SERVED_BY_PHONE ? ['settings'] : ['via', 'settings']);
                             }, HINT_MS);
                         }
                         screenImg.onerror = () => { if (current()) failed(); };
@@ -3048,7 +3074,7 @@
                         const wasLive = state.phase === 'live';
                         stopStream();
                         setPhase('error');
-                        if (wasLive) setOverlay('loading', 'Connection lost. Reconnecting…', ['open', 'settings']);
+                        if (wasLive) setOverlay('loading', 'Connection lost. Reconnecting…', ['settings']);
                         const why = await diagnose();
                         if (attempt !== state.attempt || !state.visible) return;
                         setOverlay('error', why.text, why.actions);
@@ -3057,7 +3083,7 @@
                     // Why no picture came. An image shows whether the phone answers at all (/alive.gif needs no PIN);
                     // fetch(), where the browser allows it to reach the phone, can also tell a wrong PIN from a paused broadcast.
                     async function diagnose() {
-                        const all = ['retry', 'open', 'settings'];
+                        const all = SERVED_BY_PHONE ? ['retry', 'settings'] : ['via', 'retry', 'settings'];
                         if (await probeImage(phoneUrl('/alive.gif', false), PROBE_TIMEOUT_MS)) {
                             const s = await readStatus();
                             if (s === 403) return { text: 'The iPhone refused the PIN. Enter the PIN shown in the Banyan MJPEG app.', actions: ['settings'] };
@@ -3067,10 +3093,10 @@
                         }
                         if (location.protocol === 'https:') {
                             const permission = await localNetworkPermission();
-                            if (permission === 'denied') return { text: 'This browser is set to keep the lockscreen away from devices on your local network. Allow "local network access" for this site in the browser settings, or open the phone screen instead.', actions: ['open', 'settings'] };
-                            if (permission === 'unsupported') return { text: `Can't reach the iPhone at ${settings.host}. Check that the broadcast is running and the car is on the iPhone's hotspot. This car browser may also block the phone inside the lockscreen: then use Open phone screen.`, actions: all };
+                            if (permission === 'denied') return { text: 'This browser keeps the lockscreen away from devices on your local network. Open via iPhone gets round that, or allow "local network access" for this site in the browser settings.', actions: ['via', 'settings'] };
+                            if (permission === 'unsupported') return { text: `No picture from ${settings.host}. This browser probably blocks the iPhone inside this secure page: Open via iPhone gets round that. If it doesn't load either, check the broadcast is running and the car is on the iPhone's hotspot.`, actions: all };
                         }
-                        return { text: `Can't reach the iPhone at ${settings.host}. Start the broadcast in the Banyan MJPEG app, and connect the car to the iPhone's hotspot or the same Wi-Fi.`, actions: all };
+                        return { text: `Can't reach ${SERVED_BY_PHONE ? 'the iPhone' : `the iPhone at ${settings.host}`}. Start the broadcast in the Banyan MJPEG app, and connect the car to the iPhone's hotspot or the same Wi-Fi.`, actions: all };
                     }
                     function probeImage(src, timeoutMs) {
                         return new Promise((resolve) => {
@@ -3111,6 +3137,24 @@
                             try { return (await navigator.permissions.query({ name })).state; } catch (e) { /* not this name */ }
                         }
                         return 'unsupported';
+                    }
+                    // Goes to the copy of this lockscreen the iPhone serves, taking this page's settings along.
+                    function openViaPhone() {
+                        const handover = {};
+                        try {
+                            for (let i = 0; i < localStorage.length; i++) {
+                                const key = localStorage.key(i), value = localStorage.getItem(key);
+                                if (value !== null && value.length < 200000) handover[key] = value;
+                            }
+                        } catch (e) { /* storage unavailable: go without settings */ }
+                        handover.widget_phone_visible = 'true';
+                        handover[BACK_KEY] = location.href.split('#')[0];
+                        location.href = `${phoneBase()}/lockscreen/#import=${encodeURIComponent(JSON.stringify(handover))}`;
+                    }
+                    function backToNormal() {
+                        let back = null;
+                        try { back = localStorage.getItem(BACK_KEY); } catch (e) { /* storage unavailable */ }
+                        location.href = back && /^https?:\/\//.test(back) ? back : NORMAL_LOCKSCREEN;
                     }
                     function openPhonePage() {
                         const rot = settings.horizontal ? (settings.turn === 'ccw' ? 270 : 90) : 0;
@@ -3222,6 +3266,13 @@
                     }
                     const closeMenu = () => menu.classList.remove('visible');
                     function readForm() {
+                        if (SERVED_BY_PHONE) {
+                            const pin = pinInput.value.replace(/\s+/g, '');
+                            if (!validPin(pin)) { settingsStatus.textContent = 'The PIN is the number shown in the iPhone app.'; return false; }
+                            settings.pin = pin;
+                            saveSettings();
+                            return true;
+                        }
                         const host = hostInput.value.trim(), port = parseInt(portInput.value.trim() || '8765', 10), pin = pinInput.value.replace(/\s+/g, '');
                         if (!validHost(host)) { settingsStatus.textContent = 'Enter the iPhone address shown in the app, e.g. 172.20.10.1.'; return false; }
                         if (!validPort(port)) { settingsStatus.textContent = 'The port is a number, normally 8765.'; return false; }
@@ -3239,7 +3290,15 @@
                         closeMenu();
                         if (state.visible) connect();
                     });
-                    document.getElementById('phone-open-page-btn').addEventListener('click', () => { if (readForm()) openPhonePage(); });
+                    const viaBtn = document.getElementById('phone-via-btn');
+                    viaBtn.addEventListener('click', () => { if (SERVED_BY_PHONE) backToNormal(); else if (readForm()) openViaPhone(); });
+                    document.getElementById('phone-screen-only').addEventListener('click', (e) => { e.preventDefault(); if (readForm()) openPhonePage(); });
+                    if (SERVED_BY_PHONE) {
+                        document.getElementById('phone-address-fields').classList.add('hidden');
+                        document.getElementById('phone-via-hint').classList.add('hidden');
+                        document.getElementById('phone-served-note').classList.remove('hidden');
+                        viaBtn.textContent = 'Back to normal lockscreen';
+                    }
                     menu.querySelectorAll('[data-shape]').forEach((c) => c.addEventListener('click', () => {
                         settings.shape = c.dataset.shape;
                         state.cropHistory = []; // measure afresh

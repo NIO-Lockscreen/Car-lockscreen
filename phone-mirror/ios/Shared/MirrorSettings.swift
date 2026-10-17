@@ -16,4 +16,6 @@ enum MirrorSettings {
     static let hotspotAddress = "172.20.10.1"
     /// Advertised and browsed only to make iOS ask for Local Network access. Must be listed in NSBonjourServices.
     static let bonjourType = "_banyanmirror._tcp"
+    /// Where the phone fetches the lockscreen it serves at http://<phone>:8765/lockscreen/ (ends with a slash).
+    static let lockscreenSource = "https://raw.githubusercontent.com/NIO-Lockscreen/Car-lockscreen/main/"
 }

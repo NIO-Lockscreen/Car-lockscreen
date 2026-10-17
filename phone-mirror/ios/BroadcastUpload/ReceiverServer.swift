@@ -155,6 +155,8 @@ final class ReceiverServer {
             // An <img> can load this where fetch() is not allowed: the lockscreen uses it to notice a stopped broadcast.
             sendOnce(conn, code: 200, mime: "image/gif", body: ReceiverServer.pixelGIF); return
         }
+        if path.path == "/lockscreen" { sendRedirect(conn, to: "/lockscreen/"); return }
+        if path.path.hasPrefix("/lockscreen/") { serveLockscreen(conn, file: String(path.path.dropFirst("/lockscreen/".count))); return }
         let token = path.queryItems?.first(where: { $0.name == "pin" })?.value
         guard token == pin else {
             sendOnce(conn, code: 403, mime: "text/plain", body: Data("Wrong PIN".utf8)); return
@@ -239,12 +241,57 @@ final class ReceiverServer {
         let head = "HTTP/1.1 204 No Content\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Methods: GET, OPTIONS\r\nAccess-Control-Allow-Headers: *\r\nAccess-Control-Allow-Private-Network: true\r\nAccess-Control-Max-Age: 600\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
         conn.send(content: Data(head.utf8), completion: .contentProcessed { _ in conn.cancel() })
     }
+    private func sendRedirect(_ conn: NWConnection, to location: String) {
+        let head = "HTTP/1.1 302 Found\r\nLocation: \(location)\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+        conn.send(content: Data(head.utf8), completion: .contentProcessed { _ in conn.cancel() })
+    }
     private func sendOnce(_ conn: NWConnection, code: Int, mime: String, body: Data) {
-        let reason = [200: "OK", 400: "Bad Request", 403: "Forbidden", 404: "Not Found", 405: "Method Not Allowed", 503: "Service Unavailable"][code] ?? "Error"
+        let reason = [200: "OK", 400: "Bad Request", 403: "Forbidden", 404: "Not Found", 405: "Method Not Allowed", 502: "Bad Gateway", 503: "Service Unavailable"][code] ?? "Error"
         let head = "HTTP/1.1 \(code) \(reason)\r\nContent-Type: \(mime)\r\nContent-Length: \(body.count)\r\nCache-Control: no-store\r\nAccess-Control-Allow-Origin: *\r\nX-Content-Type-Options: nosniff\r\nConnection: close\r\n\r\n"
         var response = Data(head.utf8)
         response.append(body)
         conn.send(content: response, completion: .contentProcessed { _ in conn.cancel() })
+    }
+
+    // MARK: The lockscreen, served through the phone
+
+    /// Many car browsers won't show this server's plain-HTTP stream inside the HTTPS lockscreen. Loaded from here instead
+    /// (http://<phone>:8765/lockscreen/), the lockscreen and the stream share one origin and the Phone Mirror widget works
+    /// in any browser. The files are fetched from `MirrorSettings.lockscreenSource`; the last good copy is kept on disk
+    /// for when the phone has no signal.
+    private static let lockscreenFiles: [String: String] = [
+        "index.html": "text/html; charset=utf-8",
+        "manifest.webmanifest": "application/manifest+json",
+        "icon-192.png": "image/png",
+        "icon-512.png": "image/png",
+    ]
+    private static let lockscreenCache = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first?
+        .appendingPathComponent("lockscreen", isDirectory: true)
+
+    private func serveLockscreen(_ conn: NWConnection, file requested: String) {
+        let file = requested.isEmpty ? "index.html" : requested
+        guard let mime = ReceiverServer.lockscreenFiles[file], let source = URL(string: MirrorSettings.lockscreenSource + file) else {
+            sendOnce(conn, code: 404, mime: "text/plain", body: Data("Not found".utf8)); return
+        }
+        let saved = ReceiverServer.lockscreenCache?.appendingPathComponent(file)
+        let request = URLRequest(url: source, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 6)
+        URLSession.shared.dataTask(with: request) { [weak self] data, response, _ in
+            var body: Data?
+            if let data = data, (response as? HTTPURLResponse)?.statusCode == 200 {
+                body = data
+                if let saved = saved {
+                    try? FileManager.default.createDirectory(at: saved.deletingLastPathComponent(), withIntermediateDirectories: true)
+                    try? data.write(to: saved, options: .atomic)
+                }
+            } else if let saved = saved {
+                body = try? Data(contentsOf: saved)
+            }
+            guard let self = self else { conn.cancel(); return }
+            self.queue.async {
+                if let body = body { self.sendOnce(conn, code: 200, mime: mime, body: body) }
+                else { self.sendOnce(conn, code: 502, mime: "text/plain; charset=utf-8", body: Data("The iPhone couldn't download the lockscreen. It needs mobile data the first time.".utf8)) }
+            }
+        }.resume()
     }
 
     private static let pixelGIF = Data(base64Encoded: "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==") ?? Data()

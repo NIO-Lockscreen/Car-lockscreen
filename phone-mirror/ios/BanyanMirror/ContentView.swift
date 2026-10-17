@@ -43,17 +43,19 @@ struct ContentView: View {
                     }
                     GroupBox("4 · Show it on the car screen") {
                         VStack(alignment: .leading, spacing: 12) {
-                            Text("Lockscreen: turn on **Phone Mirror** under Settings › Show Full Settings › Widget Visibility, then tap the widget's gear and enter the address and PIN below. On Personal Hotspot the address is \(MirrorSettings.hotspotAddress).")
+                            Text("In the car's browser, open your lockscreen through the iPhone. The Phone Mirror widget is on and connected there, and no browser can block it. Use the address of the network the car is on:")
                                 .font(.subheadline)
                             if addresses.isEmpty { Text("No active Wi-Fi / hotspot address found.").foregroundStyle(.orange) }
                             ForEach(addresses) { addr in
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text("\(addr.name) · \(addr.label)").font(.caption).foregroundStyle(.secondary)
-                                    Text("\(addr.ip)  ·  port \(String(MirrorSettings.port))")
+                                    Text(verbatim: "http://\(addr.ip):\(MirrorSettings.port)/lockscreen/")
                                         .font(.system(.subheadline, design: .monospaced))
                                         .textSelection(.enabled)
                                 }
                             }
+                            Text("Or, in the normal lockscreen, turn on **Phone Mirror** (Settings › Show Full Settings › Widget Visibility), enter one of these addresses and the PIN in its settings, and tap **Open via iPhone** if the picture is blocked.")
+                                .font(.caption).foregroundStyle(.secondary)
                             Button("Refresh IP addresses") { refreshCount += 1 }
                                 .buttonStyle(.bordered)
                             Text("PIN")
@@ -62,8 +64,6 @@ struct ContentView: View {
                                 .font(.system(size: 38, weight: .bold, design: .monospaced))
                                 .foregroundStyle(.mint)
                                 .textSelection(.enabled)
-                            Text("Car browser blocks the widget? Open http://<address>:\(String(MirrorSettings.port))/ in the car's browser instead; it has a button back to the lockscreen.")
-                                .font(.caption).foregroundStyle(.secondary)
                         }.frame(maxWidth: .infinity, alignment: .leading)
                     }.id(refreshCount)
                     GroupBox("Diagnostics") {

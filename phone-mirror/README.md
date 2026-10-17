@@ -30,15 +30,19 @@ If you add or rename Swift files, run `python3 ios/generate_xcode_project.py` to
 1. Open the **Banyan MJPEG** app. When iOS asks to find devices on your local network, tap **Allow**. The app's first box shows whether access is on; without it the car can't connect.
 2. Turn on **Personal Hotspot** and connect the parked car to it (or put both on the same Wi-Fi).
 3. In the app, tap the round broadcast button, pick **Banyan MJPEG Broadcast**, then **Start Broadcast**. Switch to any app; the red status pill shows it is sharing.
-4. On the lockscreen: **Settings › Show Full Settings › Widget Visibility › Phone Mirror**. Tap the widget's gear (or double-tap it) and enter:
-   - **iPhone address**: `172.20.10.1` on Personal Hotspot (the button fills it in). On Wi-Fi, use the address the app shows.
-   - **Port**: `8765`
-   - **PIN**: the one shown in the app.
-5. **Save & connect.** If the browser asks to let the page reach devices on your local network, allow it.
+4. In the car's browser, open the lockscreen **through the iPhone**: `http://172.20.10.1:8765/lockscreen/` on Personal Hotspot (on Wi-Fi, use the address the app lists). This is your normal lockscreen, fetched by the iPhone from this repository's `main` branch, with the Phone Mirror widget already on and connected. Bookmark it.
 
-### If the widget stays blank: Open phone screen
+### Why through the iPhone
 
-The lockscreen is a secure (HTTPS) page and the iPhone serves plain HTTP. Newer Chrome-based browsers allow that once you accept the local-network prompt. Older car browsers block it outright. In that case the widget says so: tap **Open phone screen**. The car then opens the iPhone's own page full screen, which connects by itself and has a **◀ Lockscreen** button to come back.
+The normal lockscreen is a secure (HTTPS) page and the iPhone serves plain HTTP. Browsers block plain-HTTP pictures inside secure pages: newer Chrome allows a local-network address after a permission prompt, while most other browsers, including older car browsers, refuse outright. Opened through the iPhone, the lockscreen and the picture come from the same address, so nothing is blocked and there is no prompt.
+
+You can still use the widget on the normal lockscreen: turn on **Settings › Show Full Settings › Widget Visibility › Phone Mirror**, tap its gear, and enter the iPhone's address, port `8765` and the PIN. If the browser blocks the picture, the widget says so and offers **Open via iPhone**. That opens the copy served by the iPhone and brings your settings along: wallpaper, widget positions, clock, notes and the PIN. Its settings have **Back to normal lockscreen**. Changes made in the copy stay in the copy.
+
+Notes on the copy served by the iPhone:
+- It only loads while the broadcast is running, because the server lives in the broadcast extension. An open page keeps working after the broadcast stops, but reloading it won't.
+- The iPhone downloads it from `MirrorSettings.lockscreenSource` (this repository's `main`) and keeps the last copy, so it still loads without mobile data once it has been fetched.
+- Offline mode and the rear-seat camera need a secure page, so they don't work in this copy.
+- The widget's settings also have **phone screen** only: the iPhone's bare page, without the lockscreen.
 
 ### Widget controls
 
@@ -69,7 +73,7 @@ python3 server.py --still             # one frame, then nothing: a phone screen 
 python3 server.py --video-every 8     # switches to a letterboxed 16:9 video, to try Smart cropping
 ```
 
-Put the PC on the same network as the car and enter the PC's IPv4 address (`ipconfig` on Windows) in the widget. `RUN-DEMO-WINDOWS.bat` and `RUN-DEMO-MAC.command` start it with a double-click. `python3 -m unittest -v test_server` runs the protocol tests.
+It serves the lockscreen at `http://<PC address>:8765/lockscreen/` too (from this repository's working copy when run inside it). Put the PC on the same network as the car and enter the PC's IPv4 address (`ipconfig` on Windows) in the widget. `RUN-DEMO-WINDOWS.bat` and `RUN-DEMO-MAC.command` start it with a double-click. `python3 -m unittest -v test_server` runs the protocol tests.
 
 ## Troubleshooting
 
@@ -78,7 +82,8 @@ Put the PC on the same network as the car and enter the PC's IPv4 address (`ipco
 | Xcode won't sign or build | Both targets need the same team, and the extension's identifier must start with the app's. Read Xcode's exact error. |
 | No **Banyan MJPEG Broadcast** in the broadcast list | `MirrorSettings.extensionBundleID` must equal the extension's real Bundle Identifier. |
 | App shows Local Network as off | iPhone Settings › Privacy & Security › Local Network › Banyan MJPEG. |
-| Widget: "Can't reach the iPhone" | Is the broadcast running (red pill)? Is the car on the iPhone's hotspot? Is the address right? Try **Open phone screen**; if that fails too, the car can't reach the phone at all: try `http://<address>:8765/health` from another device on the same network. |
+| Widget on the normal lockscreen: no picture, or "blocked" | Use the lockscreen through the iPhone (**Open via iPhone**, or `http://<address>:8765/lockscreen/`). |
+| `http://<address>:8765/lockscreen/` doesn't load | Is the broadcast running (red pill)? Is the car on the iPhone's hotspot? Is the address right? Try `http://<address>:8765/health` from another device on the same network. The first time, the iPhone needs mobile data to download the lockscreen. |
 | Widget: "refused the PIN" | Enter the PIN from the app. |
 | Widget connects but stays black | Settings › Stream › Snapshots. |
 | Stutters | In `MirrorSettings.swift`, lower `maxLongEdge` (960 → 720), `targetFPS` (10 → 8) or `jpegQuality` (0.60 → 0.45), and rebuild. |
@@ -93,6 +98,7 @@ Put the PC on the same network as the car and enter the PC's IPv4 address (`ipco
 - **Local Network permission.** The app now asks for it, which iOS needs before the car can connect, and shows its state.
 - **Lockscreen support.** CORS headers, local-network preflight answers, a `/alive.gif` the widget uses to notice a stopped broadcast, and `/status` now reports the picture size.
 - **JPEG quality option fixed**: it now uses `kCGImageDestinationLossyCompressionQuality`. Intermediate image caching is off to save extension memory.
+- **The lockscreen through the phone**: `/lockscreen/` serves the lockscreen itself (downloaded from GitHub, last copy kept), so the widget works in browsers that block plain-HTTP pictures in secure pages.
 - **Phone page**: connects on its own when opened from the widget, has the horizontal button, and links back to the lockscreen.
 
 **Not yet tried on a real iPhone or in the car.** The Swift code is syntax-checked only, because iOS frameworks can't be compiled outside a Mac. The protocol, the phone page and the lockscreen widget were tested in Chromium against the desktop simulator. Apple may also limit networking inside broadcast extensions on some iOS versions; if the car can't connect, check Xcode's console for `BanyanMJPEG listener failed`.
