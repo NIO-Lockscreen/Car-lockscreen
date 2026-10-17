@@ -141,7 +141,7 @@
         #phone-stage { position: absolute; inset: 0; overflow: hidden; background: #000; }
         #phone-screen { position: absolute; left: 50%; top: 50%; width: 100%; height: 100%; object-fit: fill; transform: translate(-50%, -50%); display: none; pointer-events: none; -webkit-user-drag: none; }
         #phone-widget.has-frame #phone-screen { display: block; }
-        #phone-header { position: absolute; top: 0; left: 0; right: 0; z-index: 3; display: flex; align-items: center; gap: 6px; height: 42px; padding: 0 4px 0 12px; background: linear-gradient(rgba(12,12,14,0.88), rgba(12,12,14,0)); font-size: 0.78rem; transition: opacity 0.3s; }
+        #phone-header { position: absolute; top: 0; left: 0; right: 0; z-index: 3; display: flex; align-items: center; gap: 4px; height: 42px; padding: 0 4px 0 8px; background: linear-gradient(rgba(12,12,14,0.88), rgba(12,12,14,0)); font-size: 0.78rem; transition: opacity 0.3s; }
         #phone-status-dot { flex: 0 0 8px; height: 8px; border-radius: 50%; background: #8e8e93; }
         #phone-widget.connecting #phone-status-dot { background: #ffcc00; }
         #phone-widget.live #phone-status-dot { background: #34c759; }
@@ -521,6 +521,7 @@
                 <span id="phone-status-dot"></span>
                 <span id="phone-label">Phone</span>
                 <div id="phone-header-actions">
+                    <button id="phone-mode-btn" type="button" title="Phone mode: open the lockscreen on the iPhone's own page"><i class="fa-solid fa-arrow-up-right-from-square"></i></button>
                     <button id="phone-rotate-btn" type="button" title="Horizontal view"><i class="fa-solid fa-mobile-screen-button"></i></button>
                     <button id="phone-fs-btn" type="button" title="Fullscreen"><i class="fa-solid fa-expand"></i></button>
                     <button id="phone-settings-btn" type="button" title="Phone mirror settings"><i class="fa-solid fa-gear"></i></button>
@@ -711,11 +712,13 @@
                     <div class="phone-field port"><label for="phone-port-input">Port</label><input type="text" id="phone-port-input" class="phone-input" inputmode="numeric" autocomplete="off" placeholder="8765"></div>
                 </div>
                 <div class="phone-chips"><button class="phone-chip" id="phone-hotspot-chip" type="button">Personal Hotspot · 172.20.10.1</button></div>
+                <p class="phone-hint">In the car on the iPhone's hotspot: 172.20.10.1. On Wi-Fi (at home): the address the iPhone app lists, e.g. 10.0.0.18.</p>
                 </div>
                 <p class="phone-hint hidden" id="phone-served-note">Phone mode: this lockscreen runs on your iPhone's own page, so the browser can't block its picture. Changes made here stay in phone mode.</p>
                 <div class="phone-field"><label for="phone-pin-input">PIN (shown in the iPhone app)</label><input type="text" id="phone-pin-input" class="phone-input" inputmode="numeric" autocomplete="off" maxlength="12" placeholder="684293"></div>
                 <div class="phone-actions"><button id="phone-connect-btn" type="button">Save &amp; connect</button><button id="phone-via-btn" class="secondary" type="button">Start phone mode</button></div>
                 <p class="phone-hint" id="phone-settings-status"></p>
+                <p class="phone-hint" id="phone-mode-link-row">Phone mode link: <a href="#" id="phone-mode-link"></a></p>
                 <p class="phone-hint" id="phone-via-hint">Picture blocked? Many browsers won't show the iPhone inside this secure page. <b>Start phone mode</b> opens the iPhone's own page and builds this lockscreen on top of it, with your settings, so nothing blocks the picture. Or open just the <a href="#" id="phone-screen-only">phone screen</a>.</p>
             </div>
             <div class="settings-section">
@@ -741,7 +744,7 @@
                     <button class="phone-chip" type="button" data-fit="cover">Fill (crop edges)</button>
                 </div>
                 <h4>Size</h4>
-                <input type="range" id="phone-size-range" min="240" max="1200" step="10" value="560">
+                <input type="range" id="phone-size-range" min="360" max="1200" step="10" value="560">
                 <p class="phone-hint">You can also pinch the widget, or drag its corner.</p>
             </div>
             <div class="settings-section">
@@ -2738,7 +2741,7 @@
                     // Short side / long side of each screen shape.
                     const SHAPES = { iphone: 9 / 19.5, 'iphone-classic': 9 / 16, ipad: 3 / 4 };
                     const DEFAULTS = { host: HOTSPOT_HOST, port: 8765, pin: '684293', shape: 'smart', horizontal: false, turn: 'cw', fit: 'contain', transport: 'mjpeg', size: 0 };
-                    const MIN_SIZE = 240, MAX_SIZE = 4000;
+                    const MIN_SIZE = 360, MAX_SIZE = 4000; // 360: the header's four buttons still fit an upright widget
                     const HINT_MS = 6000, RETRY_MS = 8000, ALIVE_MS = 4000, PROBE_TIMEOUT_MS = 3000, UI_MS = 3500, CROP_MS = 1500;
                     // Smart crop: a black band counts as a bar from 7% of the picture, and only with a matching one opposite.
                     const CROP_HISTORY = 3, BAR_MIN = 0.07, BAR_MISMATCH = 0.04, DARK_LUMA = 22;
@@ -2779,7 +2782,7 @@
                     const saveSettings = () => { try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (e) { /* storage unavailable */ } };
                     const savePositions = () => { if (window.saveItemPositions) window.saveItemPositions(); };
                     const BACK_KEY = 'lockscreenPhoneMirror_back';
-                    const NORMAL_LOCKSCREEN = 'https://nio-lockscreen.github.io/Car-lockscreen/';
+                    const NORMAL_LOCKSCREEN = 'https://car-lockscreen.vercel.app/';
                     const phoneBase = () => (SERVED_BY_PHONE ? location.origin : `http://${settings.host}:${settings.port}`);
                     const phoneName = () => (SERVED_BY_PHONE ? 'your iPhone' : settings.host);
                     const phoneUrl = (path, withPin = true) => `${phoneBase()}${path}?${withPin ? `pin=${encodeURIComponent(settings.pin)}&` : ''}t=${Date.now()}`;
@@ -2869,7 +2872,7 @@
                     // ---- overlay & header ----
                     const ACTIONS = {
                         retry: ['Retry', () => connect()],
-                        via: ['Start phone mode', () => openViaPhone()],
+                        via: [() => `Start phone mode · ${settings.host}`, () => openViaPhone()],
                         settings: ['Settings', () => openMenu()],
                     };
                     function setOverlay(kind, text, actions = []) {
@@ -2881,7 +2884,8 @@
                         actions.filter((key) => ACTIONS[key]).forEach((key) => {
                             const btn = document.createElement('button');
                             btn.type = 'button';
-                            btn.textContent = ACTIONS[key][0];
+                            const label = ACTIONS[key][0];
+                            btn.textContent = typeof label === 'function' ? label() : label;
                             if (key === 'via') btn.className = 'primary';
                             btn.addEventListener('click', (e) => { e.stopPropagation(); ACTIONS[key][1](); });
                             overlayActions.appendChild(btn);
@@ -2927,7 +2931,7 @@
                         updateLabel();
                         if (!quiet) {
                             setPhase('connecting');
-                            setOverlay('loading', `Connecting to ${phoneName()}…`, SERVED_BY_PHONE ? [] : ['via']);
+                            setOverlay('loading', `Connecting to ${phoneName()}…`, SERVED_BY_PHONE ? [] : ['via', 'settings']);
                             state.timers.hint = setTimeout(() => {
                                 if (!current() || state.phase !== 'connecting') return;
                                 setOverlay('loading', 'Still connecting. If the browser asks about devices on your local network, tap Allow. Is the broadcast running on the iPhone?', SERVED_BY_PHONE ? ['settings'] : ['via', 'settings']);
@@ -3275,6 +3279,7 @@
                         portInput.value = String(settings.port);
                         pinInput.value = settings.pin;
                         settingsStatus.textContent = '';
+                        syncModeLink();
                         syncMenu();
                         menu.classList.add('visible');
                     }
@@ -3305,10 +3310,22 @@
                         closeMenu();
                         if (state.visible) connect();
                     });
+                    // The phone-mode link, for the address being typed in.
+                    const modeLink = document.getElementById('phone-mode-link');
+                    const syncModeLink = () => {
+                        const host = hostInput.value.trim() || settings.host, port = portInput.value.trim() || String(settings.port);
+                        modeLink.textContent = `http://${host}:${port}/?lockscreen=1`;
+                    };
+                    hostInput.addEventListener('input', syncModeLink);
+                    portInput.addEventListener('input', syncModeLink);
+                    modeLink.addEventListener('click', (e) => { e.preventDefault(); if (readForm()) openViaPhone(); });
+                    document.getElementById('phone-mode-btn').addEventListener('click', () => openViaPhone());
                     const viaBtn = document.getElementById('phone-via-btn');
                     viaBtn.addEventListener('click', () => { if (SERVED_BY_PHONE) backToNormal(); else if (readForm()) openViaPhone(); });
                     document.getElementById('phone-screen-only').addEventListener('click', (e) => { e.preventDefault(); if (readForm()) openPhonePage(); });
                     if (SERVED_BY_PHONE) {
+                        document.getElementById('phone-mode-btn').classList.add('hidden');
+                        document.getElementById('phone-mode-link-row').classList.add('hidden');
                         document.getElementById('phone-address-fields').classList.add('hidden');
                         document.getElementById('phone-via-hint').classList.add('hidden');
                         document.getElementById('phone-served-note').classList.remove('hidden');
@@ -3487,7 +3504,7 @@
                             get: () => window.phoneMirror.size,
                             set: (s) => window.phoneMirror.setSize(s),
                             onEnd: () => { window.phoneMirror.pinchEnd(); savePos(); },
-                            min: 240, max: 4000
+                            min: 360, max: 4000
                         },
                     };
 

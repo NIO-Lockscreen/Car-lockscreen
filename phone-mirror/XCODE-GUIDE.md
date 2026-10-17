@@ -649,7 +649,7 @@ button.selected { border-color: var(--mint); background: #1c4b48; }
 <script>
 (function () {
     'use strict';
-    var LOCKSCREEN_URL = 'https://nio-lockscreen.github.io/Car-lockscreen/';
+    var LOCKSCREEN_URL = 'https://car-lockscreen.vercel.app/';
     var ROTATIONS = [0, 90, 270]; // off, horizontal turned clockwise, horizontal turned counter-clockwise
     var $ = function (id) { return document.getElementById(id); };
     var screen = $('screen'), stage = $('stage'), waiting = $('waiting'), stats = $('stats'), pair = $('pair'), error = $('error');
