@@ -15,7 +15,7 @@ struct ContentView: View {
                 VStack(alignment: .leading, spacing: 20) {
                     VStack(alignment: .leading, spacing: 6) {
                         Text("BANYAN / MIRROR").font(.system(.largeTitle, design: .rounded).bold())
-                        Text("Fast local MJPEG for NIO ET5 · v0.3").foregroundStyle(.secondary)
+                        Text("Fast local MJPEG for NIO ET5 · v\(MirrorSettings.appVersion)").foregroundStyle(.secondary)
                     }
                     GroupBox("1 · Allow local network") {
                         VStack(alignment: .leading, spacing: 10) {

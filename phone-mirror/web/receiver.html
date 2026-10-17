@@ -65,6 +65,42 @@ button.selected { border-color: var(--mint); background: #1c4b48; }
         get: function (k) { try { return localStorage.getItem('banyan_' + k); } catch (e) { return null; } },
         set: function (k, v) { try { localStorage.setItem('banyan_' + k, v); } catch (e) { /* storage unavailable */ } }
     };
+
+    // Phone mode (?lockscreen=1, sent by the lockscreen's Phone Mirror widget): the whole lockscreen is built on top of this
+    // page. Its widget then shares this page's origin, so no browser can block the picture. The lockscreen comes from the
+    // iPhone's own copy, else straight from GitHub, else the copy saved here last time. A QR upload link from phone mode
+    // (?upload=true) lands here too and needs the lockscreen's upload page.
+    var LOCKSCREEN_SOURCE = 'https://raw.githubusercontent.com/NIO-Lockscreen/Car-lockscreen/main/index.html';
+    if (params.get('lockscreen') === '1' || params.get('upload') === 'true') {
+        buildLockscreen();
+        return; // nothing of this page may keep running underneath
+    }
+    function buildLockscreen() {
+        pair.style.display = 'none';
+        $('hud').style.display = 'none';
+        waiting.innerHTML = '<b>BANYAN / MIRROR</b>Loading your lockscreen…';
+        var sources = ['/lockscreen/index.html', LOCKSCREEN_SOURCE];
+        var build = function (html, fresh) {
+            if (!html) {
+                waiting.innerHTML = '<b>BANYAN / MIRROR</b>Couldn’t load the lockscreen: the car or the iPhone needs internet the first time.';
+                return;
+            }
+            if (fresh) store.set('lockscreen', html);
+            document.open();
+            document.write(html);
+            document.close();
+        };
+        var next = function () {
+            var src = sources.shift();
+            if (!src) { build(store.get('lockscreen'), false); return; }
+            fetch(src, { cache: 'no-store' })
+                .then(function (r) { return r.ok ? r.text() : null; })
+                .then(function (html) { if (html && html.indexOf('id="lock-screen"') >= 0) build(html, true); else next(); })
+                .catch(function () { next(); });
+        };
+        next();
+    }
+
     var pin = '', mode = 'mjpeg', fill = false, connected = false, lastSeq = 0, lastStatTime = 0, pollTimer = 0, statsTimer = 0, mjpegCheck = 0;
     var rotation = parseInt(params.get('rot') || store.get('rot') || '0', 10);
     if (ROTATIONS.indexOf(rotation) < 0) rotation = 0;

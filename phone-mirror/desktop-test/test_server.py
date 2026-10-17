@@ -12,6 +12,7 @@ def start_server(frames):
     http_server = ThreadingHTTPServer(('127.0.0.1', 0), Handler)
     http_server.daemon_threads = True
     http_server.pin = '684293'
+    http_server.old_app = False
     http_server.frames = frames
     threading.Thread(target=http_server.serve_forever, daemon=True).start()
     time.sleep(.3)

@@ -4,11 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <script>
-        // Phone Mirror "via iPhone": the iPhone serves this lockscreen at http://<phone>:8765/lockscreen/, where the phone's
-        // picture is same-origin and no browser blocks it. The normal lockscreen hands its settings over in the address
+        // Phone mode: this lockscreen runs on the iPhone's own page (http://<phone>:8765/?lockscreen=1, or /lockscreen/), where the
+        // phone's picture is same-origin and no browser blocks it. The normal lockscreen hands its settings over in the address
         // (#import=...), and they are stored here before any other script reads them.
         (function () {
-            if (location.protocol !== 'http:' || !/^\/lockscreen(\/|$)/.test(location.pathname)) return;
+            if (location.protocol !== 'http:' || !(/^\/lockscreen(\/|$)/.test(location.pathname) || /[?&]lockscreen=1(&|$)/.test(location.search))) return;
             try {
                 var m = location.hash.match(/^#import=(.+)$/);
                 if (m) {
@@ -160,11 +160,13 @@
         #phone-overlay.kind-loading #phone-overlay-icon { width: 34px; height: 34px; border-radius: 50%; border: 4px solid rgba(255,255,255,0.25); border-top-color: #fff; font-size: 0; animation: video-spin 0.9s linear infinite; }
         #phone-overlay-actions { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
         #phone-widget #phone-overlay-actions button { width: auto; height: auto; padding: 8px 12px; background: rgba(255,255,255,0.16); font-size: 0.8rem; }
+        #phone-widget #phone-overlay-actions button.primary { background: #0a84ff; padding: 10px 18px; font-size: 0.9rem; font-weight: 600; }
         #phone-resize-grip { position: absolute; right: 2px; bottom: 2px; z-index: 4; width: 36px; height: 36px; display: flex; align-items: flex-end; justify-content: flex-end; padding: 7px; color: rgba(255,255,255,0.75); cursor: nwse-resize; touch-action: none; transition: opacity 0.3s; }
         #phone-widget.live:not(.show-ui) #phone-header, #phone-widget.live:not(.show-ui) #phone-resize-grip { opacity: 0; pointer-events: none; }
         #phone-widget.is-full { position: fixed !important; inset: 0 !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important; border-radius: 0; border: none; z-index: 1000; cursor: default; transform: none !important; }
         #phone-widget.is-full #phone-resize-grip { display: none; }
         #phone-settings-menu .menu-content { max-height: 88vh; overflow-y: auto; }
+        #phone-normal-mode-btn { position: absolute; top: 16px; left: 16px; z-index: 30; display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border: 1px solid rgba(255,255,255,0.2); border-radius: 18px; background: rgba(0,0,0,0.45); color: #fff; font-size: 0.85rem; cursor: pointer; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
         .phone-hint { color: #8e8e93; font-size: 0.82rem; margin: 6px 0; }
         .phone-hint a { color: #0a84ff; }
         .phone-row { display: flex; gap: 10px; }
@@ -526,6 +528,7 @@
             </div>
             <div id="phone-resize-grip" title="Drag to resize"><i class="fa-solid fa-up-right-and-down-left-from-center"></i></div>
         </div>
+        <button id="phone-normal-mode-btn" class="hidden" type="button" title="Leave phone mode"><i class="fa-solid fa-arrow-left"></i> Normal mode</button>
 
         <div id="webcam-widget" class="draggable-item widget" title="Long-press feed to mirror | Dbl-click feed for pan/zoom">
             <div class="webcam-video-wrapper">
@@ -709,11 +712,11 @@
                 </div>
                 <div class="phone-chips"><button class="phone-chip" id="phone-hotspot-chip" type="button">Personal Hotspot · 172.20.10.1</button></div>
                 </div>
-                <p class="phone-hint hidden" id="phone-served-note">This copy of the lockscreen comes from your iPhone, so the browser can't block its picture. Changes made here stay in this copy.</p>
+                <p class="phone-hint hidden" id="phone-served-note">Phone mode: this lockscreen runs on your iPhone's own page, so the browser can't block its picture. Changes made here stay in phone mode.</p>
                 <div class="phone-field"><label for="phone-pin-input">PIN (shown in the iPhone app)</label><input type="text" id="phone-pin-input" class="phone-input" inputmode="numeric" autocomplete="off" maxlength="12" placeholder="684293"></div>
-                <div class="phone-actions"><button id="phone-connect-btn" type="button">Save &amp; connect</button><button id="phone-via-btn" class="secondary" type="button">Open via iPhone</button></div>
+                <div class="phone-actions"><button id="phone-connect-btn" type="button">Save &amp; connect</button><button id="phone-via-btn" class="secondary" type="button">Start phone mode</button></div>
                 <p class="phone-hint" id="phone-settings-status"></p>
-                <p class="phone-hint" id="phone-via-hint">Picture blocked? Many browsers won't show the iPhone inside this secure page. <b>Open via iPhone</b> loads this same lockscreen, with your settings, from the iPhone itself, where nothing blocks it. Or open just the <a href="#" id="phone-screen-only">phone screen</a>.</p>
+                <p class="phone-hint" id="phone-via-hint">Picture blocked? Many browsers won't show the iPhone inside this secure page. <b>Start phone mode</b> opens the iPhone's own page and builds this lockscreen on top of it, with your settings, so nothing blocks the picture. Or open just the <a href="#" id="phone-screen-only">phone screen</a>.</p>
             </div>
             <div class="settings-section">
                 <h3>Screen shape</h3>
@@ -2748,6 +2751,10 @@
                     const validHost = (h) => typeof h === 'string' && h.length <= 253 && /^([a-zA-Z0-9-]+\.)*[a-zA-Z0-9-]+$|^\[[0-9a-fA-F:.]+\]$/.test(h);
                     const validPort = (p) => Number.isInteger(p) && p > 0 && p < 65536;
                     const validPin = (p) => typeof p === 'string' && /^\d{1,12}$/.test(p);
+                    // Phone mode (see the hand-over script in <head>): the phone is this page's own origin.
+                    const SERVED_BY_PHONE = location.protocol === 'http:' && (/^\/lockscreen(\/|$)/.test(location.pathname) || /[?&]lockscreen=1(&|$)/.test(location.search));
+                    // The PIN last typed into the iPhone's own page, which shares this origin in phone mode.
+                    const TYPED_PIN_KEY = 'banyan_pin';
                     function loadSettings() {
                         let saved = {};
                         try { saved = JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {}; } catch (e) { saved = {}; }
@@ -2761,13 +2768,16 @@
                         if (saved.fit === 'contain' || saved.fit === 'cover') s.fit = saved.fit;
                         if (saved.transport === 'mjpeg' || saved.transport === 'jpeg') s.transport = saved.transport;
                         if (Number.isFinite(saved.size) && saved.size >= 0) s.size = saved.size;
+                        if (SERVED_BY_PHONE) {
+                            let typed = null;
+                            try { typed = localStorage.getItem(TYPED_PIN_KEY); } catch (e) { /* storage unavailable */ }
+                            if (validPin(typed)) s.pin = typed;
+                        }
                         return s;
                     }
                     const settings = loadSettings();
                     const saveSettings = () => { try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (e) { /* storage unavailable */ } };
                     const savePositions = () => { if (window.saveItemPositions) window.saveItemPositions(); };
-                    // Served by the iPhone itself (see the hand-over script in <head>): the phone is this page's own origin.
-                    const SERVED_BY_PHONE = location.protocol === 'http:' && /^\/lockscreen(\/|$)/.test(location.pathname);
                     const BACK_KEY = 'lockscreenPhoneMirror_back';
                     const NORMAL_LOCKSCREEN = 'https://nio-lockscreen.github.io/Car-lockscreen/';
                     const phoneBase = () => (SERVED_BY_PHONE ? location.origin : `http://${settings.host}:${settings.port}`);
@@ -2859,7 +2869,7 @@
                     // ---- overlay & header ----
                     const ACTIONS = {
                         retry: ['Retry', () => connect()],
-                        via: ['Open via iPhone', () => openViaPhone()],
+                        via: ['Start phone mode', () => openViaPhone()],
                         settings: ['Settings', () => openMenu()],
                     };
                     function setOverlay(kind, text, actions = []) {
@@ -2872,6 +2882,7 @@
                             const btn = document.createElement('button');
                             btn.type = 'button';
                             btn.textContent = ACTIONS[key][0];
+                            if (key === 'via') btn.className = 'primary';
                             btn.addEventListener('click', (e) => { e.stopPropagation(); ACTIONS[key][1](); });
                             overlayActions.appendChild(btn);
                         });
@@ -2916,7 +2927,7 @@
                         updateLabel();
                         if (!quiet) {
                             setPhase('connecting');
-                            setOverlay('loading', `Connecting to ${phoneName()}…`);
+                            setOverlay('loading', `Connecting to ${phoneName()}…`, SERVED_BY_PHONE ? [] : ['via']);
                             state.timers.hint = setTimeout(() => {
                                 if (!current() || state.phase !== 'connecting') return;
                                 setOverlay('loading', 'Still connecting. If the browser asks about devices on your local network, tap Allow. Is the broadcast running on the iPhone?', SERVED_BY_PHONE ? ['settings'] : ['via', 'settings']);
@@ -3093,8 +3104,8 @@
                         }
                         if (location.protocol === 'https:') {
                             const permission = await localNetworkPermission();
-                            if (permission === 'denied') return { text: 'This browser keeps the lockscreen away from devices on your local network. Open via iPhone gets round that, or allow "local network access" for this site in the browser settings.', actions: ['via', 'settings'] };
-                            if (permission === 'unsupported') return { text: `No picture from ${settings.host}. This browser probably blocks the iPhone inside this secure page: Open via iPhone gets round that. If it doesn't load either, check the broadcast is running and the car is on the iPhone's hotspot.`, actions: all };
+                            if (permission === 'denied') return { text: 'This browser keeps the lockscreen away from devices on your local network. Start phone mode gets round that, or allow "local network access" for this site in the browser settings.', actions: ['via', 'settings'] };
+                            if (permission === 'unsupported') return { text: "This browser blocks the iPhone's picture inside the lockscreen. Start phone mode runs the lockscreen on the iPhone's own page instead, where it works.", actions: all };
                         }
                         return { text: `Can't reach ${SERVED_BY_PHONE ? 'the iPhone' : `the iPhone at ${settings.host}`}. Start the broadcast in the Banyan MJPEG app, and connect the car to the iPhone's hotspot or the same Wi-Fi.`, actions: all };
                     }
@@ -3138,7 +3149,8 @@
                         }
                         return 'unsupported';
                     }
-                    // Goes to the copy of this lockscreen the iPhone serves, taking this page's settings along.
+                    // Phone mode: goes to the iPhone's own page, which builds this lockscreen on top of itself, taking this page's
+                    // settings along. An iPhone app from before phone mode shows its bare phone screen there instead.
                     function openViaPhone() {
                         const handover = {};
                         try {
@@ -3149,7 +3161,9 @@
                         } catch (e) { /* storage unavailable: go without settings */ }
                         handover.widget_phone_visible = 'true';
                         handover[BACK_KEY] = location.href.split('#')[0];
-                        location.href = `${phoneBase()}/lockscreen/#import=${encodeURIComponent(JSON.stringify(handover))}`;
+                        const rot = settings.horizontal ? (settings.turn === 'ccw' ? 270 : 90) : 0;
+                        const query = `lockscreen=1&pin=${encodeURIComponent(settings.pin)}&rot=${rot}&back=${encodeURIComponent(handover[BACK_KEY])}`;
+                        location.href = `${phoneBase()}/?${query}#import=${encodeURIComponent(JSON.stringify(handover))}`;
                     }
                     function backToNormal() {
                         let back = null;
@@ -3271,6 +3285,7 @@
                             if (!validPin(pin)) { settingsStatus.textContent = 'The PIN is the number shown in the iPhone app.'; return false; }
                             settings.pin = pin;
                             saveSettings();
+                            try { localStorage.setItem(TYPED_PIN_KEY, pin); } catch (e) { /* storage unavailable */ }
                             return true;
                         }
                         const host = hostInput.value.trim(), port = parseInt(portInput.value.trim() || '8765', 10), pin = pinInput.value.replace(/\s+/g, '');
@@ -3297,7 +3312,10 @@
                         document.getElementById('phone-address-fields').classList.add('hidden');
                         document.getElementById('phone-via-hint').classList.add('hidden');
                         document.getElementById('phone-served-note').classList.remove('hidden');
-                        viaBtn.textContent = 'Back to normal lockscreen';
+                        viaBtn.textContent = 'Back to normal mode';
+                        const normalBtn = document.getElementById('phone-normal-mode-btn');
+                        normalBtn.classList.remove('hidden');
+                        normalBtn.addEventListener('click', backToNormal);
                     }
                     menu.querySelectorAll('[data-shape]').forEach((c) => c.addEventListener('click', () => {
                         settings.shape = c.dataset.shape;

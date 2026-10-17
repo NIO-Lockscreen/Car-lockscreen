@@ -149,7 +149,7 @@ final class ReceiverServer {
             sendOnce(conn, code: 200, mime: "text/html; charset=utf-8", body: Data(ReceiverHTML.page.utf8)); return
         }
         if path.path == "/health" {
-            sendOnce(conn, code: 200, mime: "application/json", body: Data("{\"server\":\"BanyanMJPEG\",\"listening\":true}".utf8)); return
+            sendOnce(conn, code: 200, mime: "application/json", body: Data("{\"server\":\"BanyanMJPEG\",\"version\":\"\(MirrorSettings.appVersion)\",\"listening\":true}".utf8)); return
         }
         if path.path == "/alive.gif" {
             // An <img> can load this where fetch() is not allowed: the lockscreen uses it to notice a stopped broadcast.

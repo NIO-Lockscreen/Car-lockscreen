@@ -121,7 +121,7 @@ class Frames:
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = 'BanyanMJPEG/0.3'
+    server_version = 'BanyanMJPEG/0.5'
     protocol_version = 'HTTP/1.1'
 
     def log_message(self, fmt, *args):
@@ -169,7 +169,7 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path in ('/', '/index.html'):
             return self.send_body(HTML, 'text/html; charset=utf-8')
         if parsed.path == '/health':
-            return self.send_body(b'{"server":"BanyanMJPEG","listening":true}', 'application/json')
+            return self.send_body(b'{"server":"BanyanMJPEG","version":"0.5","listening":true}', 'application/json')
         if parsed.path == '/alive.gif':
             return self.send_body(PIXEL_GIF, 'image/gif')
         if parsed.path == '/lockscreen':
@@ -178,7 +178,7 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header('Content-Length', '0')
             self.end_headers()
             return
-        if parsed.path.startswith('/lockscreen/'):
+        if parsed.path.startswith('/lockscreen/') and not self.server.old_app:
             return self.send_lockscreen(parsed.path[len('/lockscreen/'):] or 'index.html')
         if parse_qs(parsed.query).get('pin', [''])[0] != self.server.pin:
             return self.send_body(b'Wrong PIN', code=403)
@@ -221,10 +221,11 @@ class Handler(BaseHTTPRequestHandler):
             pass
 
 
-def serve(port=8765, pin='684293', fps=10, rotate_every=0, still=False, video_every=0):
+def serve(port=8765, pin='684293', fps=10, rotate_every=0, still=False, video_every=0, old_app=False):
     server = ThreadingHTTPServer(('0.0.0.0', port), Handler)
     server.daemon_threads = True
     server.pin = pin
+    server.old_app = old_app
     server.frames = Frames(fps, rotate_every, still, video_every)
     print(f'Server running: http://127.0.0.1:{port}/  |  PIN {pin}  |  {fps}fps')
     print('In the lockscreen Phone widget, enter this computer\'s LAN IPv4 (not 127.0.0.1) and the PIN. CTRL+C to quit.')
@@ -248,5 +249,6 @@ if __name__ == '__main__':
     p.add_argument('--rotate-every', type=float, default=0, help='switch between portrait and landscape frames every N seconds (0 = never)')
     p.add_argument('--still', action='store_true', help='send one frame and then nothing new, like an unchanging phone screen')
     p.add_argument('--video-every', type=float, default=0, help='switch between the app screen and a letterboxed 16:9 video every N seconds (0 = never)')
+    p.add_argument('--old-app', action='store_true', help="act like an iPhone app from before phone mode: no /lockscreen/")
     args = p.parse_args()
-    serve(args.port, args.pin, args.fps, args.rotate_every, args.still, args.video_every)
+    serve(args.port, args.pin, args.fps, args.rotate_every, args.still, args.video_every, args.old_app)
