@@ -7,7 +7,7 @@ import CoreGraphics
 /// lockscreen's Phone widget settings.
 enum MirrorSettings {
     /// Reported by http://<phone>:8765/health, to check which build is on the phone.
-    static let appVersion = "0.5"
+    static let appVersion = "0.6"
     static let port: UInt16 = 8765
     static let viewerPIN = "684293"
     static let maxLongEdge: CGFloat = 960

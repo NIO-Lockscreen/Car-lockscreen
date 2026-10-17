@@ -83,7 +83,8 @@ with `/`).
 - [ ] `broadcastStarted` starts `ReceiverServer(pin:port:)`.
 - [ ] Encodes on its own serial queue. Frames arriving faster than `targetFPS` are not dropped: the newest is kept and
       encoded at the next free slot, so a still screen's final frame is always sent.
-- [ ] Turns the picture upright with `RPVideoSampleOrientationKey`, scales to `maxLongEdge`, encodes JPEG with
+- [ ] Turns the picture upright with `RPVideoSampleOrientationKey`, swapping `.left` and `.right` before
+      `CIImage.oriented` (passed straight through, landscape shows upside down), scales to `maxLongEdge`, encodes JPEG with
       `kCGImageDestinationLossyCompressionQuality`; `CIContext` with `.cacheIntermediates: false`.
 - [ ] Pause, resume and finish reach the server; finish stops it.
 

@@ -58,9 +58,9 @@ final class SampleHandler: RPBroadcastSampleHandler {
         var image = CIImage(cvPixelBuffer: buffer)
         // ReplayKit hands over portrait buffers plus an orientation tag; turn the picture upright, so a phone held
         // sideways produces a landscape frame. The car widget sizes itself from the frame's own shape.
-        if let orientation = CMGetAttachment(sampleBuffer, key: RPVideoSampleOrientationKey as CFString, attachmentModeOut: nil) as? NSNumber,
-           let mapped = CGImagePropertyOrientation(rawValue: orientation.uint32Value) {
-            image = image.oriented(mapped)
+        if let tag = CMGetAttachment(sampleBuffer, key: RPVideoSampleOrientationKey as CFString, attachmentModeOut: nil) as? NSNumber,
+           let orientation = CGImagePropertyOrientation(rawValue: tag.uint32Value) {
+            image = image.oriented(SampleHandler.upright(orientation))
         }
         image = image.transformed(by: CGAffineTransform(translationX: -image.extent.origin.x, y: -image.extent.origin.y))
         let bounds = image.extent
@@ -69,6 +69,19 @@ final class SampleHandler: RPBroadcastSampleHandler {
         let scaled = image.transformed(by: CGAffineTransform(scaleX: scale, y: scale))
         let options: [CIImageRepresentationOption: Any] = [kCGImageDestinationLossyCompressionQuality as CIImageRepresentationOption: MirrorSettings.jpegQuality]
         return context.jpegRepresentation(of: scaled, colorSpace: colorSpace, options: options)
+    }
+
+    /// ReplayKit's tag says which way the picture must turn to be upright: .left means 90° clockwise, .right 90°
+    /// counter-clockwise. CIImage.oriented reads those two the other way round (as EXIF does), so they are swapped;
+    /// passed on as they come, a phone held sideways showed upside down.
+    private static func upright(_ tag: CGImagePropertyOrientation) -> CGImagePropertyOrientation {
+        switch tag {
+        case .left: return .right
+        case .right: return .left
+        case .leftMirrored: return .rightMirrored
+        case .rightMirrored: return .leftMirrored
+        default: return tag
+        }
     }
 
     override func broadcastPaused() { encodeQueue.async { self.server?.setPaused(true) } }

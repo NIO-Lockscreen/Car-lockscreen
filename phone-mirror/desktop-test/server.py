@@ -121,7 +121,7 @@ class Frames:
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = 'BanyanMJPEG/0.5'
+    server_version = 'BanyanMJPEG/0.6'
     protocol_version = 'HTTP/1.1'
 
     def log_message(self, fmt, *args):
@@ -169,7 +169,7 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path in ('/', '/index.html'):
             return self.send_body(HTML, 'text/html; charset=utf-8')
         if parsed.path == '/health':
-            return self.send_body(b'{"server":"BanyanMJPEG","version":"0.5","listening":true}', 'application/json')
+            return self.send_body(b'{"server":"BanyanMJPEG","version":"0.6","listening":true}', 'application/json')
         if parsed.path == '/alive.gif':
             return self.send_body(PIXEL_GIF, 'image/gif')
         if parsed.path == '/lockscreen':

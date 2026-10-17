@@ -88,9 +88,12 @@ It serves the lockscreen at `http://<PC address>:8765/lockscreen/` too (from thi
 | Widget connects but stays black | Settings › Stream › Snapshots. |
 | Stutters | In `MirrorSettings.swift`, lower `maxLongEdge` (960 → 720), `targetFPS` (10 → 8) or `jpegQuality` (0.60 → 0.45), and rebuild. |
 | Picture upside down in horizontal view | Pick the other direction under Settings › Horizontal view. |
+| Phone held sideways shows upside down | The iPhone app is older than v0.6: update it (`http://<address>:8765/health` shows the version). |
 | Smart crops something it shouldn't | Settings › Screen shape › Whole picture. |
 
 ## Changes from v0.2
+
+- **v0.6: landscape the right way up.** ReplayKit's `.left`/`.right` orientation tags mean the opposite of what `CIImage.oriented` expects, so a phone held sideways arrived upside down. They are now swapped before the frame is turned.
 
 - **Last frame on a still screen.** ReplayKit only sends frames when the screen changes. v0.2 dropped frames arriving faster than 10 fps, so the screen's final state often never reached the car. The newest frame is now kept and sent at the next slot.
 - **No one-frame lag.** Browsers show an MJPEG frame only when the next boundary arrives. Each frame is now followed straight away by its boundary.

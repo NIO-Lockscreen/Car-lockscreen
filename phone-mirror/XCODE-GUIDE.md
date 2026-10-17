@@ -1,4 +1,4 @@
-# Banyan MJPEG v0.5: guide for the Xcode project
+# Banyan MJPEG v0.6: guide for the Xcode project
 
 **For the assistant in Xcode:** make the project match this guide. Every file's full source is at the end. Replace each
 file's contents with it exactly, except the values listed under *Keep your own values*. Then run the checks under
@@ -48,7 +48,7 @@ builds the lockscreen on top of itself, so the picture comes from the same addre
   Swift 5. The app embeds the extension ("Embed Foundation Extensions" / "Embed App Extensions" build phase).
 - `Shared/MirrorSettings.swift` must be ticked for **both** targets in Target Membership.
 - `BanyanMirror/LocalNetworkPermission.swift` (added in v0.4) must be in the **BanyanMirror** target.
-- Both Info.plist files: `CFBundleShortVersionString` **0.5.0** (app and extension must match), and
+- Both Info.plist files: `CFBundleShortVersionString` **0.6.0** (app and extension must match), and
   `NSAppTransportSecurity › NSAllowsLocalNetworking = YES`.
 - App Info.plist also needs `NSLocalNetworkUsageDescription`, `NSBonjourServices = [_banyanmirror._tcp]` and
   `UILaunchScreen`. Extension Info.plist needs `NSExtension` with point identifier
@@ -59,7 +59,7 @@ builds the lockscreen on top of itself, so the picture comes from the same addre
 
 ## Checklist: what each file must do
 
-**`Shared/MirrorSettings.swift`**: `appVersion = "0.5"`, `port 8765`, `viewerPIN`, `maxLongEdge 960`,
+**`Shared/MirrorSettings.swift`**: `appVersion = "0.6"`, `port 8765`, `viewerPIN`, `maxLongEdge 960`,
 `targetFPS 10`, `jpegQuality 0.60`, `extensionBundleID`, `hotspotAddress "172.20.10.1"`,
 `bonjourType "_banyanmirror._tcp"`, `lockscreenSource` (this repository's `main` on raw.githubusercontent.com, ending
 with `/`).
@@ -68,7 +68,8 @@ with `/`).
 - [ ] `broadcastStarted` starts `ReceiverServer(pin:port:)`.
 - [ ] Encodes on its own serial queue. Frames arriving faster than `targetFPS` are not dropped: the newest is kept and
       encoded at the next free slot, so a still screen's final frame is always sent.
-- [ ] Turns the picture upright with `RPVideoSampleOrientationKey`, scales to `maxLongEdge`, encodes JPEG with
+- [ ] Turns the picture upright with `RPVideoSampleOrientationKey`, swapping `.left` and `.right` before
+      `CIImage.oriented` (passed straight through, landscape shows upside down), scales to `maxLongEdge`, encodes JPEG with
       `kCGImageDestinationLossyCompressionQuality`; `CIContext` with `.cacheIntermediates: false`.
 - [ ] Pause, resume and finish reach the server; finish stops it.
 
@@ -77,7 +78,7 @@ with `/`).
 | Request | PIN | Answer |
 |---|---|---|
 | `GET /` | no | the phone page (`ReceiverHTML.page`), including phone mode |
-| `GET /health` | no | `{"server":"BanyanMJPEG","version":"0.5","listening":true}` |
+| `GET /health` | no | `{"server":"BanyanMJPEG","version":"0.6","listening":true}` |
 | `GET /alive.gif` | no | 1x1 GIF; the widget uses it to notice a stopped broadcast |
 | `GET /lockscreen/` (+ `manifest.webmanifest`, `icon-192.png`, `icon-512.png`) | no | downloaded from `lockscreenSource`, last copy kept in Caches; 502 if never downloaded. `/lockscreen` redirects (302) to `/lockscreen/` |
 | `GET /status?pin=` | yes | JSON: `live, broadcasting, paused, frames, bytes, width, height, lastFrameAgeMs, viewers, transport, fps` |
@@ -113,7 +114,7 @@ granted; a `waiting` browser means denied.
 
 ```bash
 curl http://10.0.0.18:8765/health
-#  -> {"server":"BanyanMJPEG","version":"0.5","listening":true}    no "version": an old build is on the phone
+#  -> {"server":"BanyanMJPEG","version":"0.6","listening":true}    no "version": an old build is on the phone
 curl -s http://10.0.0.18:8765/ | grep -c buildLockscreen
 #  -> 1 or more: the phone page has phone mode
 curl -s -o /dev/null -w "%{http_code}\n" http://10.0.0.18:8765/lockscreen/
@@ -153,7 +154,7 @@ import CoreGraphics
 /// lockscreen's Phone widget settings.
 enum MirrorSettings {
     /// Reported by http://<phone>:8765/health, to check which build is on the phone.
-    static let appVersion = "0.5"
+    static let appVersion = "0.6"
     static let port: UInt16 = 8765
     static let viewerPIN = "684293"
     static let maxLongEdge: CGFloat = 960
@@ -234,9 +235,9 @@ final class SampleHandler: RPBroadcastSampleHandler {
         var image = CIImage(cvPixelBuffer: buffer)
         // ReplayKit hands over portrait buffers plus an orientation tag; turn the picture upright, so a phone held
         // sideways produces a landscape frame. The car widget sizes itself from the frame's own shape.
-        if let orientation = CMGetAttachment(sampleBuffer, key: RPVideoSampleOrientationKey as CFString, attachmentModeOut: nil) as? NSNumber,
-           let mapped = CGImagePropertyOrientation(rawValue: orientation.uint32Value) {
-            image = image.oriented(mapped)
+        if let tag = CMGetAttachment(sampleBuffer, key: RPVideoSampleOrientationKey as CFString, attachmentModeOut: nil) as? NSNumber,
+           let orientation = CGImagePropertyOrientation(rawValue: tag.uint32Value) {
+            image = image.oriented(SampleHandler.upright(orientation))
         }
         image = image.transformed(by: CGAffineTransform(translationX: -image.extent.origin.x, y: -image.extent.origin.y))
         let bounds = image.extent
@@ -245,6 +246,19 @@ final class SampleHandler: RPBroadcastSampleHandler {
         let scaled = image.transformed(by: CGAffineTransform(scaleX: scale, y: scale))
         let options: [CIImageRepresentationOption: Any] = [kCGImageDestinationLossyCompressionQuality as CIImageRepresentationOption: MirrorSettings.jpegQuality]
         return context.jpegRepresentation(of: scaled, colorSpace: colorSpace, options: options)
+    }
+
+    /// ReplayKit's tag says which way the picture must turn to be upright: .left means 90° clockwise, .right 90°
+    /// counter-clockwise. CIImage.oriented reads those two the other way round (as EXIF does), so they are swapped;
+    /// passed on as they come, a phone held sideways showed upside down.
+    private static func upright(_ tag: CGImagePropertyOrientation) -> CGImagePropertyOrientation {
+        switch tag {
+        case .left: return .right
+        case .right: return .left
+        case .leftMirrored: return .rightMirrored
+        case .rightMirrored: return .leftMirrored
+        default: return tag
+        }
     }
 
     override func broadcastPaused() { encodeQueue.async { self.server?.setPaused(true) } }
@@ -851,7 +865,7 @@ Target: BroadcastUpload (its Info.plist)
 	<key>CFBundlePackageType</key>
 	<string>XPC!</string>
 	<key>CFBundleShortVersionString</key>
-	<string>0.5.0</string>
+	<string>0.6.0</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
 	<key>CFBundleSupportedPlatforms</key>
@@ -1142,7 +1156,7 @@ Target: BanyanMirror (its Info.plist)
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>0.5.0</string>
+	<string>0.6.0</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
 	<key>CFBundleSupportedPlatforms</key>
