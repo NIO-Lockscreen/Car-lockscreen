@@ -1,4 +1,5 @@
 import Foundation
+import CoreGraphics
 import Network
 
 /// Minimal *local* HTTP + multipart/x-mixed-replace server.

@@ -26,7 +26,9 @@ final class LocalNetworkPermission: ObservableObject {
             self.listener = listener
         }
 
-        let browser = NWBrowser(for: .bonjour(type: MirrorSettings.bonjourType, domain: nil), using: parameters)
+        let browseParameters = NWParameters.tcp
+        browseParameters.includePeerToPeer = true
+        let browser = NWBrowser(for: .bonjour(type: MirrorSettings.bonjourType, domain: nil), using: browseParameters)
         browser.stateUpdateHandler = { [weak self] state in
             // "Waiting" with a policy error is how a refusal shows up. Keep browsing: if the user switches access on,
             // our own service still appears and flips this to granted.

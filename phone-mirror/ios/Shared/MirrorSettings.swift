@@ -1,4 +1,5 @@
 import Foundation
+import CoreGraphics
 
 /// v0.2 intentionally does not use App Groups, to simplify personal-device signing.
 /// This PIN is a demo access check, NOT strong protection: HTTP transmits it unencrypted.
