@@ -47,7 +47,7 @@
         #weather-info { display: flex; align-items: center; gap: 10px; user-select: none; padding: 10px 15px; border-radius: 12px; transition: background-color 0.2s; background-color: var(--widget-bg); }
         .draggable-item { position: absolute; user-select: none; cursor: grab; z-index: 10; } .draggable-item:active { cursor: grabbing; z-index: 11; }
         #clock { top: 30%; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: 'Oswald', sans-serif; font-weight: 700; color: #fff; filter: drop-shadow(0 0 20px rgba(0,0,0,0.5)); }
-        #hours, #minutes { font-size: min(clamp(6rem, 15vw, 12rem), 60vh); line-height: 0.8; pointer-events: none; } #minutes { margin-top: -1.5rem; }
+        #hours, #minutes { font-size: min(clamp(6rem, calc(15 * var(--frame-vw, 1vw)), 12rem), calc(60 * var(--frame-vh, 1vh))); line-height: 0.8; pointer-events: none; } #minutes { margin-top: -1.5rem; }
         .app-icon { width: 70px; height: 70px; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.4)); transition: transform 0.2s ease; } .app-icon:active { transform: scale(1.1); }
         .app-icon svg { width: 100%; height: 100%; }
         #youtube-music-btn { top: 60%; left: calc(50% - 100px); } #youtube-btn { top: 60%; left: calc(50% + 30px); }
@@ -201,12 +201,12 @@
         #lock-screen.light-theme #music-artist { color: #555; }
         #settings-btn { top: 80%; left: 50px; }
         #settings-btn svg circle:nth-child(2) { stroke: var(--icon-stroke-color); }
-        #settings-menu, #stock-editor-menu, #note-editor-menu, #radio-menu, #gif-chooser-menu, #media-browser-menu, #taxi-settings-menu, #taxi-history-menu, #phone-settings-menu { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); display: none; justify-content: center; align-items: center; z-index: 1000; opacity: 0; transition: opacity 0.3s ease; }
-        #settings-menu.visible, #stock-editor-menu.visible, #note-editor-menu.visible, #radio-menu.visible, #gif-chooser-menu.visible, #media-browser-menu.visible, #taxi-settings-menu.visible, #taxi-history-menu.visible, #phone-settings-menu.visible { display: flex; opacity: 1; }
+        #settings-menu, #stock-editor-menu, #note-editor-menu, #radio-menu, #gif-chooser-menu, #media-browser-menu, #taxi-settings-menu, #taxi-history-menu, #phone-settings-menu, #exit-fullscreen-menu { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); display: none; justify-content: center; align-items: center; z-index: 1000; opacity: 0; transition: opacity 0.3s ease; }
+        #settings-menu.visible, #stock-editor-menu.visible, #note-editor-menu.visible, #radio-menu.visible, #gif-chooser-menu.visible, #media-browser-menu.visible, #taxi-settings-menu.visible, #taxi-history-menu.visible, #phone-settings-menu.visible, #exit-fullscreen-menu.visible { display: flex; opacity: 1; }
         .menu-content { background-color: #2c2c2e; padding: 30px; border-radius: 20px; width: 90%; max-width: 500px; color: #f2f2f7; text-align: left; position: relative; box-shadow: 0 5px 25px rgba(0,0,0,0.5); transform: scale(0.95); transition: transform 0.3s ease; }
         #radio-menu .menu-content, #gif-chooser-menu .menu-content { max-height: 80vh; overflow-y: auto; }
         #stock-editor-menu .menu-content { text-align: center; }
-        #settings-menu.visible .menu-content, #stock-editor-menu.visible .menu-content, #note-editor-menu.visible .menu-content, #radio-menu.visible .menu-content, #gif-chooser-menu.visible .menu-content, #media-browser-menu.visible .menu-content, #taxi-settings-menu.visible .menu-content, #taxi-history-menu.visible .menu-content, #phone-settings-menu.visible .menu-content { transform: scale(1); }
+        #settings-menu.visible .menu-content, #stock-editor-menu.visible .menu-content, #note-editor-menu.visible .menu-content, #radio-menu.visible .menu-content, #gif-chooser-menu.visible .menu-content, #media-browser-menu.visible .menu-content, #taxi-settings-menu.visible .menu-content, #taxi-history-menu.visible .menu-content, #phone-settings-menu.visible .menu-content, #exit-fullscreen-menu.visible .menu-content { transform: scale(1); }
         .menu-content h2 {text-align: center;}
         #close-settings-btn, #close-stock-editor-btn, #close-note-editor-btn, #close-radio-btn, #close-gif-chooser-btn, #close-media-browser-btn, #close-taxi-settings-btn, #close-taxi-history-btn, #close-phone-settings-btn { position: absolute; top: 10px; right: 15px; background: none; border: none; color: #aaa; font-size: 2rem; cursor: pointer; line-height: 1; z-index: 5; }
         #wallpaper-url-input, #stock-symbols-input, #weather-location-input, #font-select, #clock-color-input, #note-font-select, #note-font-size-input { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 10px; border: 1px solid #555; background-color: #3a3a3c; color: white; font-size: 1rem; outline: none; }
@@ -253,6 +253,13 @@
         #fullscreen-hint { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background-color: rgba(0,0,0,0.4); padding: 8px 15px; border-radius: 12px; color: #f0f0f0; text-shadow: 1px 1px 3px rgba(0,0,0,0.5); opacity: 0; transition: opacity 1s ease-out; z-index: 25; pointer-events: none; }
         #unlock-prompt, #fullscreen-hint.visible { opacity: 1; }
         #unlock-prompt.visible { pointer-events: auto; }
+        #exit-fullscreen-menu { z-index: 1002; }
+        #exit-fullscreen-menu .menu-content { max-width: 400px; text-align: center; }
+        #exit-fullscreen-menu p { color: #aeaeb2; margin: 10px 0 22px; }
+        .exit-fullscreen-actions { display: flex; gap: 10px; }
+        .exit-fullscreen-actions button { flex: 1; padding: 14px; border: none; border-radius: 10px; background: #0a84ff; color: #fff; font-size: 1rem; cursor: pointer; }
+        .exit-fullscreen-actions button.secondary { background: #3a3a3c; }
+        .exit-fullscreen-actions button:disabled { opacity: 0.4; cursor: default; }
         #unlock-prompt { position: absolute; bottom: 20%; left: 50%; transform: translateX(-50%); color: white; font-size: 1.3rem; font-weight: 500; text-shadow: 1px 1px 8px rgba(0,0,0,0.8); user-select: none; cursor: pointer; opacity: 0; pointer-events: none; transition: opacity 0.7s ease; z-index: 25; }
         .hidden { display: none !important; }
         #qr-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); display: none; justify-content: center; align-items: center; z-index: 1001; }
@@ -606,6 +613,16 @@
             <div class="settings-section settings-footer" id="settings-footer">
                 <button id="show-advanced-settings-btn"><i class="fa-solid fa-sliders"></i> Show Full Settings</button>
                 <button id="hide-advanced-settings-btn" class="hidden"><i class="fa-solid fa-arrow-left"></i> Back to Wallpapers</button>
+            </div>
+        </div>
+    </div>
+    <div id="exit-fullscreen-menu" role="dialog" aria-modal="true" aria-labelledby="exit-fullscreen-title">
+        <div class="menu-content">
+            <h2 id="exit-fullscreen-title">Exit fullscreen?</h2>
+            <p>The browser's bars will cover part of the lockscreen again.</p>
+            <div class="exit-fullscreen-actions">
+                <button id="exit-fullscreen-stay" type="button">Stay in fullscreen</button>
+                <button id="exit-fullscreen-confirm" class="secondary" type="button">Exit</button>
             </div>
         </div>
     </div>
@@ -2814,7 +2831,8 @@
                     const fsElement = () => document.fullscreenElement || document.webkitFullscreenElement || null;
                     const isFull = () => fsElement() === widget || widget.classList.contains('maximized');
                     const isHidden = () => widget.classList.contains('hidden');
-                    const defaultSize = () => Math.round(Math.min(lockScreen.clientHeight * 0.72, 640));
+                    // From the frame's height (see the widget layout), so it's the same size in and out of fullscreen.
+                    const defaultSize = () => Math.round(Math.min((window.layoutFrame ? window.layoutFrame().fh : lockScreen.clientHeight) * 0.72, 640));
                     const currentSize = () => Math.max(widget.offsetWidth, widget.offsetHeight);
                     // Longest side of the widget, limited to what fits on the lockscreen.
                     function fitSize(size, aspect) {
@@ -3440,42 +3458,157 @@
                     };
                     weatherLocationInput.addEventListener('change', () => { localStorage.setItem('lockscreenWeatherLocation', weatherLocationInput.value.trim()); fetchWeather(); });
                     const updateTime = () => { const n = new Date(); timeElems.h.textContent = String(n.getHours()).padStart(2, '0'); timeElems.m.textContent = String(n.getMinutes()).padStart(2, '0'); timeElems.d.textContent = n.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }); };
-                    // Capped at 60vh: the size follows screen width, so on a wide, short screen an enlarged clock would
-                    // otherwise be taller than the screen and get pinned to the top.
-                    const applyClockScale = (scale) => { const baseSizeVW = 15; const newSize = baseSizeVW * scale; timeElems.h.style.fontSize = `min(clamp(${newSize * 0.4}rem, ${newSize}vw, ${newSize * 0.8}rem), 60vh)`; timeElems.m.style.fontSize = `min(clamp(${newSize * 0.4}rem, ${newSize}vw, ${newSize * 0.8}rem), 60vh)`; clockScale = scale; };
+                    // Capped at 60% of the height: the size follows screen width, so on a wide, short screen an enlarged clock would
+                    // otherwise be taller than the screen and get pinned to the top. Sized by the frame (below), not the page, so it
+                    // keeps its size in and out of fullscreen.
+                    const applyClockScale = (scale) => { const baseSizeVW = 15; const newSize = baseSizeVW * scale; timeElems.h.style.fontSize = `min(clamp(${newSize * 0.4}rem, calc(${newSize} * var(--frame-vw, 1vw)), ${newSize * 0.8}rem), calc(60 * var(--frame-vh, 1vh)))`; timeElems.m.style.fontSize = timeElems.h.style.fontSize; clockScale = scale; };
                     window.applyClockScale = applyClockScale;
-                    
+
+                    // ---- where the widgets sit ----
+                    // Spots are kept as fractions of the frame: the page's size in fullscreen. Outside fullscreen the page is the
+                    // frame minus the browser's bars, so each widget goes where it is on the screen in fullscreen, and is only nudged
+                    // into view where a bar covers it (the nudge isn't saved). Going in and out of fullscreen doesn't move anything.
+                    const FRAME_KEY = 'lockscreenFullscreenFrame';
+                    const isPageFull = () => !!(document.fullscreenElement || document.webkitFullscreenElement) || window.matchMedia('(display-mode: fullscreen)').matches;
+                    let savedFrame = null; // { w, h } of the page in fullscreen; sx, sy: the share of the bars left of / above the page
+                    try { savedFrame = JSON.parse(localStorage.getItem(FRAME_KEY)); } catch (err) { /* none yet */ }
+                    const saveFrame = () => { try { localStorage.setItem(FRAME_KEY, JSON.stringify(savedFrame)); } catch (err) { /* storage unavailable */ } };
+                    // A size further off than browser bars would explain (another window size, or another device after phone mode)
+                    // isn't this page's frame: the page is then its own frame. Before the first fullscreen, the screen stands in
+                    // (where there is a fullscreen to go to).
+                    const canGoFull = !!(document.fullscreenEnabled || document.webkitFullscreenEnabled);
+                    function getFrame() {
+                        const W = lockScreen.clientWidth, H = lockScreen.clientHeight;
+                        const barsAway = (f) => f && f.w >= W - 1 && f.h >= H - 1 && f.w - W <= f.w * 0.25 && f.h - H <= f.h * 0.3;
+                        const scr = { w: window.screen.width, h: window.screen.height };
+                        const f = barsAway(savedFrame) ? savedFrame : canGoFull && !isPageFull() && barsAway(scr) ? scr : { w: W, h: H };
+                        const sx = savedFrame && Number.isFinite(savedFrame.sx) ? savedFrame.sx : 0.5;
+                        const sy = savedFrame && Number.isFinite(savedFrame.sy) ? savedFrame.sy : 1; // browsers keep their bars on top
+                        return { W, H, fw: f.w, fh: f.h, ox: (f.w - W) * sx, oy: (f.h - H) * sy };
+                    }
+                    const spots = {}; // id -> { x, y } as fractions of the frame
+                    const toPage = (spot, fr) => ({ x: spot.x * fr.fw - fr.ox, y: spot.y * fr.fh - fr.oy });
+                    // A widget bigger than the screen gets the overflow range, as when it's dragged.
+                    const clampAxis = (v, max) => Math.max(Math.min(0, max), Math.min(v, Math.max(0, max)));
+                    const isShown = (el) => el.offsetParent !== null && !el.classList.contains('is-full'); // hidden ones read 0
+                    function placeWidget(el, fr) {
+                        const spot = spots[el.id];
+                        if (!spot) return;
+                        const p = toPage(spot, fr);
+                        el.style.left = `${Math.round(clampAxis(p.x, fr.W - el.offsetWidth))}px`;
+                        el.style.top = `${Math.round(clampAxis(p.y, fr.H - el.offsetHeight))}px`;
+                    }
+                    // The clock and stock widget start centred with translateX(-50%). Folds that into left/top, so the offsets
+                    // say where they really are. Returns how far that moved them.
+                    const foldCentering = (el) => {
+                        if (el.style.transform === 'none' || ['clock', 'stock-widget'].indexOf(el.id) === -1) return { dx: 0, dy: 0 };
+                        const before = el.getBoundingClientRect();
+                        el.style.transform = 'none';
+                        const after = el.getBoundingClientRect();
+                        const dx = before.left - after.left, dy = before.top - after.top;
+                        el.style.left = `${el.offsetLeft + dx}px`; el.style.top = `${el.offsetTop + dy}px`;
+                        return { dx, dy };
+                    };
+                    // Reads a widget's spot back from where it is. Where it sits against the edge only because its spot is past
+                    // it (nudged into view), that axis keeps its spot.
+                    function captureWidget(el, fr) {
+                        foldCentering(el);
+                        const old = spots[el.id], was = old && toPage(old, fr);
+                        const nudged = (now, target, max) => Math.abs(now - clampAxis(target, max)) <= 1 && Math.abs(target - clampAxis(target, max)) > 1;
+                        const x = el.offsetLeft, y = el.offsetTop;
+                        spots[el.id] = {
+                            x: was && nudged(x, was.x, fr.W - el.offsetWidth) ? old.x : (x + fr.ox) / fr.fw,
+                            y: was && nudged(y, was.y, fr.H - el.offsetHeight) ? old.y : (y + fr.oy) / fr.fh,
+                        };
+                    }
+                    function placeAll() {
+                        const fr = getFrame();
+                        lockScreen.style.setProperty('--frame-vw', `${fr.fw / 100}px`);
+                        lockScreen.style.setProperty('--frame-vh', `${fr.fh / 100}px`);
+                        DRAGGABLE_ELEMENT_IDS.forEach(id => { const el = document.getElementById(id); if (el && !el.classList.contains('is-full')) placeWidget(el, fr); });
+                    }
+                    // Widgets still where the stylesheet put them get a spot of their own, so the next change of size can't move them.
+                    // (The stock name flash stays anchored to the bottom right, so its text grows leftwards.)
+                    window.pinItemPositions = () => {
+                        const fr = getFrame();
+                        DRAGGABLE_ELEMENT_IDS.forEach(id => { const el = document.getElementById(id); if (el && !spots[id] && id !== 'fun-stock-name-display' && isShown(el)) captureWidget(el, fr); });
+                    };
+                    window.layoutFrame = getFrame;
+                    window.resetItemPositions = () => { Object.keys(spots).forEach(id => delete spots[id]); placeAll(); };
+                    // Once a switch to fullscreen has settled, the page's size there is the frame.
+                    let settleTimer = null;
+                    const settle = () => {
+                        settleTimer = null;
+                        if (isPageFull() && (!savedFrame || savedFrame.w !== lockScreen.clientWidth || savedFrame.h !== lockScreen.clientHeight)) {
+                            savedFrame = Object.assign({}, savedFrame, { w: lockScreen.clientWidth, h: lockScreen.clientHeight });
+                            saveFrame();
+                        }
+                        placeAll();
+                    };
+                    const onFullscreenChange = () => { placeAll(); clearTimeout(settleTimer); settleTimer = setTimeout(settle, 600); };
+                    document.addEventListener('fullscreenchange', onFullscreenChange);
+                    document.addEventListener('webkitfullscreenchange', onFullscreenChange);
+                    window.addEventListener('resize', () => { placeAll(); if (settleTimer) { clearTimeout(settleTimer); settleTimer = setTimeout(settle, 600); } });
+                    // Where the bars are, learnt from taps: a tap's screen and page coordinates differ by where the page sits on the
+                    // screen. Comparing that in and out of fullscreen shows how much of the bars is above (and left of) the page.
+                    // Each needs two taps that agree, so a zoomed page (where they don't) teaches nothing. Outside fullscreen something
+                    // sits above the page, so screen coordinates equal to the page's are a browser not giving real ones.
+                    const taps = {};
+                    document.addEventListener('pointerdown', (e) => {
+                        if (!e.isPrimary) return;
+                        const key = isPageFull() ? 'full' : 'normal', W = lockScreen.clientWidth, H = lockScreen.clientHeight;
+                        const tap = { x: e.screenX - e.clientX, y: e.screenY - e.clientY, cx: e.clientX, cy: e.clientY, W, H, sure: false };
+                        if (key === 'normal' && tap.x === 0 && tap.y === 0) return;
+                        const prev = taps[key];
+                        if (prev && prev.W === W && prev.H === H) {
+                            const agree = Math.abs(tap.x - prev.x) <= 2 && Math.abs(tap.y - prev.y) <= 2;
+                            if (!agree && (prev.sure || Math.hypot(tap.cx - prev.cx, tap.cy - prev.cy) >= 30)) { taps.untrusted = true; return; }
+                            tap.sure = prev.sure || (agree && Math.hypot(tap.cx - prev.cx, tap.cy - prev.cy) >= 30);
+                        }
+                        taps[key] = tap;
+                        const n = taps.normal, f = taps.full;
+                        if (taps.untrusted || !savedFrame || !n || !f || !n.sure || !f.sure) return;
+                        const share = (moved, grew) => (grew > 8 && moved >= -2 && moved <= grew + 2 ? Math.min(1, Math.max(0, moved / grew)) : null);
+                        const sx = share(n.x - f.x, f.W - n.W), sy = share(n.y - f.y, f.H - n.H);
+                        let learnt = false;
+                        if (sx !== null && sx !== savedFrame.sx) { savedFrame.sx = sx; learnt = true; }
+                        if (sy !== null && sy !== savedFrame.sy) { savedFrame.sy = sy; learnt = true; }
+                        if (learnt) saveFrame(); // used from the next change of size on, so nothing jumps under a finger
+                    }, true);
+
+                    const SIZED_WIDGETS = ['note-widget', 'gif-widget', 'webcam-widget', 'video-widget'];
+                    // Saves every widget's spot. A hidden widget, or one filling the screen, keeps the spot it had.
                     const savePos = () => {
+                        const fr = getFrame();
                         const p = {};
-                        let prev = {};
-                        try { prev = JSON.parse(localStorage.getItem('lockscreenItemPositions_v5')) || {}; } catch (err) { prev = {}; }
                         DRAGGABLE_ELEMENT_IDS.forEach(id => {
                             const e = document.getElementById(id);
-                            if (e) {
-                                // A closed video or phone widget is display:none (offsets read 0) - keep its last saved spot instead.
-                                if ((id === 'video-widget' || id === 'phone-widget') && e.classList.contains('hidden')) { if (prev[id]) p[id] = prev[id]; return; }
-                                p[id] = { t: `${(e.offsetTop / lockScreen.clientHeight) * 100}%`, l: `${(e.offsetLeft / lockScreen.clientWidth) * 100}%` };
-                                if (id === 'clock') p[id].s = clockScale;
-                                if (id === 'note-widget' || id === 'gif-widget' || id === 'webcam-widget' || id === 'video-widget') { p[id].w = e.style.width; p[id].h = e.style.height; }
-                            }
+                            if (!e) return;
+                            if (isShown(e)) captureWidget(e, fr);
+                            if (!spots[id]) return;
+                            p[id] = { t: `${spots[id].y * 100}%`, l: `${spots[id].x * 100}%` };
+                            if (id === 'clock') p[id].s = clockScale;
+                            if (SIZED_WIDGETS.indexOf(id) !== -1) { p[id].w = e.style.width; p[id].h = e.style.height; }
                         });
                         localStorage.setItem('lockscreenItemPositions_v5', JSON.stringify(p));
                     };
                     window.saveItemPositions = savePos;
                     const loadPos = () => {
-                        const p = JSON.parse(localStorage.getItem('lockscreenItemPositions_v5'));
+                        let p = null;
+                        try { p = JSON.parse(localStorage.getItem('lockscreenItemPositions_v5')); } catch (err) { /* unreadable: start over */ }
                         if (p) {
                             Object.keys(p).forEach(id => {
                                 const e = document.getElementById(id);
                                 const pos = p[id];
-                                if (e && pos.t && pos.l) {
-                                    e.style.top = pos.t; e.style.left = pos.l;
+                                if (e && pos && /%$/.test(pos.t) && /%$/.test(pos.l)) {
+                                    spots[id] = { x: parseFloat(pos.l) / 100, y: parseFloat(pos.t) / 100 };
                                     e.style.transform = (id === 'clock' || id === 'stock-widget') ? 'none' : e.style.transform;
                                     if (id === 'clock' && pos.s) applyClockScale(pos.s);
-                                    if (id === 'note-widget' || id === 'gif-widget' || id === 'webcam-widget' || id === 'video-widget') { e.style.width = pos.w || e.style.width; e.style.height = pos.h || e.style.height; }
+                                    if (SIZED_WIDGETS.indexOf(id) !== -1) { e.style.width = pos.w || e.style.width; e.style.height = pos.h || e.style.height; }
                                 }
                             });
                         }
+                        placeAll();
                     };
                     
                     // Widgets that can be resized with a two-finger pinch.
@@ -3516,18 +3649,9 @@
                         let isPinching = false, initialPinchDist, initialScale;
                         const pinch = PINCH_TARGETS[el.id];
                         const getDist = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
-                        // The clock and stock widget start centred with translateX(-50%). On the first move, fold that
-                        // into left/top so the edge clamp works on where the element really is - otherwise it stops
-                        // half its width short of the right edge and can slide half off the left one.
-                        const foldCentering = () => {
-                            if (el.style.transform === 'none' || ['clock', 'stock-widget'].indexOf(el.id) === -1) return;
-                            const before = el.getBoundingClientRect();
-                            el.style.transform = 'none';
-                            const after = el.getBoundingClientRect();
-                            const dx = before.left - after.left, dy = before.top - after.top;
-                            el.style.left = `${el.offsetLeft + dx}px`; el.style.top = `${el.offsetTop + dy}px`;
-                            oX -= dx; oY -= dy;
-                        };
+                        // On the first move, fold any centring into left/top so the edge clamp works on where the element really
+                        // is - otherwise it stops half its width short of the right edge and can slide half off the left one.
+                        const foldForDrag = () => { const { dx, dy } = foldCentering(el); oX -= dx; oY -= dy; };
 
                         const mv = (e) => {
                             if (el.isEditing) return;
@@ -3540,7 +3664,7 @@
                             }
                             if (!isD) return; 
                             e.preventDefault(); 
-                            if (!hasMoved) foldCentering();
+                            if (!hasMoved) foldForDrag();
                             hasMoved = true;
                             
                             let cX, cY;
@@ -3571,10 +3695,11 @@
                             if (el.id === 'fun-stock-name-display' && el.classList.contains('visible')) { 
                                 stockNameFadeOutTimer = setTimeout(() => { el.classList.remove('visible'); }, 3000); 
                             }
-                            if (isPinching && pinch && pinch.onEnd) pinch.onEnd();
+                            const pinched = isPinching && !!pinch;
+                            if (pinched && pinch.onEnd) pinch.onEnd();
                             isD = false;
                             isPinching = false;
-                            if (hasMoved) {
+                            if (hasMoved || pinched) { // a pinch moves the widget too, to keep it centred while it grows
                                 savePos();
                                 // Also save webcam-specific state if it was the webcam widget that moved
                                 if (el.id === 'webcam-widget') {
@@ -3906,7 +4031,27 @@
                 const resetInactivityPrompts = () => { clearTimeout(inactivityTimer); unlockPrompt.classList.remove('visible'); fullscreenHint.classList.remove('visible'); inactivityTimer = setTimeout(() => { if (document.fullscreenElement) { unlockPrompt.classList.add('visible'); } else if (!window.matchMedia('(display-mode: fullscreen)').matches) { fullscreenHint.classList.add('visible'); } }, 60000); };
                 ['mousemove', 'mousedown', 'keydown'].forEach(evt => document.addEventListener(evt, resetInactivityPrompts));
                 resetInactivityPrompts();
-                unlockPrompt.addEventListener('click', () => { if (document.fullscreenElement) document.exitFullscreen(); });
+                // Leaving fullscreen asks first, so a stray double tap doesn't bring the browser's bars back.
+                const exitFsMenu = document.getElementById('exit-fullscreen-menu');
+                const exitFsBtn = document.getElementById('exit-fullscreen-confirm');
+                let exitFsArmTimer = null, exitFsCloseTimer = null;
+                const closeExitFsMenu = () => { clearTimeout(exitFsArmTimer); clearTimeout(exitFsCloseTimer); exitFsMenu.classList.remove('visible'); };
+                const askExitFullscreen = () => {
+                    exitFsBtn.disabled = true; // a quick extra tap after the double tap can't land on Exit
+                    exitFsMenu.classList.add('visible');
+                    clearTimeout(exitFsArmTimer); exitFsArmTimer = setTimeout(() => { exitFsBtn.disabled = false; }, 600);
+                    clearTimeout(exitFsCloseTimer); exitFsCloseTimer = setTimeout(closeExitFsMenu, 10000); // no answer: stay
+                };
+                exitFsBtn.addEventListener('click', () => {
+                    closeExitFsMenu();
+                    if (!document.fullscreenElement) return;
+                    if (window.pinItemPositions) window.pinItemPositions();
+                    document.exitFullscreen();
+                });
+                document.getElementById('exit-fullscreen-stay').addEventListener('click', closeExitFsMenu);
+                exitFsMenu.addEventListener('click', (e) => { if (e.target === exitFsMenu) closeExitFsMenu(); });
+                document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement) closeExitFsMenu(); }); // left another way (Esc, the browser)
+                unlockPrompt.addEventListener('click', () => { if (document.fullscreenElement) askExitFullscreen(); });
                 
                 lockScreen.addEventListener('dblclick', (e) => { 
                     if (e.target.closest('.draggable-item')) return; 
@@ -3914,7 +4059,9 @@
                         exitPanningModeCompletely();
                         return;
                     }
-                    if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); 
+                    if (document.fullscreenElement) { askExitFullscreen(); return; }
+                    if (window.pinItemPositions) window.pinItemPositions();
+                    document.documentElement.requestFullscreen();
                 });
                 
                 let isDraggingWp = false, sPanX, sPanY, sBgX, sBgY, startX, startY;
@@ -4100,6 +4247,7 @@
                     });
                     window.applyClockScale(1);
                     window.phoneMirror.resetSize();
+                    window.resetItemPositions();
                     settingsMenu.classList.remove('visible');
                 });
 
