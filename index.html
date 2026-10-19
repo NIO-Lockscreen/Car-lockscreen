@@ -251,8 +251,7 @@
         .radio-channel-item .name { font-weight: 500; }
         .radio-channel-item .genre { font-size: 0.9em; color: #aaa; margin-top: 4px; }
         #fullscreen-hint { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background-color: rgba(0,0,0,0.4); padding: 8px 15px; border-radius: 12px; color: #f0f0f0; text-shadow: 1px 1px 3px rgba(0,0,0,0.5); opacity: 0; transition: opacity 1s ease-out; z-index: 25; pointer-events: none; }
-        #unlock-prompt, #fullscreen-hint.visible { opacity: 1; }
-        #unlock-prompt.visible { pointer-events: auto; }
+        #fullscreen-hint.visible { opacity: 1; }
         #exit-fullscreen-menu { z-index: 1002; }
         #exit-fullscreen-menu .menu-content { max-width: 400px; text-align: center; }
         #exit-fullscreen-menu p { color: #aeaeb2; margin: 10px 0 22px; }
@@ -260,7 +259,6 @@
         .exit-fullscreen-actions button { flex: 1; padding: 14px; border: none; border-radius: 10px; background: #0a84ff; color: #fff; font-size: 1rem; cursor: pointer; }
         .exit-fullscreen-actions button.secondary { background: #3a3a3c; }
         .exit-fullscreen-actions button:disabled { opacity: 0.4; cursor: default; }
-        #unlock-prompt { position: absolute; bottom: 20%; left: 50%; transform: translateX(-50%); color: white; font-size: 1.3rem; font-weight: 500; text-shadow: 1px 1px 8px rgba(0,0,0,0.8); user-select: none; cursor: pointer; opacity: 0; pointer-events: none; transition: opacity 0.7s ease; z-index: 25; }
         .hidden { display: none !important; }
         #qr-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); display: none; justify-content: center; align-items: center; z-index: 1001; }
         #qr-modal-content { background: #fff; padding: 25px; border-radius: 16px; text-align: center; color: #333; }
@@ -434,7 +432,7 @@
 
         #lock-screen.light-theme { --icon-stroke-color: #333; }
         #lock-screen.light-theme #clock { color: #333; filter: drop-shadow(0 0 10px rgba(255,255,255,0.3));}
-        #lock-screen.light-theme #status-bar, #lock-screen.light-theme #unlock-prompt, #lock-screen.light-theme #fullscreen-hint, #lock-screen.light-theme #fun-stock-name-display { color: var(--text-color-light); text-shadow: var(--text-shadow-light); }
+        #lock-screen.light-theme #status-bar, #lock-screen.light-theme #fullscreen-hint, #lock-screen.light-theme #fun-stock-name-display { color: var(--text-color-light); text-shadow: var(--text-shadow-light); }
         #lock-screen.light-theme .widget, #lock-screen.light-theme #weather-info { background-color: var(--widget-bg-light); color: var(--text-color-light); text-shadow: var(--text-shadow-light); }
         #lock-screen.light-theme #note-textarea, #lock-screen.light-theme #note-display { color: var(--text-color-light); }
     </style>
@@ -560,7 +558,6 @@
 
         <div id="settings-btn" class="draggable-item app-icon" title="Open settings menu"><svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="7.5" fill="rgba(80, 80, 80, 0.6)"/><circle cx="8" cy="8" r="4" fill="none" stroke="var(--icon-stroke-color)" stroke-width="1.5"/></svg></div>
         <div id="fun-stock-name-display" class="draggable-item"></div>
-        <div id="unlock-prompt">Press to unlock</div>
     </div>
     <div id="settings-menu">
         <div class="menu-content">
@@ -910,7 +907,6 @@
                 const settingsMenu = document.getElementById('settings-menu');
                 const closeSettingsBtn = document.getElementById('close-settings-btn');
                 const fullscreenHint = document.getElementById('fullscreen-hint');
-                const unlockPrompt = document.getElementById('unlock-prompt');
                 
                 const advancedSettingsView = document.getElementById('advanced-settings-view');
                 const advancedSettingsFooter = document.getElementById('advanced-settings-footer');
@@ -4028,7 +4024,7 @@
                     return { open };
                 })();
 
-                const resetInactivityPrompts = () => { clearTimeout(inactivityTimer); unlockPrompt.classList.remove('visible'); fullscreenHint.classList.remove('visible'); inactivityTimer = setTimeout(() => { if (document.fullscreenElement) { unlockPrompt.classList.add('visible'); } else if (!window.matchMedia('(display-mode: fullscreen)').matches) { fullscreenHint.classList.add('visible'); } }, 60000); };
+                const resetInactivityPrompts = () => { clearTimeout(inactivityTimer); fullscreenHint.classList.remove('visible'); inactivityTimer = setTimeout(() => { if (!document.fullscreenElement && !window.matchMedia('(display-mode: fullscreen)').matches) fullscreenHint.classList.add('visible'); }, 60000); };
                 ['mousemove', 'mousedown', 'keydown'].forEach(evt => document.addEventListener(evt, resetInactivityPrompts));
                 resetInactivityPrompts();
                 // Leaving fullscreen asks first, so a stray double tap doesn't bring the browser's bars back.
@@ -4051,7 +4047,6 @@
                 document.getElementById('exit-fullscreen-stay').addEventListener('click', closeExitFsMenu);
                 exitFsMenu.addEventListener('click', (e) => { if (e.target === exitFsMenu) closeExitFsMenu(); });
                 document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement) closeExitFsMenu(); }); // left another way (Esc, the browser)
-                unlockPrompt.addEventListener('click', () => { if (document.fullscreenElement) askExitFullscreen(); });
                 
                 lockScreen.addEventListener('dblclick', (e) => { 
                     if (e.target.closest('.draggable-item')) return; 
