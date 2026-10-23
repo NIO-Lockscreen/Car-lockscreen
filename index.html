@@ -898,6 +898,17 @@
         #calendar-default-btn { background-color: #3a3a3c; color: #f2f2f7; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-size: 0.9em; margin-top: 10px; }
         #calendar-settings-status { min-height: 1.3em; text-align: center; font-size: 0.88rem; margin-top: 12px; color: #aeaeb2; }
         #calendar-settings-status.ok { color: #30d158; } #calendar-settings-status.bad { color: #ff6b6b; }
+        .calendar-accent-row { display: flex; align-items: center; gap: 12px; }
+        #calendar-accent-input { width: 52px; height: 44px; padding: 3px; border-radius: 10px; border: 1px solid #555; background: #3a3a3c; cursor: pointer; flex-shrink: 0; }
+        .calendar-swatches { display: flex; flex-wrap: wrap; gap: 8px; }
+        .calendar-swatch { width: 30px; height: 30px; border-radius: 50%; border: 2px solid transparent; background: var(--c); cursor: pointer; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18); transition: transform .18s cubic-bezier(.34,1.56,.64,1), border-color .2s; }
+        .calendar-swatch:hover { transform: scale(1.12); }
+        .calendar-swatch.active { border-color: #fff; transform: scale(1.12); }
+        .calendar-mode-chips { display: flex; gap: 10px; }
+        .calendar-chip { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 8px; border-radius: 12px; border: 1px solid #4b4b4d; background: #2f2f31; color: #d6d6d8; font-size: 0.95rem; cursor: pointer; transition: transform .18s cubic-bezier(.34,1.56,.64,1), background-color .2s, border-color .2s, color .2s; }
+        .calendar-chip:hover { background: #3d3d40; transform: translateY(-2px); }
+        .calendar-chip.active { background: rgba(10,132,255,0.16); border-color: #0a84ff; color: #4aa3ff; }
+        #calendar-settings-menu .settings-section > label + .calendar-mode-chips, #calendar-settings-menu .calendar-accent-row + label { margin-top: 16px; }
         #calendar-lock-btn { width: 100%; background: none; border: 1px solid rgba(231,76,60,0.5); color: #ff6b6b; padding: 12px; border-radius: 10px; cursor: pointer; font-size: 0.95rem; }
 
         #lock-screen.light-theme { --icon-stroke-color: #333; }
@@ -1254,6 +1265,27 @@
                 <p class="calendar-hint">The calendar shows the next 7 events from this HomeDash.</p>
                 <div class="calendar-settings-actions"><button id="calendar-default-btn" type="button">Use default</button><button id="save-calendar-btn" type="button">Save and test</button></div>
                 <div id="calendar-settings-status"></div>
+            </div>
+            <div class="settings-section">
+                <label for="calendar-accent-input">Top bar color</label>
+                <div class="calendar-accent-row">
+                    <input type="color" id="calendar-accent-input" value="#f25b52">
+                    <div class="calendar-swatches" id="calendar-swatches">
+                        <button type="button" class="calendar-swatch" data-color="#f25b52" style="--c:#f25b52" title="Red"></button>
+                        <button type="button" class="calendar-swatch" data-color="#ff9f0a" style="--c:#ff9f0a" title="Orange"></button>
+                        <button type="button" class="calendar-swatch" data-color="#30d158" style="--c:#30d158" title="Green"></button>
+                        <button type="button" class="calendar-swatch" data-color="#0a84ff" style="--c:#0a84ff" title="Blue"></button>
+                        <button type="button" class="calendar-swatch" data-color="#bf5af2" style="--c:#bf5af2" title="Purple"></button>
+                        <button type="button" class="calendar-swatch" data-color="#ff375f" style="--c:#ff375f" title="Pink"></button>
+                        <button type="button" class="calendar-swatch" data-color="#48484a" style="--c:#48484a" title="Graphite"></button>
+                    </div>
+                </div>
+                <label>Window</label>
+                <div class="calendar-mode-chips" id="calendar-mode-chips">
+                    <button type="button" class="calendar-chip" data-mode="list"><i class="fa-solid fa-list"></i> List</button>
+                    <button type="button" class="calendar-chip" data-mode="photo"><i class="fa-solid fa-images"></i> Photos</button>
+                </div>
+                <p class="calendar-hint">Photos shows one event at a time with its HomeDash picture, moving on every 30 seconds. Swipe to go back or forward.</p>
             </div>
             <div class="settings-section">
                 <button id="calendar-lock-btn" type="button">Hide the calendar addon</button>
@@ -5705,24 +5737,52 @@
                 window.calendarAddon = (function setupCalendarWidget() {
                     const UNLOCK_KEY = 'calendarAddonUnlocked';
                     const VISIBLE_KEY = 'widget_calendar_visible';
+                    const LOOK_KEY = 'calendarWidgetLook_v1';
+                    const DEFAULT_ACCENT = '#f25b52';
                     const widget = document.getElementById('calendar-widget');
                     const toggleRow = document.getElementById('calendar-toggle-row');
                     const toggle = document.getElementById('toggle-calendar-widget');
                     const menu = document.getElementById('calendar-settings-menu');
                     const urlInput = document.getElementById('calendar-url-input');
                     const status = document.getElementById('calendar-settings-status');
+                    const accentInput = document.getElementById('calendar-accent-input');
+                    const swatches = document.getElementById('calendar-swatches');
+                    const modeChips = document.getElementById('calendar-mode-chips');
                     const data = window.homeDashCalendar;
                     let controller = null;
 
                     const read = (key) => { try { return localStorage.getItem(key); } catch (e) { return null; } };
                     const write = (key, value) => { try { if (value === null) localStorage.removeItem(key); else localStorage.setItem(key, value); } catch (e) { /* storage unavailable */ } };
                     const isUnlocked = () => read(UNLOCK_KEY) === 'true';
+                    // The tile's top bar colour, and whether the window lists the events or shows them as photos.
+                    const look = (() => {
+                        let saved = null;
+                        try { saved = JSON.parse(read(LOOK_KEY)); } catch (e) { /* unreadable: defaults */ }
+                        saved = saved || {};
+                        return {
+                            accent: /^#[0-9a-f]{6}$/i.test(saved.accent) ? saved.accent.toLowerCase() : DEFAULT_ACCENT,
+                            mode: saved.mode === 'photo' ? 'photo' : 'list',
+                        };
+                    })();
+                    const saveLook = () => write(LOOK_KEY, JSON.stringify(look));
+                    function syncLook() {
+                        accentInput.value = look.accent;
+                        swatches.querySelectorAll('.calendar-swatch').forEach((b) => b.classList.toggle('active', b.dataset.color === look.accent));
+                        modeChips.querySelectorAll('.calendar-chip').forEach((b) => b.classList.toggle('active', b.dataset.mode === look.mode));
+                    }
+                    function setAccent(color) {
+                        look.accent = color.toLowerCase();
+                        saveLook(); syncLook();
+                        if (controller && controller.setAccent) controller.setAccent(look.accent);
+                    }
 
                     function mount() {
                         if (controller || !window.CalendarWidget || !data) return;
                         controller = window.CalendarWidget.mount(widget, {
                             loadEvents: (opts) => data.load(opts),
                             onSettings: openSettings,
+                            accent: look.accent,
+                            mode: look.mode,
                         });
                         window.calendarWidget = controller;
                     }
@@ -5758,6 +5818,7 @@
                     function setStatus(text, kind) { status.textContent = text; status.className = kind || ''; }
                     function openSettings() {
                         urlInput.value = data.getUrl();
+                        syncLook();
                         setStatus('');
                         menu.classList.add('visible');
                     }
@@ -5783,6 +5844,15 @@
                     document.getElementById('calendar-default-btn').addEventListener('click', () => { data.setUrl(''); urlInput.value = data.getUrl(); saveAndTest(); });
                     document.getElementById('calendar-lock-btn').addEventListener('click', () => { closeSettings(); lock(); });
                     toggle.addEventListener('change', () => show(toggle.checked));
+                    accentInput.addEventListener('input', () => setAccent(accentInput.value));
+                    swatches.addEventListener('click', (e) => { const b = e.target.closest('.calendar-swatch'); if (b) setAccent(b.dataset.color); });
+                    modeChips.addEventListener('click', (e) => {
+                        const b = e.target.closest('.calendar-chip');
+                        if (!b || b.dataset.mode === look.mode) return;
+                        look.mode = b.dataset.mode;
+                        saveLook(); syncLook();
+                        if (controller && controller.setMode) controller.setMode(look.mode);
+                    });
                     // A tap on the date opens or closes the week. A drag (hasMoved) moves the widget instead.
                     widget.addEventListener('click', (e) => {
                         if (e.target.hasMoved || e.target.closest('#calendar-panel')) return;
