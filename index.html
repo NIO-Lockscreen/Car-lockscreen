@@ -813,6 +813,716 @@
     
     <!--CALENDAR-MODULES-->
     <script>
+        /*
+         * homedash-calendar.js - data layer for the lockscreen calendar widget.
+         *
+         * Reads the user's HomeDash ("Home Organizer") task list and turns it into
+         * the next upcoming events. Plain ES2017, no modules, no dependencies.
+         *
+         *   window.homeDashCalendar.getUrl()            saved base URL, or the default
+         *   window.homeDashCalendar.setUrl(input)       normalize + save ('' = back to default)
+         *   window.homeDashCalendar.normalizeUrl(input)
+         *   window.homeDashCalendar.load({ fresh })     Promise<{ events: Item[], stale, fetchedAt, source }>
+         *   window.homeDashCalendar.upcoming(rawEvents, now, limit = 7, extras)  pure -> Item[]
+         *
+         * Item = { id, title, date ('YYYY-MM-DD', the local day it occurs), start (ISO),
+         *          end? (ISO), allDay, timeLabel ('14:00' | 'All day' | '14:00–15:30'),
+         *          location?, color?, emoji? } plus extras: multiDay?/endDate? (last
+         *          day), recurring?, featured?, imageUrl? (https only), ongoing (started
+         *          and not yet over).
+         * upcoming() lists at most `limit` items sorted by start (all-day items first
+         * within a day): everything starting at/after `now`, today's all-day items,
+         * and timed items still in progress. Ended items are left out (a task without
+         * an end counts as one hour long, as in HomeDash). An empty array means
+         * nothing is coming up - never placeholders.
+         * load() source: 'api' (/api/events), 'blob' (the public Blob CDN copy of
+         * events.json, used when the API cannot be read - e.g. no CORS header yet),
+         * or 'cache' (stale: true, with .error saying why the network failed).
+         * load() options besides fresh: limit (default 7), timeoutMs (default 8000),
+         * now, hiddenRepeats - mostly for tests.
+         * Rejects with error.code 'no-url' | 'network' | 'http' | 'parse'.
+         *
+         * Occurrences mirror the HomeDash display itself (index.html:
+         * expandEventsInRange / makeOccurrence / isOccurrenceCompleted /
+         * isOccurrenceExcluded / getDisplayEvents):
+         *   - repeat is 'none' | 'yearly' | 'weekly' | 'biweekly'; anything else
+         *     shows nothing, exactly as HomeDash; a repeating task gives one item
+         *     per occurrence (HomeDash does not merge them either);
+         *   - a one-off task with completed: true is left out; a repeating task leaves
+         *     out the occurrences whose local date key is in completedDates or
+         *     excludedDates (the master's own `completed` flag is ignored for repeats);
+         *   - yearly repeats keep the local wall-clock time, skip years where the
+         *     date does not exist (29 Feb), and never come before the first start;
+         *   - the scan starts at today's midnight, so a multi-day task is listed
+         *     from its first day only;
+         *   - weekly/biweekly occurrences after the end of next month are left out
+         *     (see hiddenRepeatTest for the exact choice);
+         *   - weekly/biweekly repeats step by calendar days, keeping their clock time
+         *     across DST changes (HomeDash does the same since its fix of Oct 2026;
+         *     before it, it stepped 7/14 x 24 h).
+         */
+        (function (root) {
+          'use strict';
+
+          var URL_KEY = 'homedashCalendarUrl';
+          var CACHE_KEY = 'homedashCalendarCache_v1';
+          var CACHE_VERSION = 1;
+          // Used whenever nothing is saved. A page can override it by defining
+          // window.HOMEDASH_CALENDAR_DEFAULT_URL (a string; '' disables the default)
+          // before this file loads.
+          var DEFAULT_URL = typeof root.HOMEDASH_CALENDAR_DEFAULT_URL === 'string'
+            ? root.HOMEDASH_CALENDAR_DEFAULT_URL
+            : 'https://home-dash-eta.vercel.app';
+          // The public Blob CDN copy of HomeDash's events.json, for bases where it is
+          // known before any API answer has revealed it (via versionUrl).
+          var KNOWN_BLOB_URLS = {
+            'https://home-dash-eta.vercel.app': 'https://aiqhrkeb5ndpecjb.public.blob.vercel-storage.com/home-organizer/events.json'
+          };
+          var BLOB_HOST = /^[a-z0-9-]+\.public\.blob\.vercel-storage\.com$/i;
+          var BLOB_EVENTS_PATH = '/home-organizer/events.json';
+          var TIMEOUT_MS = 8000;
+          // After the API failed at the network level while the Blob copy answered
+          // (what a CORS block looks like), read the Blob copy first for a while
+          // instead of spending a HomeDash server read on every refresh.
+          var PREFER_BLOB_MS = 30 * 60 * 1000;
+          var DAY_MS = 86400000;
+          var DEFAULT_DURATION_MS = 60 * 60 * 1000; // HomeDash eventDurationMs fallback
+          var CACHE_MAX_CHARS = 200000;
+          var CACHE_MAX_EVENTS = 400;
+          var CACHE_KEEP_PAST_DAYS = 2;
+          // How far ahead upcoming() looks. HomeDash's Upcoming strip looks 365 days
+          // ahead; a little more makes sure a yearly repeat whose date has just
+          // passed is still found when a 29 February lies in between.
+          var SCAN_DAYS = 400;
+          var MAX_ITEMS = 500;
+
+          // ---------------------------------------------------------------- storage
+
+          function storage() {
+            try { return root.localStorage || null; } catch (e) { return null; }
+          }
+
+          function readStore(key) {
+            try {
+              var store = storage();
+              return store ? store.getItem(key) : null;
+            } catch (e) { return null; }
+          }
+
+          function writeStore(key, value) {
+            try {
+              var store = storage();
+              if (!store) return false;
+              store.setItem(key, value);
+              return true;
+            } catch (e) { return false; }
+          }
+
+          function removeStore(key) {
+            try {
+              var store = storage();
+              if (store) store.removeItem(key);
+            } catch (e) { /* ignore */ }
+          }
+
+          // -------------------------------------------------------------------- URL
+
+          function isLocalHost(host) {
+            return host === 'localhost' || /^\d{1,3}(\.\d{1,3}){3}$/.test(host) || /^\[[0-9a-f:.]+\]$/i.test(host);
+          }
+
+          // 'myapp.vercel.app', 'https://myapp.vercel.app/?display=1',
+          // 'https://myapp.vercel.app/api/events?fresh=1', 'https://x.com/homedash/'
+          // -> 'https://myapp.vercel.app' / 'https://x.com/homedash'. A pasted Blob
+          // CDN link (…public.blob.vercel-storage.com/…) becomes that store's
+          // events.json URL, which load() then reads directly. '' when unusable.
+          function normalizeUrl(input) {
+            var text = String(input == null ? '' : input).trim();
+            if (!text || /\s/.test(text)) return '';
+            var schemeless = !/^[a-z][a-z0-9+.-]*:\/\//i.test(text);
+            if (/^\/\//.test(text)) {
+              text = 'https:' + text;
+            } else if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(text)) {
+              // A scheme without '//' (mailto:, javascript:) is not an address, but
+              // 'localhost:3000' or 'myapp.vercel.app:443' is.
+              if (/^[a-z][a-z0-9+.-]*:/i.test(text) && !/^[^:/]+:\d+(\/|$)/.test(text)) return '';
+              text = 'https://' + text;
+            }
+            var url;
+            try { url = new URL(text); } catch (e) { return ''; }
+            var protocol = String(url.protocol).toLowerCase();
+            if (protocol !== 'https:' && protocol !== 'http:') return '';
+            var host = String(url.hostname || '').toLowerCase();
+            if (!host) return '';
+            var local = isLocalHost(host);
+            if (!local && (host.indexOf('.') === -1 || /^\.|\.$|\.\./.test(host))) return '';
+            if (BLOB_HOST.test(host)) return 'https://' + host + BLOB_EVENTS_PATH;
+            // The lockscreen is served over https, where an http fetch is blocked as
+            // mixed content; keep http only for local development hosts (where a bare
+            // 'localhost:3000' means the http dev server).
+            if (!local) protocol = 'https:';
+            else if (schemeless) protocol = 'http:';
+            var path = String(url.pathname || '/');
+            var apiAt = path.search(/\/api(\/|$)/i);
+            if (apiAt !== -1) path = path.slice(0, apiAt);
+            else path = path.replace(/\/[^/]*\.[a-z0-9]+$/i, ''); // …/index.html
+            path = path.replace(/\/+$/, '');
+            return protocol + '//' + String(url.host).toLowerCase() + path;
+          }
+
+          function getUrl() {
+            return normalizeUrl(readStore(URL_KEY)) || normalizeUrl(DEFAULT_URL);
+          }
+
+          // Saves the normalized URL and returns it. Blank input removes the saved
+          // value, so getUrl() falls back to the default, and returns ''. Input that
+          // is not a usable address leaves the saved value alone and returns ''.
+          function setUrl(input) {
+            var raw = String(input == null ? '' : input).trim();
+            if (!raw) {
+              removeStore(URL_KEY);
+              return '';
+            }
+            var normalized = normalizeUrl(raw);
+            if (!normalized) return '';
+            writeStore(URL_KEY, normalized);
+            return normalized;
+          }
+
+          function isBlobUrl(url) {
+            var match = /^https:\/\/([^/]+)\//i.exec(String(url || ''));
+            return Boolean(match && BLOB_HOST.test(match[1]));
+          }
+
+          // The API's versionUrl is home-organizer/events-version.json in the same
+          // public store as events.json (api/events.js rememberVersionUrl).
+          function blobUrlFromVersionUrl(versionUrl) {
+            var text = String(versionUrl || '').trim();
+            var match = /^https:\/\/([a-z0-9-]+\.public\.blob\.vercel-storage\.com)\//i.exec(text);
+            return match ? 'https://' + match[1].toLowerCase() + BLOB_EVENTS_PATH : '';
+          }
+
+          // ------------------------------------------------------------- date utils
+
+          function pad(number) {
+            return String(number).padStart(2, '0');
+          }
+
+          function dateKey(date) {
+            return date.getFullYear() + '-' + pad(date.getMonth() + 1) + '-' + pad(date.getDate());
+          }
+
+          function startOfLocalDay(date) {
+            return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+          }
+
+          function addLocalDays(date, days) {
+            return new Date(date.getFullYear(), date.getMonth(), date.getDate() + days);
+          }
+
+          function parseEventDate(value) {
+            var date = new Date(value);
+            return Number.isNaN(date.getTime()) ? null : date;
+          }
+
+          function hm(date) {
+            return pad(date.getHours()) + ':' + pad(date.getMinutes());
+          }
+
+          function isLocalMidnight(date) {
+            return date.getHours() === 0 && date.getMinutes() === 0;
+          }
+
+          // ---------------------------------------------------------------- expand
+
+          function occurrenceKeyIn(list, date) {
+            return Array.isArray(list) && list.indexOf(dateKey(date)) !== -1;
+          }
+
+          // isOccurrenceCompleted / isOccurrenceExcluded in HomeDash index.html.
+          function occurrenceHidden(event, repeat, occurrenceStart) {
+            if (repeat === 'none') return Boolean(event.completed);
+            return occurrenceKeyIn(event.excludedDates, occurrenceStart)
+              || occurrenceKeyIn(event.completedDates, occurrenceStart);
+          }
+
+          // expandEventsInRange(rangeStart, rangeEnd, { includeCompleted: false }).
+          function expandOccurrences(events, rangeStart, rangeEnd) {
+            var out = [];
+            events.forEach(function (event, order) {
+              if (!event || typeof event !== 'object') return;
+              var repeat = event.repeat || 'none';
+              var start = parseEventDate(event.start);
+              if (!start) return;
+              var push = function (occurrenceStart) {
+                if (!occurrenceHidden(event, repeat, occurrenceStart)) {
+                  out.push({ event: event, start: occurrenceStart, order: order, repeat: repeat });
+                }
+              };
+
+              if (repeat === 'none') {
+                if (start >= rangeStart && start <= rangeEnd) push(start);
+                return;
+              }
+
+              if (repeat === 'yearly') {
+                for (var year = rangeStart.getFullYear() - 1; year <= rangeEnd.getFullYear() + 1; year++) {
+                  var yearly = new Date(year, start.getMonth(), start.getDate(), start.getHours(), start.getMinutes(), 0, 0);
+                  if (yearly.getMonth() !== start.getMonth()) continue; // 29 Feb in a common year
+                  if (yearly < start) continue;
+                  if (yearly >= rangeStart && yearly <= rangeEnd) push(yearly);
+                }
+                return;
+              }
+
+              if (repeat === 'weekly' || repeat === 'biweekly') {
+                // Calendar-day steps, so the clock time survives a DST change.
+                var intervalDays = repeat === 'biweekly' ? 14 : 7;
+                var index = Math.max(0, Math.floor((rangeStart - start) / (intervalDays * DAY_MS)) - 1);
+                for (var i = 0; i < 80; i++, index++) {
+                  var weekly = new Date(start.getFullYear(), start.getMonth(), start.getDate() + index * intervalDays,
+                    start.getHours(), start.getMinutes(), start.getSeconds(), start.getMilliseconds());
+                  if (weekly > rangeEnd) break;
+                  if (weekly >= rangeStart) push(weekly);
+                }
+              }
+            });
+            return out;
+          }
+
+          function cleanColor(value) {
+            var text = String(value || '').trim();
+            return /^(#[0-9a-f]{3,8}|(rgb|rgba|hsl|hsla)\([\d\s.,%/+-]+\)|[a-z]{3,20})$/i.test(text) ? text : '';
+          }
+
+          function cleanImageUrl(value) {
+            var text = String(value || '').trim();
+            return /^https?:\/\//i.test(text) && text.length <= 1000 ? text : '';
+          }
+
+          // One occurrence -> Item, or null once it has ended. Timed tasks stay while
+          // in progress; a task without an end counts as one hour long, which is the
+          // duration HomeDash itself assumes (eventDurationMs). All-day items stay
+          // for their whole first day.
+          function toItem(occurrence, now) {
+            var event = occurrence.event;
+            var start = occurrence.start;
+            var key = dateKey(start);
+            var masterStart = parseEventDate(event.start);
+            var masterEnd = parseEventDate(event.end);
+            var end = masterStart && masterEnd && masterEnd > masterStart
+              ? new Date(start.getTime() + (masterEnd - masterStart))
+              : null;
+            // HomeDash has no all-day flag; a task that starts at local midnight and
+            // has no end, or ends at a midnight or 23:59, is what one looks like.
+            var allDay = event.allDay === true || (isLocalMidnight(start)
+              && (!end || isLocalMidnight(end) || (end.getHours() === 23 && end.getMinutes() === 59)));
+            var finish = end
+              ? end.getTime()
+              : allDay
+                ? addLocalDays(startOfLocalDay(start), 1).getTime()
+                : start.getTime() + DEFAULT_DURATION_MS;
+            if (!allDay && finish <= now.getTime()) return null;
+
+            var endKey = end ? dateKey(new Date(end.getTime() - 1)) : key;
+            var multiDay = endKey !== key;
+            var timeLabel = allDay
+              ? 'All day'
+              : end && !multiDay
+                ? hm(start) + '–' + hm(end)
+                : hm(start);
+
+            var item = {
+              id: String(event.id == null ? '' : event.id) + '::' + key,
+              title: String(event.title == null ? '' : event.title).trim(),
+              date: key,
+              start: start.toISOString(),
+              allDay: allDay,
+              timeLabel: timeLabel
+            };
+            if (end) item.end = end.toISOString();
+            var location = String(event.location || '').trim();
+            if (location) item.location = location;
+            var color = cleanColor(event.color);
+            if (color) item.color = color;
+            var emoji = String(event.emoji || '').trim();
+            if (emoji && emoji.length <= 16) item.emoji = emoji;
+            // Extras beyond the minimal contract.
+            if (multiDay) {
+              item.multiDay = true;
+              item.endDate = endKey;
+            }
+            if (occurrence.repeat !== 'none') item.recurring = true;
+            if (event.featured) item.featured = true;
+            var imageUrl = cleanImageUrl(event.imageUrl);
+            if (imageUrl) item.imageUrl = imageUrl;
+            item.ongoing = start.getTime() <= now.getTime() && finish > now.getTime();
+            item._order = occurrence.order;
+            return item;
+          }
+
+          // By day; all-day items first within a day; then by start; ties keep the
+          // order HomeDash lists the tasks in.
+          function compareItems(a, b) {
+            if (a.date !== b.date) return a.date < b.date ? -1 : 1;
+            if (a.allDay !== b.allDay) return a.allDay ? -1 : 1;
+            var diff = Date.parse(a.start) - Date.parse(b.start);
+            if (diff) return diff;
+            return a._order - b._order;
+          }
+
+          // HomeDash index.html endOfNextMonth().
+          function endOfNextMonth(fromDate) {
+            return new Date(fromDate.getFullYear(), fromDate.getMonth() + 2, 0, 23, 59, 59, 999);
+          }
+
+          // The HomeDash display limits repeats to this month and next month
+          // (getDisplayEvents + isHiddenFutureRepeatingOccurrence; the admin list
+          // and its "Frequent repeats are hidden by default" toggle limit only
+          // weekly/biweekly ones, isFrequentRepeatingEvent). Default 'frequent':
+          // weekly/biweekly occurrences after the end of next month are left out,
+          // yearly ones are not, so a birthday months away still counts.
+          // 'all' is the display's own rule (every repeat), 'none' hides nothing.
+          function hiddenRepeatTest(mode, cutoff) {
+            if (mode === 'none') return function () { return false; };
+            var all = mode === 'all';
+            return function (occurrence) {
+              if (occurrence.repeat === 'none') return false;
+              if (!all && occurrence.repeat !== 'weekly' && occurrence.repeat !== 'biweekly') return false;
+              return occurrence.start > cutoff;
+            };
+          }
+
+          // events: raw HomeDash events (the API's or events.json's `events`).
+          // now: Date | number | ISO string (default: current time).
+          // limit: how many items at most (default 7). [] when nothing is coming up.
+          // extras: { hiddenRepeats?: 'frequent'|'all'|'none' }.
+          // daughterPeriods are accepted and ignored: HomeDash only tints them in
+          // its month overlay, never lists them as tasks.
+          //
+          // Like HomeDash's Upcoming strip (getDisplayEvents), the scan starts at
+          // today's midnight, so a task that began on an earlier day is not listed
+          // again, and it does not merge the occurrences of a repeating task.
+          function upcoming(events, now, limit, extras) {
+            var list = Array.isArray(events) ? events : [];
+            var nowDate = now == null ? new Date() : new Date(now instanceof Date ? now.getTime() : now);
+            if (Number.isNaN(nowDate.getTime())) nowDate = new Date();
+            var max = Math.floor(Number(limit == null ? 7 : limit));
+            if (Number.isNaN(max)) max = 7;
+            max = Math.min(max, MAX_ITEMS);
+            if (max <= 0) return [];
+            var options = extras && typeof extras === 'object' ? extras : {};
+            var isHidden = hiddenRepeatTest(String(options.hiddenRepeats || 'frequent'), endOfNextMonth(nowDate));
+            var horizon = new Date(nowDate.getTime() + SCAN_DAYS * DAY_MS);
+
+            // Scan in growing day-aligned chunks and stop as soon as enough are
+            // found: everything in a later chunk starts on a later day.
+            var found = [];
+            var chunkStart = startOfLocalDay(nowDate);
+            var span = 14;
+            while (chunkStart <= horizon) {
+              var nextStart = addLocalDays(chunkStart, span);
+              var chunkEnd = new Date(Math.min(nextStart.getTime() - 1, horizon.getTime()));
+              expandOccurrences(list, chunkStart, chunkEnd).forEach(function (occurrence) {
+                if (isHidden(occurrence)) return;
+                var item = toItem(occurrence, nowDate);
+                if (item) found.push(item);
+              });
+              if (found.length >= max) break;
+              chunkStart = nextStart;
+              span = Math.min(span * 2, 128);
+            }
+
+            found.sort(compareItems);
+            var result = found.slice(0, max);
+            var seen = {};
+            result.forEach(function (item) {
+              delete item._order;
+              if (seen[item.id]) {
+                seen[item.id] += 1;
+                item.id = item.id + '::' + seen[item.id];
+              } else {
+                seen[item.id] = 1;
+              }
+            });
+            return result;
+          }
+
+          // ----------------------------------------------------------------- cache
+
+          function cleanDateKeys(list, minKey) {
+            if (!Array.isArray(list)) return undefined;
+            var keys = list
+              .map(function (value) { return String(value || '').slice(0, 10); })
+              .filter(function (value) { return /^\d{4}-\d{2}-\d{2}$/.test(value) && value >= minKey; });
+            return keys.length ? keys.slice(-400) : undefined;
+          }
+
+          // Keeps only what upcoming() reads, and only tasks that can still show:
+          // a one-off task that started more than two days before the fetch, or is
+          // completed, never appears in a window that starts today again.
+          function slimEvents(events, fetchedAt) {
+            var cutoff = addLocalDays(startOfLocalDay(new Date(fetchedAt)), -CACHE_KEEP_PAST_DAYS);
+            var cutoffKey = dateKey(cutoff);
+            var slim = [];
+            (Array.isArray(events) ? events : []).forEach(function (event, order) {
+              if (!event || typeof event !== 'object') return;
+              var start = parseEventDate(event.start);
+              if (!start) return;
+              var repeat = String(event.repeat || 'none');
+              if (repeat === 'none' && (start < cutoff || event.completed)) return;
+              if (repeat !== 'none' && repeat !== 'yearly' && repeat !== 'weekly' && repeat !== 'biweekly') return;
+              var copy = {
+                id: String(event.id == null ? '' : event.id).slice(0, 120),
+                title: String(event.title == null ? '' : event.title).slice(0, 200),
+                start: String(event.start)
+              };
+              if (repeat !== 'none') copy.repeat = repeat;
+              if (parseEventDate(event.end)) copy.end = String(event.end);
+              if (event.location) copy.location = String(event.location).slice(0, 200);
+              if (repeat !== 'none') {
+                var completedDates = cleanDateKeys(event.completedDates, cutoffKey);
+                var excludedDates = cleanDateKeys(event.excludedDates, cutoffKey);
+                if (completedDates) copy.completedDates = completedDates;
+                if (excludedDates) copy.excludedDates = excludedDates;
+              }
+              if (event.featured) copy.featured = true;
+              if (event.allDay === true) copy.allDay = true;
+              var imageUrl = cleanImageUrl(event.imageUrl); // never a data: URL
+              if (imageUrl) copy.imageUrl = imageUrl;
+              var color = cleanColor(event.color);
+              if (color) copy.color = color;
+              var emoji = String(event.emoji || '').trim();
+              if (emoji && emoji.length <= 16) copy.emoji = emoji;
+              slim.push({ copy: copy, start: start.getTime(), repeating: repeat !== 'none', order: order });
+            });
+            if (slim.length > CACHE_MAX_EVENTS) {
+              // Repeats first (they can land anywhere), then the soonest one-offs.
+              slim.sort(function (a, b) {
+                if (a.repeating !== b.repeating) return a.repeating ? -1 : 1;
+                return a.start - b.start || a.order - b.order;
+              });
+              slim = slim.slice(0, CACHE_MAX_EVENTS);
+              slim.sort(function (a, b) { return a.order - b.order; });
+            }
+            return slim.map(function (entry) { return entry.copy; });
+          }
+
+          function readCache(base) {
+            var raw = readStore(CACHE_KEY);
+            if (!raw) return null;
+            try {
+              var record = JSON.parse(raw);
+              if (!record || record.v !== CACHE_VERSION || record.base !== base) return null;
+              if (!Array.isArray(record.events) || !Number.isFinite(record.fetchedAt)) return null;
+              return record;
+            } catch (e) {
+              return null;
+            }
+          }
+
+          function writeCache(record) {
+            var copy = {
+              v: CACHE_VERSION,
+              base: record.base,
+              fetchedAt: record.fetchedAt,
+              source: record.source,
+              updatedAt: String(record.updatedAt || '').slice(0, 40),
+              blobUrl: record.blobUrl || '',
+              preferBlobUntil: record.preferBlobUntil || 0,
+              events: record.events.slice()
+            };
+            var json = JSON.stringify(copy);
+            // Still too big: drop one-offs from the far end until it fits.
+            while (json.length > CACHE_MAX_CHARS && copy.events.length) {
+              var dropAt = -1;
+              var latest = -Infinity;
+              copy.events.forEach(function (event, index) {
+                var time = Date.parse(event.start);
+                var score = event.repeat ? -Infinity : time;
+                if (dropAt === -1 || score > latest) { latest = score; dropAt = index; }
+              });
+              copy.events.splice(dropAt, 1);
+              json = JSON.stringify(copy);
+            }
+            if (!writeStore(CACHE_KEY, json)) {
+              // Quota trouble: make room by dropping our own old copy, then try once more.
+              removeStore(CACHE_KEY);
+              writeStore(CACHE_KEY, json);
+            }
+          }
+
+          // ------------------------------------------------------------------ fetch
+
+          function loadError(code, message, extra) {
+            var error = new Error(message);
+            error.code = code;
+            if (extra) Object.keys(extra).forEach(function (key) { error[key] = extra[key]; });
+            return error;
+          }
+
+          var NETWORK_MESSAGE = 'Could not reach HomeDash. The car may be offline, or HomeDash does not allow this site to read it.';
+
+          function fetchJson(url, timeoutMs) {
+            var fetchFn = root.fetch;
+            if (typeof fetchFn !== 'function') {
+              return Promise.reject(loadError('network', 'This browser cannot fetch data.'));
+            }
+            var Controller = root.AbortController;
+            var controller = null;
+            try { controller = typeof Controller === 'function' ? new Controller() : null; } catch (e) { controller = null; }
+            var setTimer = root.setTimeout || setTimeout;
+            var clearTimer = root.clearTimeout || clearTimeout;
+
+            return new Promise(function (resolve, reject) {
+              var settled = false;
+              var timer = null;
+              var settle = function (fn, value) {
+                if (settled) return;
+                settled = true;
+                if (timer !== null) clearTimer(timer);
+                fn(value);
+              };
+              timer = setTimer(function () {
+                timer = null;
+                if (controller) {
+                  try { controller.abort(); } catch (e) { /* ignore */ }
+                }
+                settle(reject, loadError('network', 'HomeDash did not answer within ' + Math.round(timeoutMs / 1000) + ' s.', { reason: 'timeout' }));
+              }, timeoutMs);
+
+              var init = { cache: 'no-store', credentials: 'omit' };
+              if (controller) init.signal = controller.signal;
+              Promise.resolve()
+                .then(function () { return fetchFn.call(root, url, init); })
+                .then(function (response) {
+                  if (settled) return undefined;
+                  if (!response || !response.ok) {
+                    var status = response ? Number(response.status) || 0 : 0;
+                    settle(reject, loadError('http', 'HomeDash answered with an error (' + status + ').', { status: status }));
+                    return undefined;
+                  }
+                  // The body is read inside the timeout too: a stalled body hangs as well.
+                  return Promise.resolve(response.text()).then(function (text) {
+                    var data;
+                    try {
+                      data = JSON.parse(text);
+                    } catch (e) {
+                      settle(reject, loadError('parse', 'HomeDash sent something that is not a task list.'));
+                      return;
+                    }
+                    settle(resolve, data);
+                  });
+                })
+                .catch(function (error) {
+                  if (error && error.code && /^(network|http|parse)$/.test(error.code)) {
+                    settle(reject, error);
+                    return;
+                  }
+                  settle(reject, loadError('network', NETWORK_MESSAGE, { cause: error }));
+                });
+            });
+          }
+
+          // Both the API reply and events.json carry { events: [...] }.
+          function readDocument(data) {
+            if (!data || typeof data !== 'object' || !Array.isArray(data.events)) {
+              throw loadError('parse', 'HomeDash sent something that is not a task list.');
+            }
+            return data;
+          }
+
+          function apiUrl(base, fresh) {
+            return base + '/api/events' + (fresh ? '?fresh=1' : '');
+          }
+
+          var inflight = {};
+
+          function load(options) {
+            var opts = options && typeof options === 'object' ? options : {};
+            var fresh = opts.fresh === true;
+            var base = getUrl();
+            if (!base) return Promise.reject(loadError('no-url', 'Add your HomeDash address in settings first.'));
+            var key = base + '|' + (fresh ? 'fresh' : 'normal');
+            if (inflight[key]) return inflight[key];
+            var promise = runLoad(base, fresh, opts);
+            inflight[key] = promise;
+            var clear = function () { if (inflight[key] === promise) delete inflight[key]; };
+            promise.then(clear, clear);
+            return promise;
+          }
+
+          async function runLoad(base, fresh, opts) {
+            var timeoutMs = Number(opts.timeoutMs) > 0 ? Number(opts.timeoutMs) : TIMEOUT_MS;
+            var limit = opts.limit == null ? 7 : opts.limit;
+            var record = readCache(base);
+            var direct = isBlobUrl(base);
+            var blobUrl = direct ? base : (record && record.blobUrl) || KNOWN_BLOB_URLS[base] || '';
+            var preferBlob = !direct && !fresh && Boolean(blobUrl) && Boolean(record) && record.preferBlobUntil > Date.now();
+            var order = direct ? ['blob'] : preferBlob ? ['blob', 'api'] : blobUrl ? ['api', 'blob'] : ['api'];
+
+            var doc = null;
+            var source = '';
+            var firstError = null;
+            var apiNetworkFailed = false;
+            for (var i = 0; i < order.length && !doc; i++) {
+              var attempt = order[i];
+              try {
+                doc = readDocument(await fetchJson(attempt === 'api' ? apiUrl(base, fresh) : blobUrl, timeoutMs));
+                source = attempt;
+              } catch (error) {
+                if (!firstError) firstError = error;
+                // A fetch that fails outright (not a timeout) while the Blob copy
+                // answers is what a CORS block looks like.
+                if (attempt === 'api' && error && error.code === 'network' && error.reason !== 'timeout') apiNetworkFailed = true;
+              }
+            }
+
+            var now = opts.now == null ? new Date() : new Date(opts.now);
+            var extras = { hiddenRepeats: opts.hiddenRepeats };
+            if (doc) {
+              var fetchedAt = Date.now();
+              var learned = source === 'api' ? blobUrlFromVersionUrl(doc.versionUrl) : '';
+              var preferBlobUntil = 0;
+              if (source === 'blob' && apiNetworkFailed) preferBlobUntil = fetchedAt + PREFER_BLOB_MS;
+              else if (source === 'blob' && record) preferBlobUntil = record.preferBlobUntil || 0;
+              var slim = slimEvents(doc.events, fetchedAt);
+              writeCache({
+                base: base,
+                fetchedAt: fetchedAt,
+                source: source,
+                updatedAt: doc.updatedAt,
+                blobUrl: learned || blobUrl,
+                preferBlobUntil: preferBlobUntil,
+                events: slim
+              });
+              return { events: upcoming(doc.events, now, limit, extras), stale: false, fetchedAt: fetchedAt, source: source };
+            }
+
+            if (record) {
+              return {
+                events: upcoming(record.events, now, limit, extras),
+                stale: true,
+                fetchedAt: record.fetchedAt,
+                source: 'cache',
+                error: firstError
+              };
+            }
+            throw firstError || loadError('network', NETWORK_MESSAGE);
+          }
+
+          root.homeDashCalendar = {
+            getUrl: getUrl,
+            setUrl: setUrl,
+            normalizeUrl: normalizeUrl,
+            load: load,
+            upcoming: upcoming,
+            defaultUrl: normalizeUrl(DEFAULT_URL),
+            storageKeys: { url: URL_KEY, cache: CACHE_KEY }
+          };
+        })(typeof window !== 'undefined' ? window : this);
+    </script>
+    <script>
         document.addEventListener('DOMContentLoaded', () => {
             // --- Phone -> Lockscreen relay ---
             // The old npoint.io bin expired, which broke all image/GIF uploads.
