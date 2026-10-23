@@ -485,15 +485,15 @@
           padding-top: 2%;
           background:
             radial-gradient(120% 140% at 50% -30%, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0) 60%),
-            linear-gradient(180deg, #ff7468 0%, #f25b52 48%, #e64a40 100%);
-          box-shadow: inset 0 -1px 0 rgba(120, 10, 0, 0.18);
-          color: #fff;
+            linear-gradient(180deg, var(--cal-acc-hi, #ff7468) 0%, var(--cal-acc, #f25b52) 48%, var(--cal-acc-lo, #e64a40) 100%);
+          box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.13);
+          color: var(--cal-acc-text, #fff);
           font-family: 'Roboto', system-ui, -apple-system, 'Segoe UI', sans-serif;
           font-size: calc(var(--cal-size, 84px) * 0.185);
           font-weight: 700;
           letter-spacing: 0.07em;
           line-height: 1;
-          text-shadow: 0 1px 1px rgba(110, 0, 0, 0.18);
+          text-shadow: 0 1px 1px var(--cal-acc-tshadow, rgba(110, 0, 0, 0.18));
         }
         /* very subtle paper texture on the band */
         #calendar-widget .cal-month::after {
@@ -691,8 +691,8 @@
         }
         #calendar-widget .cal-badge-m {
           height: 14px; padding-top: 1px;
-          background: linear-gradient(180deg, #ff7468 0%, #f25b52 50%, #e64a40 100%);
-          color: #fff;
+          background: linear-gradient(180deg, var(--cal-acc-hi, #ff7468) 0%, var(--cal-acc, #f25b52) 50%, var(--cal-acc-lo, #e64a40) 100%);
+          color: var(--cal-acc-text, #fff);
           font-size: 9px; font-weight: 700; letter-spacing: 0.08em; line-height: 13px;
         }
         #calendar-widget .cal-badge-d {
@@ -700,7 +700,7 @@
           color: #2a2a2a;
           font-size: 21px; font-weight: 300; letter-spacing: -0.03em; line-height: 29px;
         }
-        #calendar-widget .cal-badge-today { box-shadow: 0 0 0 2px #ff6b5f, 0 2px 12px rgba(255, 107, 95, 0.5); }
+        #calendar-widget .cal-badge-today { box-shadow: 0 0 0 2px var(--cal-acc, #ff6b5f), 0 2px 12px var(--cal-acc-glow, rgba(255, 107, 95, 0.5)); }
         #calendar-widget .cal-ev { flex: 1 1 auto; min-width: 0; }
         #calendar-widget .cal-ev-title {
           font-size: 15.5px; font-weight: 500; line-height: 1.25; color: #fff;
@@ -717,11 +717,11 @@
         #calendar-widget .cal-ev-time.cal-allday { font-family: 'Roboto', system-ui, sans-serif; font-size: 13px; }
         #calendar-widget .cal-sep { opacity: 0.55; }
         #calendar-widget .cal-ev-day { overflow: hidden; text-overflow: ellipsis; }
-        #calendar-widget .cal-hot { color: #ff8d85; font-weight: 500; }
+        #calendar-widget .cal-hot { color: var(--cal-acc-tint, #ff8d85); font-weight: 500; }
         #calendar-widget .cal-live {
           flex: 0 0 auto;
           padding: 2px 6px; border-radius: 6px;
-          background: #f25b52; color: #fff;
+          background: var(--cal-acc, #f25b52); color: var(--cal-acc-text, #fff);
           font-size: 10px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; line-height: 1.3;
         }
         #calendar-widget .cal-dot {
@@ -738,7 +738,8 @@
           white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
         #calendar-widget .cal-ev-loc i { font-size: 11px; margin-right: 5px; opacity: 0.8; }
-        #calendar-widget .cal-wait .cal-pi { opacity: 0; }
+        #calendar-widget .cal-wait .cal-pi,
+        #calendar-widget .cal-wait .cal-slides { opacity: 0; }
 
         /* skeleton */
         #calendar-widget .cal-sk { position: relative; overflow: hidden; background: rgba(255, 255, 255, 0.09); }
@@ -772,7 +773,7 @@
           background: rgba(255, 255, 255, 0.09);
           font-size: 24px; color: rgba(255, 255, 255, 0.85);
         }
-        #calendar-widget .cal-msg-icon.cal-accent { background: rgba(242, 91, 82, 0.2); color: #ff8d85; }
+        #calendar-widget .cal-msg-icon.cal-accent { background: var(--cal-acc-soft, rgba(242, 91, 82, 0.2)); color: var(--cal-acc-tint, #ff8d85); }
         #calendar-widget .cal-msg-title { font-size: 17px; font-weight: 500; }
         #calendar-widget .cal-msg-sub { margin-top: 6px; max-width: 320px; font-size: 13.5px; line-height: 1.4; color: rgba(255, 255, 255, 0.6); overflow-wrap: anywhere; }
         #calendar-widget .cal-btn {
@@ -786,9 +787,171 @@
           transition: transform 0.15s ease, background-color 0.15s ease;
         }
         #calendar-widget .cal-btn:active { transform: scale(0.95); background: rgba(255, 255, 255, 0.22); }
-        #calendar-widget .cal-btn-primary { background: #f25b52; box-shadow: 0 6px 18px rgba(242, 91, 82, 0.35); }
-        #calendar-widget .cal-btn-primary:active { background: #e14c43; }
+        #calendar-widget .cal-btn-primary { background: var(--cal-acc, #f25b52); color: var(--cal-acc-text, #fff); box-shadow: 0 6px 18px var(--cal-acc-glow, rgba(242, 91, 82, 0.35)); }
+        #calendar-widget .cal-btn-primary:active { background: var(--cal-acc-lo, #e14c43); }
         #calendar-widget .cal-empty-art { font-size: 46px; line-height: 1; margin-bottom: 12px; animation: cal-float 3.2s ease-in-out infinite; }
+
+        /* ---------- views ------------------------------------------------------ */
+        #calendar-widget .cal-v-photo .cal-band,
+        #calendar-widget .cal-v-photo .cal-body,
+        #calendar-widget .cal-v-list .cal-photo { display: none; }
+
+        /* ---------- photo mode: full-bleed slideshow ----------------------------- */
+        #calendar-widget .cal-photo {
+          position: absolute; left: 0; top: 0; right: 0; bottom: 0;
+          border-radius: 22px;
+          overflow: hidden;
+        }
+        #calendar-widget .cal-slides {
+          position: absolute; left: 0; top: 0; right: 0; bottom: 0;
+          overflow: hidden;
+          touch-action: none;                     /* we own horizontal swipes; nothing to scroll or zoom in here */
+          cursor: grab;
+          user-select: none; -webkit-user-select: none;
+        }
+        #calendar-widget .cal-slides.is-dragging { cursor: grabbing; }
+        #calendar-widget .cal-slide {
+          position: absolute; left: 0; top: 0; width: 100%; height: 100%;
+          overflow: hidden;
+          border-radius: 20px;
+          will-change: transform, opacity;
+          -webkit-backface-visibility: hidden; backface-visibility: hidden;
+        }
+        #calendar-widget .cal-ph-par,
+        #calendar-widget .cal-ph-kb,
+        #calendar-widget .cal-ph-base,
+        #calendar-widget .cal-ph-fb,
+        #calendar-widget .cal-ph-scrim { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }
+        #calendar-widget .cal-ph-par { will-change: transform; }
+        #calendar-widget .cal-ph-kb { transform-origin: 50% 45%; }
+        #calendar-widget .cal-ph-base {
+          background:
+            radial-gradient(130% 120% at 0% 0%, var(--cal-acc-soft, rgba(242, 91, 82, 0.24)), rgba(0, 0, 0, 0) 62%),
+            linear-gradient(160deg, #2a2a30 0%, #151519 100%);
+        }
+        /* Rendered exactly like HomeDash: cover + focus point + zoom (inline styles); Ken Burns lives on the parent. */
+        #calendar-widget .cal-ph-img {
+          position: absolute; left: 0; top: 0; width: 100%; height: 100%;
+          object-fit: cover;
+          opacity: 0;
+          transition: opacity 0.55s ease;
+          pointer-events: none;
+          -webkit-user-drag: none; user-select: none;
+        }
+        #calendar-widget .cal-ph-img.is-in { opacity: 1; }
+        #calendar-widget .cal-slide.is-current .cal-ph-kb { animation: cal-kb-a 26s ease-in-out infinite alternate; }
+        #calendar-widget .cal-slide.is-current.kb-b .cal-ph-kb { animation-name: cal-kb-b; }
+        #calendar-widget .cal-panel:not(.cal-show) .cal-ph-kb { animation-play-state: paused; }
+        @keyframes cal-kb-a { from { transform: scale(1) translate3d(0, 0, 0); } to { transform: scale(1.08) translate3d(-1.6%, -1.1%, 0); } }
+        @keyframes cal-kb-b { from { transform: scale(1) translate3d(0, 0, 0); } to { transform: scale(1.08) translate3d(1.6%, -0.8%, 0); } }
+
+        /* designed fallback: no photo / broken photo */
+        #calendar-widget .cal-ph-fb {
+          display: none;
+          background:
+            repeating-radial-gradient(circle at 85% 10%, rgba(255, 255, 255, 0.055) 0 2px, rgba(255, 255, 255, 0) 2px 34px),
+            radial-gradient(140% 120% at 15% 0%, var(--cal-acc-hi, #ff7468) 0%, var(--cal-acc, #f25b52) 40%, var(--cal-acc-deep, #79231e) 100%);
+        }
+        #calendar-widget .cal-slide.is-fallback .cal-ph-fb { display: block; }
+        #calendar-widget .cal-ph-badge {
+          position: absolute; left: 50%; top: 42%;
+          width: 116px; height: 116px; margin: -58px 0 0 -58px;
+          border-radius: 24%;
+          overflow: visible;
+          background: linear-gradient(180deg, #ffffff 0%, #f6f6f6 60%, #ececec 100%);
+          box-shadow: 0 16px 36px rgba(0, 0, 0, 0.32), 0 2px 6px rgba(0, 0, 0, 0.18);
+          transform: rotate(-6deg);
+          text-align: center;
+        }
+        #calendar-widget .cal-ph-badge-m {
+          height: 34px; border-radius: 28px 28px 0 0;
+          background: linear-gradient(180deg, var(--cal-acc-hi, #ff7468) 0%, var(--cal-acc, #f25b52) 50%, var(--cal-acc-lo, #e64a40) 100%);
+          color: var(--cal-acc-text, #fff);
+          font-size: 19px; font-weight: 700; letter-spacing: 0.08em; line-height: 36px;
+        }
+        #calendar-widget .cal-ph-badge-d { height: 82px; color: #2a2a2a; font-size: 56px; font-weight: 300; letter-spacing: -0.03em; line-height: 80px; }
+        #calendar-widget .cal-ph-emoji {
+          position: absolute; right: -26px; top: -16px;
+          font-size: 44px; line-height: 1;
+          transform: rotate(14deg);
+          filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.3));
+        }
+        #calendar-widget .cal-ph-scrim {
+          background: linear-gradient(180deg, rgba(0, 0, 0, 0.42) 0%, rgba(0, 0, 0, 0) 24%, rgba(0, 0, 0, 0) 40%, rgba(0, 0, 0, 0.5) 66%, rgba(0, 0, 0, 0.84) 100%);
+          pointer-events: none;
+        }
+        #calendar-widget .cal-slide.is-fallback .cal-ph-scrim {
+          background: linear-gradient(180deg, rgba(0, 0, 0, 0.2) 0%, rgba(0, 0, 0, 0) 26%, rgba(0, 0, 0, 0) 52%, rgba(0, 0, 0, 0.4) 100%);
+        }
+        /* caption: name + date, kept clear of the tile (beside it when the tile sits at the bottom) */
+        #calendar-widget .cal-ph-cap { position: absolute; left: 20px; right: 20px; bottom: 18px; pointer-events: none; }
+        #calendar-widget .cal-up.cal-tl .cal-ph-cap { left: var(--cal-band-pad, 110px); bottom: calc(var(--cal-inset, 12px) + 3px); }
+        #calendar-widget .cal-up.cal-tr .cal-ph-cap { right: var(--cal-band-pad, 110px); bottom: calc(var(--cal-inset, 12px) + 3px); }
+        #calendar-widget .cal-ph-title {
+          color: #fff;
+          font-size: 26px; font-weight: 700; line-height: 1.13; letter-spacing: -0.01em;
+          text-shadow: 0 2px 14px rgba(0, 0, 0, 0.35);
+          display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+          overflow: hidden; overflow-wrap: anywhere;
+        }
+        #calendar-widget .cal-ph-when {
+          display: flex; align-items: center; gap: 7px;
+          margin-top: 6px;
+          color: rgba(255, 255, 255, 0.9);
+          font-size: 16px; font-weight: 500;
+          text-shadow: 0 1px 8px rgba(0, 0, 0, 0.35);
+          white-space: nowrap; overflow: hidden;
+        }
+        #calendar-widget .cal-ph-when b { color: #fff; font-weight: 700; }
+        #calendar-widget .cal-ph-when .cal-sep { opacity: 0.7; }
+        #calendar-widget .cal-ph-loc {
+          margin-top: 3px;
+          color: rgba(255, 255, 255, 0.72);
+          font-size: 13px;
+          white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        #calendar-widget .cal-ph-loc i { font-size: 11px; margin-right: 5px; }
+        #calendar-widget .cal-ph-top {
+          position: absolute; left: 0; right: 0; top: 14px;
+          display: flex; align-items: center; justify-content: center; gap: 8px;
+          pointer-events: none;
+        }
+        #calendar-widget .cal-ph-dots {
+          display: flex; align-items: center; gap: 5px;
+          padding: 6px 10px;
+          border-radius: 999px;
+          background: rgba(0, 0, 0, 0.34);
+        }
+        #calendar-widget .cal-ph-dots i { width: 6px; height: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.5); transition: width 0.3s ease, background-color 0.3s ease; }
+        #calendar-widget .cal-ph-dots i.on { width: 16px; background: #fff; }
+        #calendar-widget .cal-ph-count { margin-left: 4px; color: rgba(255, 255, 255, 0.85); font-size: 11.5px; font-weight: 500; font-variant-numeric: tabular-nums; }
+        #calendar-widget .cal-ph-stale {
+          display: inline-flex; align-items: center; gap: 6px;
+          padding: 4px 10px; border-radius: 999px;
+          background: rgba(30, 24, 10, 0.6); color: #ffd486;
+          font-size: 12px; font-weight: 500;
+        }
+        #calendar-widget .cal-ph-gear {
+          position: absolute; top: 10px; right: 10px;
+          width: 42px; height: 42px; margin: 0; padding: 0;
+          border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 50%;
+          background: rgba(0, 0, 0, 0.36);
+          color: #fff; font-size: 16px; line-height: 1;
+          display: flex; align-items: center; justify-content: center;
+          cursor: pointer;
+          transition: transform 0.18s ease, background-color 0.18s ease;
+        }
+        #calendar-widget .cal-tr .cal-ph-gear { right: auto; left: 10px; }
+        #calendar-widget .cal-ph-gear:active { transform: scale(0.9) rotate(40deg); background: rgba(0, 0, 0, 0.55); }
+        #calendar-widget .cal-slides.cal-ph-in { animation: cal-ph-in 480ms cubic-bezier(0.2, 0.8, 0.3, 1) both; }
+        #calendar-widget .cal-slides.cal-ph-out { animation: cal-ph-out 220ms ease-in both; }
+        #calendar-widget .cal-slide.cal-fadein { animation: cal-fade-in 380ms ease-out both; }
+        #calendar-widget .cal-v-photo .cal-pop,
+        #calendar-widget .cal-v-photo.cal-down .cal-pop { animation-name: cal-pop-up; }
+        #calendar-widget .cal-v-photo .cal-out,
+        #calendar-widget .cal-v-photo.cal-down .cal-out { animation-name: cal-out-up; }
+        @keyframes cal-ph-in { from { opacity: 0; transform: scale(1.06); } to { opacity: 1; transform: scale(1); } }
+        @keyframes cal-ph-out { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(0.96); } }
 
         /* ---------- list pop-in / pop-out -------------------------------------- */
         #calendar-widget .cal-pop {
@@ -858,7 +1021,7 @@
           z-index: 1;
           border-radius: 30%;
           border: 2px solid rgba(255, 255, 255, 0.75);
-          box-shadow: 0 0 16px rgba(255, 140, 120, 0.55);
+          box-shadow: 0 0 16px var(--cal-acc-glow, rgba(255, 140, 120, 0.55));
           pointer-events: none;
           opacity: 0;
         }
@@ -878,7 +1041,7 @@
           white-space: nowrap;
           pointer-events: none;
         }
-        #calendar-widget .cal-pill i { color: #ff8d85; }
+        #calendar-widget .cal-pill i { color: var(--cal-acc-tint, #ff8d85); }
 
         /* ---------- reduced motion --------------------------------------------- */
         @media (prefers-reduced-motion: reduce) {
@@ -888,6 +1051,13 @@
           #calendar-widget .cal-down .cal-out { animation: cal-fade-in 120ms ease-in reverse both; animation-delay: 0ms; }
           #calendar-widget .cal-sk::after { animation: none; }
           #calendar-widget .cal-empty-art { animation: none; }
+          #calendar-widget .cal-slide.is-current .cal-ph-kb { animation: none; }
+          #calendar-widget .cal-v-photo .cal-pop,
+          #calendar-widget .cal-v-photo.cal-down .cal-pop { animation-name: cal-fade-in; }
+          #calendar-widget .cal-v-photo .cal-out,
+          #calendar-widget .cal-v-photo.cal-down .cal-out { animation-name: cal-fade-in; animation-direction: reverse; }
+          #calendar-widget .cal-slides.cal-ph-in { animation: cal-fade-in 200ms ease-out both; }
+          #calendar-widget .cal-slides.cal-ph-out { animation: cal-fade-in 140ms ease-in reverse both; }
           #calendar-widget .cal-face { transition: none; }
         }
         #calendar-settings-menu .menu-content { max-height: 88vh; overflow-y: auto; }
@@ -1308,9 +1478,14 @@
            window.CalendarWidget.mount(rootEl, opts) -> controller
              opts.loadEvents({ fresh }) -> Promise<{ events: Item[], stale?: boolean }>
              opts.onSettings()
+             opts.accent: '#rrggbb'          tile band / badges / accents (default '#f25b52')
+             opts.mode: 'list' | 'photo'     list of events, or a full-bleed photo slideshow
+             opts.preferRight: boolean       roll right by default (left only when there is no room)
              (optional) opts.emptyHint: false  -> no "No upcoming events" pill on the empty bounce
+             (optional) opts.slideMs: number   photo auto-advance interval (default 30000)
            controller: toggle(), open(), close(), refreshDate(), reload(), intro(),
-                       relayout(), destroy(), isOpen, isBusy
+                       setAccent(hex), setMode(mode), setPreferRight(bool),
+                       relayout(), destroy(), isOpen, isBusy, mode, state
 
            All motion is sampled from JS pose functions into Web Animations keyframes
            (transform / opacity only), so it runs on the compositor even when the main
@@ -1322,6 +1497,9 @@
 
           // ---------------------------------------------------------------- tunables
           var MAX_W = 440, MAX_H = 380, MARGIN = 16;
+          var PHOTO_W = 520, PHOTO_H = 340;   // photo-mode window
+          var SLIDE_MS = 30000;               // photo auto-advance
+          var DEFAULT_ACCENT = '#f25b52';
           var GRAV = 4000;                    // px/s^2 - "gravity" for hops and loops
           var STEP = 1000 / 60;               // keyframe sampling interval (ms)
           var REFRESH_MS = 10 * 60 * 1000;    // background prefetch interval
@@ -1377,6 +1555,49 @@
             return c;
           }
 
+          function num(v, def, lo, hi) { v = typeof v === 'string' ? parseFloat(v) : v; return typeof v === 'number' && isFinite(v) ? clamp(v, lo, hi) : def; }
+          function mod(a, n) { return n ? ((a % n) + n) % n : 0; }
+          function safeUrl(u) { return typeof u === 'string' && /^https:\/\/[^\s"'<>]+$/i.test(u.trim()) ? u.trim() : ''; }
+
+          // ------------------------------------------------------------ accent color
+          var WHITE = { r: 255, g: 255, b: 255 }, BLACK = { r: 0, g: 0, b: 0 }, INK = { r: 42, g: 42, b: 42 }, GLASS = { r: 27, g: 27, b: 31 };
+          function parseHex(h) {
+            var m = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(String(h == null ? '' : h).trim());
+            if (!m) return null;
+            var x = m[1];
+            if (x.length === 3) x = x[0] + x[0] + x[1] + x[1] + x[2] + x[2];
+            return { r: parseInt(x.slice(0, 2), 16), g: parseInt(x.slice(2, 4), 16), b: parseInt(x.slice(4, 6), 16) };
+          }
+          function mixC(a, b, t) { return { r: Math.round(lerp(a.r, b.r, t)), g: Math.round(lerp(a.g, b.g, t)), b: Math.round(lerp(a.b, b.b, t)) }; }
+          function hexC(c) { return '#' + [c.r, c.g, c.b].map(function (v) { return (v < 16 ? '0' : '') + v.toString(16); }).join(''); }
+          function rgbaC(c, a) { return 'rgba(' + c.r + ',' + c.g + ',' + c.b + ',' + a + ')'; }
+          function lumC(c) {
+            function ch(v) { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }
+            return 0.2126 * ch(c.r) + 0.7152 * ch(c.g) + 0.0722 * ch(c.b);
+          }
+          function contrastC(a, b) { var la = lumC(a), lb = lumC(b); return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05); }
+          // All accent shades are derived here (no CSS color-mix needed).
+          function accentPalette(hex) {
+            var c = parseHex(hex) || parseHex(DEFAULT_ACCENT);
+            var light = contrastC(c, WHITE) < 2.2;                       // light accent -> dark text on it
+            var tint = c, t = 0;
+            while (contrastC(tint, GLASS) < 4.5 && t < 0.9) { t += 0.1; tint = mixC(c, WHITE, t); }   // readable on the dark glass
+            return {
+              hex: hexC(c), light: light,
+              vars: {
+                '--cal-acc': hexC(c),
+                '--cal-acc-hi': hexC(mixC(c, WHITE, 0.17)),
+                '--cal-acc-lo': hexC(mixC(c, BLACK, 0.08)),
+                '--cal-acc-deep': hexC(mixC(c, BLACK, 0.5)),
+                '--cal-acc-text': light ? '#2a2a2a' : '#ffffff',
+                '--cal-acc-tshadow': light ? 'rgba(255,255,255,0.3)' : rgbaC(mixC(c, BLACK, 0.6), 0.25),
+                '--cal-acc-tint': hexC(tint),
+                '--cal-acc-soft': rgbaC(c, 0.24),
+                '--cal-acc-glow': rgbaC(c, 0.48)
+              }
+            };
+          }
+
           // A cue fires a callback at a time on the animation timeline (so slow-mo / pausing keeps it in sync).
           function makeCue(t, fn) {
             var c = { fired: false, cancel: function () {} };
@@ -1396,7 +1617,7 @@
 
           var TEMPLATE =
             '<div class="cal-gshadow" aria-hidden="true"></div>' +
-            '<div id="calendar-panel" class="cal-panel" role="dialog" aria-label="Upcoming events" aria-hidden="true">' +
+            '<div id="calendar-panel" class="cal-panel cal-v-list" role="dialog" aria-label="Upcoming events" aria-hidden="true">' +
               '<div class="cal-frost"></div>' +
               '<div class="cal-glass-wrap"><div class="cal-glass"></div></div>' +
               '<div class="cal-content">' +
@@ -1409,6 +1630,12 @@
                   '<button type="button" class="cal-gear" data-cal-act="settings" aria-label="Calendar settings"><i class="fa-solid fa-gear"></i></button>' +
                 '</div>' +
                 '<div class="cal-body"></div>' +
+                '<div class="cal-photo">' +
+                  '<div class="cal-slides" aria-roledescription="carousel"><div class="cal-slide"></div><div class="cal-slide"></div><div class="cal-slide"></div></div>' +
+                  '<div class="cal-ph-top"><div class="cal-ph-dots cal-pi" aria-hidden="true"></div>' +
+                    '<div class="cal-ph-stale cal-pi" hidden><i class="fa-solid fa-cloud-arrow-down"></i><span>offline \u2013 showing saved</span></div></div>' +
+                  '<button type="button" class="cal-ph-gear cal-pi" data-cal-act="settings" aria-label="Calendar settings"><i class="fa-solid fa-gear"></i></button>' +
+                '</div>' +
               '</div>' +
             '</div>' +
             '<div class="cal-tshadow" aria-hidden="true"></div>' +
@@ -1430,7 +1657,8 @@
               tile: $('.cal-tile'), tsh: $('.cal-tshadow'), gsh: $('.cal-gshadow'),
               panel: $('.cal-panel'), glass: $('.cal-glass'), body: $('.cal-content'), band: $('.cal-band'),
               list: $('.cal-body'), title: $('.cal-band-title'), sub: $('.cal-band-sub'), note: $('.cal-band-note'),
-              month: $('.cal-month'), day: $('.cal-daynum')
+              month: $('.cal-month'), day: $('.cal-daynum'),
+              photo: $('.cal-photo'), slides: $('.cal-slides'), dots: $('.cal-ph-dots'), phStale: $('.cal-ph-stale')
             };
             var mq = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
             function reduced() { return !!(mq && mq.matches); }
@@ -1440,11 +1668,21 @@
             var cur = null;              // running action record
             var geom = null;             // geometry of the current/last opening
             var revealed = false;        // list content has been revealed in the window
-            var rendered = '';           // signature of what the list currently shows
             var pendingRelayout = false;
             var thinkInfo = null;
             var extras = [];             // temporary elements (sparkles, pill)
             var destroyed = false;
+
+            var mode = opts.mode === 'photo' ? 'photo' : 'list';
+            var openMode = mode;         // mode the window was laid out for
+            var view = 'list';           // what the window shows now: 'list' (list / messages) or 'photo' (slideshow)
+            var sigList = '';            // signature of the rendered list content
+            var sigPhoto = '';           // signature of the rendered slideshow
+            var pendingSwitch = false;
+            var preferRight = !!opts.preferRight;
+            var slideMs = Math.max(1500, +opts.slideMs || SLIDE_MS);
+            var palette = null;
+            var suppressClick = 0;       // swallow the click that follows a swipe
 
             var known = null;            // last successful result { events, stale }
             var lastError = null;        // error of the latest failed load (cleared on success)
@@ -1482,7 +1720,8 @@
               out.gsh = { transform: 'translate(' + f2(gg.x) + 'px,' + f2(gg.y) + 'px) scale(' + f4(gg.sx) + ',' + f4(gg.sy) + ')', opacity: f4(clamp(gg.o, 0, 1)) };
               var gl = p.glass || { sx: 1, sy: 1, o: 0 };
               out.glass = { transform: 'scale(' + f4(gl.sx) + ',' + f4(gl.sy) + ')', opacity: f4(clamp(gl.o, 0, 1)) };
-              var b = p.band || { o: 0, k: 0 }, side = g && g.tl === false ? 1 : -1;
+              var gq = p.gg || g;
+              var b = p.band || { o: 0, k: 0 }, side = gq && gq.tl === false ? 1 : -1;
               out.band = { transform: 'translate(' + f2(b.k * side) + 'px,0px)', opacity: f4(clamp(b.o, 0, 1)) };
               out.body = { opacity: f4(clamp(p.body ? p.body.o : 0, 0, 1)) };
               return out;
@@ -1538,7 +1777,7 @@
               if (cur !== rec) return;
               var p = rec.a.final ? rec.a.final() : rec.a.fn(rec.a.dur);
               p.tile.r = normDeg(p.tile.r);
-              applyPose(p, rec.a.g, rec.keys);
+              applyPose(p, rec.a.gFinal || rec.a.g, rec.keys);
               rec.anims.forEach(function (x) { x.cancel(); });
               cur = null;
               if (rec.a.end) rec.a.end();
@@ -1555,7 +1794,7 @@
               rec.anims.forEach(function (x) { x.cancel(); });
               rec.cues.forEach(function (c) { c.cancel(); });
               cur = null;
-              return fillPose(p, rec.a.g || geom);
+              return fillPose(p, p.gg || rec.a.g || geom);
             }
             function sync() {
               var open = state === 'opening' || state === 'open' || state === 'closing';
@@ -1805,14 +2044,106 @@
               };
             }
 
+            // Quick flip-hop from one corner to another (mode switch while open).
+            function makeFlipHop(p0, p1, g) {
+              var T = g.T, gs = g.up ? 1 : -1, dx = p1.x - p0.x;
+              var s = dx > 0.5 ? 1 : dx < -0.5 ? -1 : (g.tl ? -1 : 1);
+              var A = 110, H = clamp(g.loopRoom + 40, 20, 58), F = 2 * Math.sqrt(2 * H / GRAV) * 1000;
+              var impact = A + F, r0 = p0.r, r1 = Math.round((r0 + s * 360) / 360) * 360;
+              return {
+                dur: impact + 560, impact: impact,
+                at: function (t) {
+                  var x, y, r, c, h = 0;
+                  if (t < A) { c = 0.14 * easeOutCubic(t / (A * 0.8)); x = p0.x; y = p0.y; r = r0; }
+                  else if (t < impact) {
+                    var tf0 = t - A, tau = clamp(tf0 / F, 0, 1);
+                    x = lerp(p0.x, p1.x, smooth(tau)); y = lerp(p0.y, p1.y, tau); h = H * 4 * tau * (1 - tau);
+                    r = lerp(r0, r1, smooth(tau));
+                    c = 0.14 * Math.exp(-(tf0 / 30) * (tf0 / 30)) - 0.1 * bump(tf0, 70, 38) - 0.05 * bump(tf0, F - 50, 40);
+                  } else {
+                    var te = t - impact;
+                    x = p1.x; y = p1.y; r = r1;
+                    c = 0.3 * Math.exp(-0.0105 * te) * Math.sin(0.0299 * te);
+                  }
+                  var sy = 1 - c, sx = 1 + 0.85 * c;
+                  y += -gs * h + gs * (1 - sy) * T / 2;
+                  return { tile: { x: x, y: y, r: r, sx: sx, sy: sy, o: 1 }, lift: h, g: G0() };
+                }
+              };
+            }
+            // Mode switch while open: content pops out, the window gulps shut into the tile, the tile flip-hops to
+            // the corner of the new window, which springs open with the new content.
+            function buildSwitch(gOld, gNew) {
+              var tC = 50, tH = 240, tSw = 320;
+              var hop = makeFlipHop({ x: gOld.tx, y: gOld.ty, r: 0, sx: 1, sy: 1, o: 1 }, { x: gNew.tx, y: gNew.ty }, gNew);
+              var tP = tH + hop.impact + 20, dur = Math.max(tH + hop.dur, tP + 800), revealT = tP + 170;
+              return {
+                g: gOld, gFinal: gNew, dur: dur,
+                fn: function (t) {
+                  var p = t < tH ? { tile: { x: gOld.tx, y: gOld.ty, r: 0, sx: 1, sy: 1, o: 1 }, lift: 0, g: G0() } : hop.at(t - tH);
+                  var px, py, gg = t < tSw ? gOld : gNew;
+                  if (t < tSw) {
+                    px = t <= tC ? 1 : spring(t - tC, 1, 0, W(330), 0.78);
+                    py = t <= tC + 12 ? 1 : spring(t - tC - 12, 1, 0, W(350), 0.76);
+                    var gulp = 0.08 * bump(t - tC, 200, 40);
+                    p.tile.sx *= 1 + gulp; p.tile.sy *= 1 + gulp;
+                  } else {
+                    var te = t - tP;
+                    px = te <= 0 ? 0 : 1 - spring(te, 1, 0, W(440), 0.52);
+                    py = te <= 22 ? 0 : 1 - spring(te - 22, 1, 0, W(480), 0.46);
+                    if (te > 0) { var pu = 0.07 * bump(te, 55, 45) - 0.025 * bump(te, 140, 45); p.tile.sx *= 1 + pu; p.tile.sy *= 1 + pu; }
+                  }
+                  p.glass = glassPose(px, py, gg); p.gg = gg;
+                  var bo = t < tSw ? 1 - smooth(t / 130) : smooth((t - tP - 150) / 230);
+                  p.band = { o: bo, k: (1 - bo) * 14 };
+                  p.body = { o: t < tSw ? 1 - smooth((t - 30) / 150) : smooth((t - tP) / 90) };
+                  return p;
+                },
+                cues: [{ t: 0, fn: switchStarted }, { t: tSw, fn: function () { switchApply(gNew); } }, { t: revealT, fn: reveal }, { t: revealT + 140, fn: makeReady }],
+                final: function () { return poseOpen(gNew); },
+                end: openEnded
+              };
+            }
+            function buildSwitchRM(gOld, gNew) {
+              var tSw = 150, dur = 340;
+              return {
+                g: gOld, gFinal: gNew, dur: dur,
+                fn: function (t) {
+                  var gg = t < tSw ? gOld : gNew, q = t < tSw ? 1 - smooth(t / tSw) : smooth((t - tSw) / (dur - tSw)), sc = 0.97 + 0.03 * q;
+                  return {
+                    tile: { x: gg.tx, y: gg.ty, r: 0, sx: 1, sy: 1, o: Math.max(q, 0.001) }, lift: 0, g: G0(), gg: gg,
+                    glass: { px: q, py: q, sx: sc, sy: sc, o: q }, band: { o: q, k: 0 }, body: { o: q }
+                  };
+                },
+                cues: [{ t: 0, fn: switchStarted }, { t: tSw, fn: function () { switchApply(gNew); } }, { t: tSw + 10, fn: reveal }, { t: tSw + 60, fn: makeReady }],
+                final: function () { return poseOpen(gNew); },
+                end: openEnded
+              };
+            }
+            function switchStarted() {
+              frost(false);
+              E.panel.classList.remove('cal-ready');
+              phTimerStop(); phStop(); phCancelDrag();
+              if (revealed) staggerOut();
+              revealed = false;
+            }
+            function switchApply(g) {
+              geom = g; openMode = mode;
+              applyGeom(g);
+              renderContent(false);
+              E.list.scrollTop = 0;
+              phPlace(PH.offset);
+            }
+
             function openStarted() {
               E.panel.classList.add('cal-show');
               E.panel.setAttribute('aria-hidden', 'false');
-              if (!revealed && E.list.className.indexOf('cal-wait') < 0) renderList(false);
+              if (!revealed && !E.body.classList.contains('cal-wait')) renderContent(false);
+              phPlace(PH.offset);
             }
             function reveal() {
               revealed = true;
-              E.list.classList.remove('cal-wait');
+              E.body.classList.remove('cal-wait');
               staggerIn();
             }
             function makeReady() { E.panel.classList.add('cal-ready'); }
@@ -1825,12 +2156,16 @@
             function openEnded() {
               state = 'open';
               makeReady();
-              frost(true, reduced() ? 0 : 260);
+              if (view === 'list') frost(true, reduced() ? 0 : 260);       // the slideshow covers the glass: no blur needed
+              phTimerStart();
               if (pendingRelayout) { pendingRelayout = false; relayout(); }
+              if (pendingSwitch && state === 'open' && !cur) { pendingSwitch = false; if (mode !== openMode) startSwitch(); }
             }
             function closeStarted() {
               frost(false);
               E.panel.classList.remove('cal-ready');
+              phTimerStop(); phStop(); phCancelDrag();
+              pendingSwitch = false;
               if (revealed) staggerOut();
               revealed = false;
             }
@@ -1842,7 +2177,7 @@
               E.panel.setAttribute('aria-hidden', 'true');
               resetItems();
               E.list.classList.remove('cal-swap');
-              E.list.classList.add('cal-wait');
+              E.body.classList.add('cal-wait');
               E.list.scrollTop = 0;
               clearInline();
             }
@@ -1869,21 +2204,26 @@
               f.L = f.vl + M; f.R = f.vr - M; f.TOP = f.vt + M; f.BOT = f.vb - M;
               return f;
             }
-            function computeGeom(measure) {
+            function dims(m) { return m === 'photo' ? { w: PHOTO_W, h: PHOTO_H } : { w: MAX_W, h: MAX_H }; }
+            function computeGeom(measure, m) {
               var f = frame();
               if (!f) return null;
+              var dm = dims(m || mode);
               var T = f.T, inset = Math.round(T * 0.14), bandH = T + 2 * inset;
-              var pw = Math.min(MAX_W, Math.max(f.R - f.L, T + 2 * inset + 80));
-              var roomL = T - f.L, roomR = f.R;
-              var dir = roomL >= pw ? -1 : roomR >= pw ? 1 : (roomL >= roomR ? -1 : 1), tl = dir < 0;
+              var pw = Math.min(dm.w, Math.max(f.R - f.L, T + 2 * inset + 80));
+              var roomL = T - f.L, roomR = f.R;   // room for a window reaching left of the tile's right edge / right of its left edge
+              var dir = preferRight
+                ? (roomR >= pw ? 1 : roomL >= pw ? -1 : (roomR >= roomL ? 1 : -1))
+                : (roomL >= pw ? -1 : roomR >= pw ? 1 : (roomL >= roomR ? -1 : 1));
+              var tl = dir < 0;
               var pl = tl ? T - pw : 0;
               if (pl + pw > f.R) pl = f.R - pw;
               if (pl < f.L) pl = f.L;
               var tx = tl ? pl + inset : pl + pw - inset - T;
 
               var g = { T: T, k: f.k, inset: inset, bandH: bandH, pw: pw, pl: pl, tx: tx, tl: tl };
-              var want = measure ? measure(g) : MAX_H;
-              var ph = clamp(want, Math.min(bandH + 96, MAX_H), MAX_H);
+              var want = measure ? measure(g) : dm.h;
+              var ph = clamp(want, Math.min(bandH + 96, dm.h), dm.h);
               var roomUp = T + inset - f.TOP, roomDown = f.BOT + inset;
               var up = roomUp >= ph ? true : roomDown >= ph ? false : roomUp >= roomDown;
               ph = Math.max(Math.min(ph, up ? roomUp : roomDown, f.BOT - f.TOP), Math.min(bandH + 60, f.BOT - f.TOP));
@@ -1908,6 +2248,7 @@
               if (g.ph != null) s.height = f2(g.ph) + 'px';
               s.setProperty('--cal-band-h', g.bandH + 'px');
               s.setProperty('--cal-band-pad', (g.inset + g.T + 14) + 'px');
+              s.setProperty('--cal-inset', g.inset + 'px');
               if (g.ox != null) E.glass.style.transformOrigin = f2(g.ox) + 'px ' + f2(g.oy) + 'px';
               var c = E.panel.classList;
               c.toggle('cal-tl', !!g.tl); c.toggle('cal-tr', !g.tl);
@@ -1917,9 +2258,23 @@
             function measureContent(g) {
               applyGeom({ pl: g.pl, pw: g.pw, bandH: g.bandH, inset: g.inset, T: g.T, tl: g.tl });
               E.panel.style.height = '0px';
-              renderList(false);
+              renderContent(false);
+              if (mode === 'photo') return PHOTO_H;                   // photo window has a fixed, photo-friendly size
               var h = E.list.scrollHeight;
               if (!known && !lastError) return MAX_H;                 // skeleton: data still coming
+              return g.bandH + h + 2;
+            }
+            // Natural height of the list without touching what is on screen (mode switch / relayout).
+            function measureQuiet(g) {
+              if (mode === 'photo') return PHOTO_H;
+              if (!known && !lastError) return MAX_H;
+              var box = document.createElement('div');
+              box.className = 'cal-panel cal-v-list';
+              box.style.cssText = 'left:0;top:0;height:0;width:' + f2(g.pw) + 'px';
+              box.innerHTML = '<div class="cal-content"><div class="cal-body">' + listContent().html + '</div></div>';
+              root.appendChild(box);
+              var h = box.querySelector('.cal-body').scrollHeight;
+              root.removeChild(box);
               return g.bandH + h + 2;
             }
 
@@ -1927,8 +2282,9 @@
             function startOpen() {
               var g = computeGeom(measureContent);
               if (!g) { state = 'closed'; sync(); return; }
-              geom = g;
+              geom = g; openMode = mode;
               applyGeom(g);
+              phPlace(0);
               revealed = false;
               state = 'opening';
               var from = poseClosed(g);
@@ -1942,6 +2298,25 @@
             function startClose(from) {
               state = 'closing';
               run(reduced() ? buildCloseRM(from, geom) : buildClose(from, geom));
+            }
+            function startSwitch() {
+              var gOld = geom, gNew = computeGeom(measureQuiet, mode);
+              if (!gOld || !gNew) return;
+              state = 'opening';
+              run(reduced() ? buildSwitchRM(gOld, gNew) : buildSwitch(gOld, gNew));
+            }
+            function setMode(m) {
+              m = m === 'photo' ? 'photo' : 'list';
+              if (destroyed || m === mode) return;
+              mode = m;
+              if (state === 'open' && !cur) startSwitch();
+              else if (state === 'opening') pendingSwitch = true;         // switch once the window has settled
+              else if (state === 'closed' && !cur) prerender();
+            }
+            function setAccent(hex) {
+              palette = accentPalette(hex);
+              Object.keys(palette.vars).forEach(function (k) { root.style.setProperty(k, palette.vars[k]); });
+              root.classList.toggle('cal-acc-light', palette.light);
             }
 
             function open() {
@@ -2118,7 +2493,7 @@
               sync();
             }
             function burst(T) {
-              var colors = ['#ff6b5f', '#ffd166', '#ffffff', '#5ac8fa', '#a78bfa', '#34d399', '#ff9f43'];
+              var colors = [palette ? palette.hex : '#ff6b5f', '#ffd166', '#ffffff', '#5ac8fa', '#a78bfa', '#34d399', '#ff9f43'];
               var kinds = ['', ' cal-confetti', ' cal-star'];
               var ring = document.createElement('div');
               ring.className = 'cal-ring';
@@ -2184,21 +2559,22 @@
               });
             }
             function onData() {
-              if (state === 'opening' && !revealed) renderList(false);      // still rolling: swap hidden content
-              else if (revealed) renderList(true);
+              if (state === 'opening' && !revealed) renderContent(false);   // still rolling: swap hidden content
+              else if (revealed) renderContent(true);
               else if (state === 'closed' && !cur) prerender();
             }
             // Lay the list out while idle (hidden), so the text shaping/layout cost is not paid on the tap.
             function prerender() {
               var f = frame();
               if (!f || !known) return;
-              E.panel.style.width = f2(Math.min(MAX_W, Math.max(f.R - f.L, f.T + 200))) + 'px';
+              E.panel.style.width = f2(Math.min(dims(mode).w, Math.max(f.R - f.L, f.T + 200))) + 'px';
               E.panel.style.height = '0px';
-              renderList(false);
+              renderContent(false);
               void E.list.scrollHeight;
+              phPlace(0);
             }
             function reload() {
-              if (revealed && !known) { lastError = null; renderList(true); }  // show the skeleton while retrying
+              if (revealed && !known) { lastError = null; renderContent(true); }  // show the skeleton while retrying
               load(true);
             }
 
@@ -2207,56 +2583,71 @@
               E.title.textContent = title;
               E.sub.textContent = sub;
             }
-            function renderList(animate) {
-              var mode, html;
-              E.note.hidden = !(known && known.stale);
+            function wantView() { return mode === 'photo' && known && known.events.length ? 'photo' : 'list'; }
+            function setView(v) {
+              if (v === view) return false;
+              view = v;
+              E.panel.classList.toggle('cal-v-photo', v === 'photo');
+              E.panel.classList.toggle('cal-v-list', v !== 'photo');
+              if (v === 'photo') frost(false);                            // nothing to blur behind a photo
+              else if (state === 'open') frost(true, 260);
+              if (v !== 'photo') phTimerStop();
+              return true;
+            }
+            function listContent() {
               if (known && known.events.length) {
                 var n = known.events.length;
-                mode = 'list:' + JSON.stringify(known.events) + Math.floor(Date.now() / 60000);
-                html = known.events.map(rowHTML).join('');
-                bandText('Upcoming', n === 1 ? '1 event' : 'Next ' + n + ' events');
-              } else if (known) {
-                mode = 'empty';
-                html = '<div class="cal-msg cal-pi"><div class="cal-empty-art">\uD83C\uDF34</div>' +
-                  '<div class="cal-msg-title">Nothing coming up</div>' +
-                  '<div class="cal-msg-sub">Your calendar is wide open. Enjoy the drive!</div></div>';
-                bandText('Upcoming', 'All clear');
-              } else if (lastError && lastError.code === 'no-url') {
-                mode = 'nourl';
-                html = '<div class="cal-msg cal-pi"><div class="cal-msg-icon cal-accent"><i class="fa-solid fa-link"></i></div>' +
-                  '<div class="cal-msg-title">Connect your HomeDash</div>' +
-                  '<div class="cal-msg-sub">Add your HomeDash calendar link to see what\u2019s coming up.</div>' +
-                  '<button type="button" class="cal-btn cal-btn-primary" data-cal-act="settings"><i class="fa-solid fa-plug"></i>Connect</button></div>';
-                bandText('Calendar', 'Not connected');
-              } else if (lastError) {
-                mode = 'error:' + (lastError.message || '');
-                html = '<div class="cal-msg cal-pi"><div class="cal-msg-icon"><i class="fa-solid fa-cloud-bolt"></i></div>' +
-                  '<div class="cal-msg-title">Couldn\u2019t load your calendar</div>' +
-                  '<div class="cal-msg-sub">' + esc(lastError.message || 'Something went wrong.') + '</div>' +
-                  '<button type="button" class="cal-btn" data-cal-act="retry"><i class="fa-solid fa-rotate-right"></i>Retry</button></div>';
-                bandText('Upcoming', 'Couldn\u2019t refresh');
+                return { sig: 'list:' + JSON.stringify(known.events) + Math.floor(Date.now() / 60000), html: known.events.map(rowHTML).join(''),
+                  title: 'Upcoming', sub: n === 1 ? '1 event' : 'Next ' + n + ' events' };
+              }
+              if (known) {
+                return { sig: 'empty', title: 'Upcoming', sub: 'All clear',
+                  html: '<div class="cal-msg cal-pi"><div class="cal-empty-art">\uD83C\uDF34</div>' +
+                    '<div class="cal-msg-title">Nothing coming up</div>' +
+                    '<div class="cal-msg-sub">Your calendar is wide open. Enjoy the drive!</div></div>' };
+              }
+              if (lastError && lastError.code === 'no-url') {
+                return { sig: 'nourl', title: 'Calendar', sub: 'Not connected',
+                  html: '<div class="cal-msg cal-pi"><div class="cal-msg-icon cal-accent"><i class="fa-solid fa-link"></i></div>' +
+                    '<div class="cal-msg-title">Connect your HomeDash</div>' +
+                    '<div class="cal-msg-sub">Add your HomeDash calendar link to see what\u2019s coming up.</div>' +
+                    '<button type="button" class="cal-btn cal-btn-primary" data-cal-act="settings"><i class="fa-solid fa-plug"></i>Connect</button></div>' };
+              }
+              if (lastError) {
+                return { sig: 'error:' + (lastError.message || ''), title: 'Upcoming', sub: 'Couldn\u2019t refresh',
+                  html: '<div class="cal-msg cal-pi"><div class="cal-msg-icon"><i class="fa-solid fa-cloud-bolt"></i></div>' +
+                    '<div class="cal-msg-title">Couldn\u2019t load your calendar</div>' +
+                    '<div class="cal-msg-sub">' + esc(lastError.message || 'Something went wrong.') + '</div>' +
+                    '<button type="button" class="cal-btn" data-cal-act="retry"><i class="fa-solid fa-rotate-right"></i>Retry</button></div>' };
+              }
+              var sk = '';
+              for (var i = 0; i < 4; i++) {
+                sk += '<div class="cal-skel-row cal-pi"><div class="cal-skel-badge cal-sk"></div><div class="cal-skel-lines">' +
+                  '<div class="cal-skel-l1 cal-sk" style="width:' + [74, 58, 66, 50][i] + '%"></div><div class="cal-skel-l2 cal-sk"></div></div></div>';
+              }
+              return { sig: 'skeleton', html: sk, title: 'Upcoming', sub: 'Loading\u2026' };
+            }
+            // Render whatever the window should show. animate=false: lay out hidden (revealed later with pops).
+            function renderContent(animate) {
+              var v = wantView(), viewChanged = setView(v), changed, prevSig = sigList;
+              E.note.hidden = !(known && known.stale);
+              if (v === 'photo') {
+                changed = renderPhoto();
               } else {
-                mode = 'skeleton';
-                var sk = '';
-                for (var i = 0; i < 4; i++) {
-                  sk += '<div class="cal-skel-row cal-pi"><div class="cal-skel-badge cal-sk"></div><div class="cal-skel-lines">' +
-                    '<div class="cal-skel-l1 cal-sk" style="width:' + [74, 58, 66, 50][i] + '%"></div><div class="cal-skel-l2 cal-sk"></div></div></div>';
-                }
-                html = sk;
-                bandText('Upcoming', 'Loading\u2026');
+                var lc = listContent();
+                E.title.textContent = lc.title;
+                E.sub.textContent = lc.sub;
+                changed = lc.sig !== sigList;
+                if (changed) { sigList = lc.sig; E.list.innerHTML = lc.html; E.list.scrollTop = 0; }
               }
-              if (mode === rendered) {
-                if (!animate) { resetItems(); E.list.classList.add('cal-wait'); }
-                return;
-              }
-              var prev = rendered;
-              rendered = mode;
-              E.list.innerHTML = html;
-              E.list.scrollTop = 0;
-              if (!animate) { E.list.classList.add('cal-wait'); return; }
-              E.list.classList.remove('cal-wait');
-              if (prev.indexOf('list:') === 0 && mode.indexOf('list:') === 0) {
+              if (!animate) { resetItems(); E.body.classList.add('cal-wait'); return; }
+              E.body.classList.remove('cal-wait');
+              if (v === 'photo' && state === 'open' && !PH.timer && !PH.anim && !PH.drag) phTimerStart();   // photos arrived after opening
+              if (!changed && !viewChanged) return;
+              if (!viewChanged && v === 'list' && prevSig.indexOf('list:') === 0 && sigList.indexOf('list:') === 0) {
                 E.list.classList.remove('cal-swap'); void E.list.offsetWidth; E.list.classList.add('cal-swap');
+              } else if (!viewChanged && v === 'photo') {
+                /* slideshow updated in place */
               } else {
                 staggerIn();
               }
@@ -2288,11 +2679,23 @@
                 '</div>';
               return h;
             }
-            // Pop the visible items in, starting next to the tile and spilling outwards.
             function resetItems() {
-              Array.prototype.forEach.call(E.list.querySelectorAll('.cal-pop, .cal-out'), function (el) { el.classList.remove('cal-pop', 'cal-out'); });
+              Array.prototype.forEach.call(E.body.querySelectorAll('.cal-pop, .cal-out'), function (el) { el.classList.remove('cal-pop', 'cal-out'); });
+              E.slides.classList.remove('cal-ph-in', 'cal-ph-out');
             }
+            function photoItems() {
+              var cap = PH.slots[1] ? Array.prototype.slice.call(PH.slots[1].querySelectorAll('.cal-pi')) : [];
+              return cap.concat(Array.prototype.slice.call(E.photo.querySelectorAll('.cal-ph-top .cal-pi:not([hidden]), .cal-ph-gear')));
+            }
+            // Pop the visible items in, starting next to the tile and spilling outwards.
             function staggerIn() {
+              if (view === 'photo') {
+                resetItems();
+                void E.slides.offsetWidth;
+                E.slides.classList.add('cal-ph-in');
+                photoItems().forEach(function (el, i) { el.style.setProperty('--i', String(i + 2)); el.classList.add('cal-pop'); });
+                return;
+              }
               var items = Array.prototype.slice.call(E.list.querySelectorAll('.cal-pi'));
               var vis = visibleItems(items);
               var fromBottom = geom && geom.up;
@@ -2302,6 +2705,12 @@
               vis.forEach(function (el, i) { el.style.setProperty('--i', String(Math.min(i, 9))); el.classList.add('cal-pop'); });
             }
             function staggerOut() {
+              if (view === 'photo') {
+                E.slides.classList.remove('cal-ph-in');
+                E.slides.classList.add('cal-ph-out');
+                photoItems().reverse().forEach(function (el, i) { el.classList.remove('cal-pop'); el.style.setProperty('--i', String(i)); el.classList.add('cal-out'); });
+                return;
+              }
               var items = Array.prototype.slice.call(E.list.querySelectorAll('.cal-pi'));
               var vis = visibleItems(items);
               if (!(geom && geom.up)) vis.reverse();
@@ -2312,6 +2721,222 @@
               return items.filter(function (el) { var y = el.offsetTop - top; return y + el.offsetHeight > 0 && y < h; });
             }
 
+            // ====================================================== photo slideshow
+            // Three slots (prev / current / next) positioned by transforms. When the current slide moves on, it keeps
+            // its DOM (and loaded photo); only the slot that wraps around to the far side is re-rendered.
+            var PH = { slots: Array.prototype.slice.call(root.querySelectorAll('.cal-slide')), events: [], n: 0, idx: 0, offset: 0, gap: 14, anim: null, timer: 0, drag: null };
+
+            function evInfo(ev) {
+              var now = new Date(), tk = dateKey(now), tm = dateKey(addDays(now, 1));
+              var st = parseISO(ev.start), en = parseISO(ev.end);
+              var key = parseKey(ev.date) ? String(ev.date).slice(0, 10) : (st ? dateKey(st) : tk);
+              return {
+                d: parseKey(key), isToday: key === tk, isTmr: key === tm,
+                time: ev.allDay ? '' : (ev.timeLabel || (st ? hhmm(st) : '')),
+                live: !!(!ev.allDay && st && en && now >= st && now < en)
+              };
+            }
+            function slideHTML(ev) {
+              var info = evInfo(ev), d = info.d, url = safeUrl(ev.imageUrl);
+              var fx = num(ev.imageFocusX, 50, 0, 100), fy = num(ev.imageFocusY, 38, 0, 100), z = num(ev.imageZoom, 1.01, 1, 1.8);
+              var day = info.isToday ? 'Today' : info.isTmr ? 'Tomorrow' : WD[d.getDay()] + ' ' + d.getDate() + ' ' + MON[d.getMonth()];
+              var emoji = ev.emoji ? esc(String(ev.emoji).slice(0, 8)) : '';
+              return '<div class="cal-ph-par"><div class="cal-ph-kb">' +
+                  '<div class="cal-ph-base"></div>' +
+                  '<div class="cal-ph-fb"><div class="cal-ph-badge"><div class="cal-ph-badge-m">' + MON[d.getMonth()].toUpperCase() + '</div>' +
+                    '<div class="cal-ph-badge-d">' + d.getDate() + '</div>' + (emoji ? '<div class="cal-ph-emoji">' + emoji + '</div>' : '') + '</div></div>' +
+                  (url ? '<img class="cal-ph-img" alt="" draggable="false" decoding="async" src="' + esc(url) + '" style="object-position:' + fx + '% ' + fy +
+                    '%;transform-origin:' + fx + '% ' + fy + '%;transform:scale(' + z + ')">' : '') +
+                '</div></div>' +
+                '<div class="cal-ph-scrim"></div>' +
+                '<div class="cal-ph-cap">' +
+                  '<div class="cal-ph-title cal-pi">' + esc(String(ev.title || 'Untitled event')) + '</div>' +
+                  '<div class="cal-ph-when cal-pi">' + (info.live ? '<span class="cal-live">Now</span>' : '') + '<b>' + day + '</b>' +
+                    (info.time ? '<span class="cal-sep">\u00B7</span><span>' + esc(info.time) + '</span>' : '') + '</div>' +
+                  (ev.location ? '<div class="cal-ph-loc cal-pi"><i class="fa-solid fa-location-dot"></i>' + esc(ev.location) + '</div>' : '') +
+                '</div>';
+            }
+            function fillSlot(sl, i) {
+              var ev = i >= 0 ? PH.events[i] : null, html = ev ? slideHTML(ev) : '';
+              if (sl.__html === html) return;
+              sl.__html = html;
+              sl.innerHTML = html;
+              sl.classList.remove('is-fallback', 'cal-fadein');
+              if (!ev) return;
+              var img = sl.querySelector('.cal-ph-img');
+              if (!img) { sl.classList.add('is-fallback'); return; }
+              var ok = function () { img.classList.add('is-in'); };
+              var bad = function () { sl.classList.add('is-fallback'); if (img.parentNode) img.parentNode.removeChild(img); };
+              img.addEventListener('dragstart', function (e) { e.preventDefault(); });
+              if (img.complete) { if (img.naturalWidth) ok(); else bad(); }
+              else { img.onload = ok; img.onerror = bad; }
+            }
+            function fillSlots() {
+              var n = PH.n;
+              fillSlot(PH.slots[1], PH.idx);
+              fillSlot(PH.slots[0], n > 1 ? mod(PH.idx - 1, n) : -1);     // neighbours preload their photos
+              fillSlot(PH.slots[2], n > 1 ? mod(PH.idx + 1, n) : -1);
+            }
+            function markCurrent() {
+              PH.slots.forEach(function (sl, r) {
+                sl.classList.toggle('is-current', r === 1);
+                sl.classList.toggle('kb-b', r === 1 && PH.idx % 2 === 1);
+                if (r !== 1) sl.classList.remove('cal-fadein');
+                sl.setAttribute('aria-hidden', r === 1 ? 'false' : 'true');
+              });
+            }
+            function renderDots(active) {
+              var n = PH.n, a = active == null ? PH.idx : active, i, h = '';
+              if (E.dots.__n !== n) {
+                for (i = 0; i < n; i++) h += '<i></i>';
+                E.dots.innerHTML = h + '<span class="cal-ph-count"></span>';
+                E.dots.__n = n;
+              }
+              Array.prototype.forEach.call(E.dots.querySelectorAll('i'), function (el, k) { el.classList.toggle('on', k === a); });
+              E.dots.querySelector('.cal-ph-count').textContent = (a + 1) + '/' + n;
+              E.dots.hidden = n < 2;
+            }
+            function renderPhoto() {
+              var evs = known.events, sig = JSON.stringify(evs) + '|' + dateKey(new Date()) + '|' + Math.floor(Date.now() / 60000);
+              E.phStale.hidden = !known.stale;
+              if (sig === sigPhoto) return false;
+              phStop(); phCancelDrag();
+              var curEv = PH.events[PH.idx], ni = 0, i;
+              if (curEv && curEv.id != null) for (i = 0; i < evs.length; i++) if (evs[i].id === curEv.id) { ni = i; break; }
+              PH.events = evs; PH.n = evs.length; PH.idx = Math.min(ni, Math.max(0, PH.n - 1)); PH.offset = 0;
+              sigPhoto = sig;
+              fillSlots(); markCurrent(); phPlace(0); renderDots();
+              if (PH.n < 2) phTimerStop();
+              return true;
+            }
+
+            function slideW() { return E.slides.clientWidth || (geom ? geom.pw : PHOTO_W); }
+            function slotPose(pos, Wd) {
+              var u = Math.min(1, Math.abs(pos) / Wd);
+              return { t: 'translate3d(' + f2(pos) + 'px,0px,0px)', o: String(f4(1 - 0.3 * u)), p: 'translate3d(' + f2(-pos * 0.3) + 'px,0px,0px)' };
+            }
+            // Place the slots for a shared drag/slide offset (photo parallax: the picture moves slower than its card).
+            function phPlace(off) {
+              var Wd = slideW() + PH.gap;
+              PH.slots.forEach(function (sl, r) {
+                var q = slotPose((r - 1) * Wd + off, Wd), par = sl.firstElementChild;
+                sl.style.transform = q.t; sl.style.opacity = q.o;
+                if (par) par.style.transform = q.p;
+              });
+            }
+            // Animate the offset along fn(t) on the compositor (sampled keyframes); interruptible via phStop().
+            function phAnimate(fn, dur, done) {
+              phStop();
+              var Wd = slideW() + PH.gap, n = Math.max(2, Math.ceil(dur / STEP) + 1), fr = [[], [], [], [], [], []], i, r;
+              for (i = 0; i < n; i++) {
+                var off = i / (n - 1), x = fn(dur * off);
+                for (r = 0; r < 3; r++) {
+                  var q = slotPose((r - 1) * Wd + x, Wd);
+                  fr[r].push({ offset: off, transform: q.t, opacity: q.o });
+                  fr[3 + r].push({ offset: off, transform: q.p });
+                }
+              }
+              var els = PH.slots.concat(PH.slots.map(function (sl) { return sl.firstElementChild; })), anims = [];
+              els.forEach(function (el, k) { if (el) anims.push(el.animate(fr[k], { duration: dur, fill: 'forwards', easing: 'linear' })); });
+              var rec = { anims: anims, fn: fn, dur: dur };
+              PH.anim = rec;
+              anims[0].onfinish = function () {
+                if (PH.anim !== rec) return;
+                PH.anim = null;
+                PH.offset = fn(dur);
+                phPlace(PH.offset);
+                anims.forEach(function (a) { a.cancel(); });
+                if (done) done();
+              };
+            }
+            function phStop() {
+              var rec = PH.anim;
+              if (!rec) return;
+              PH.anim = null;
+              var t = rec.anims[0] ? rec.anims[0].currentTime : 0;
+              t = typeof t === 'number' && isFinite(t) ? clamp(t, 0, rec.dur) : 0;
+              PH.offset = rec.fn(t);
+              phPlace(PH.offset);
+              rec.anims.forEach(function (a) { a.cancel(); });
+            }
+            function phCommit(dir) {
+              var sl = PH.slots;
+              PH.idx = mod(PH.idx + dir, PH.n);
+              PH.slots = dir > 0 ? [sl[1], sl[2], sl[0]] : [sl[2], sl[0], sl[1]];
+              PH.offset = 0;
+              fillSlots(); markCurrent(); phPlace(0); renderDots();
+            }
+            function phSettle(dir, v) {
+              var Wd = slideW() + PH.gap, target = -dir * Wd, x0 = PH.offset - target, rm = reduced();
+              var w0 = W(rm ? 320 : 600), z = rm ? 0.96 : 0.7, dur = rm ? 360 : 950;
+              phAnimate(function (t) { return t >= dur ? target : target + spring(t, x0, v, w0, z); }, dur, function () { if (dir) phCommit(dir); });
+            }
+            function photoLive() { return view === 'photo' && revealed && (state === 'open' || state === 'opening'); }
+            function phTimerStop() { clearTimeout(PH.timer); PH.timer = 0; }
+            function phTimerStart() {
+              phTimerStop();
+              if (destroyed || !photoLive() || state !== 'open' || PH.n < 2 || PH.drag || document.hidden) return;
+              PH.timer = setTimeout(phAuto, slideMs);
+            }
+            // Calm auto-advance: ease-in-out slide with parallax; a quick cross-fade under reduced motion.
+            function phAuto() {
+              PH.timer = 0;
+              if (!photoLive() || state !== 'open' || PH.n < 2 || PH.drag || document.hidden) return;
+              renderDots(mod(PH.idx + 1, PH.n));
+              if (reduced()) { phStop(); phCommit(1); PH.slots[1].classList.add('cal-fadein'); phTimerStart(); return; }
+              var Wd = slideW() + PH.gap, off0 = PH.offset, dur = 1150;
+              phAnimate(function (t) {
+                var u = clamp(t / dur, 0, 1), e = u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
+                return lerp(off0, -Wd, e);
+              }, dur, function () { phCommit(1); phTimerStart(); });
+            }
+            function phCancelDrag() {
+              if (!PH.drag) return;
+              var id = PH.drag.id;
+              PH.drag = null;
+              try { E.slides.releasePointerCapture(id); } catch (e) { /* ignore */ }
+              E.slides.classList.remove('is-dragging');
+            }
+            function onPhDown(e) {
+              if (PH.drag || !photoLive() || !E.panel.classList.contains('cal-ready')) return;
+              if (e.pointerType === 'mouse' && e.button !== 0) return;
+              e.preventDefault();                                        // no text selection / image drag / emulated mouse events
+              phTimerStop(); phStop();
+              try { E.slides.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+              PH.drag = { id: e.pointerId, x0: e.clientX, off0: PH.offset, moved: false, k: (geom && geom.k) || 1, pts: [{ x: e.clientX, t: e.timeStamp }] };
+              E.slides.classList.add('is-dragging');
+            }
+            function onPhMove(e) {
+              var d = PH.drag;
+              if (!d || e.pointerId !== d.id) return;
+              e.preventDefault();
+              var dx = (e.clientX - d.x0) / d.k, Wd = slideW() + PH.gap, off = d.off0 + dx;
+              if (!d.moved && Math.abs(dx) > 6) d.moved = true;
+              if (PH.n < 2) off *= 0.35;                                  // nothing to swipe to: rubber band
+              else if (Math.abs(off) > Wd) off = (off > 0 ? 1 : -1) * (Wd + (Math.abs(off) - Wd) * 0.3);
+              PH.offset = off;
+              phPlace(off);
+              d.pts.push({ x: e.clientX, t: e.timeStamp });
+              while (d.pts.length > 2 && e.timeStamp - d.pts[0].t > 90) d.pts.shift();
+            }
+            function onPhUp(e) {
+              var d = PH.drag;
+              if (!d || e.pointerId !== d.id) return;
+              phCancelDrag();
+              if (d.moved) suppressClick = performance.now() + 500;
+              var a = d.pts[0], b = d.pts[d.pts.length - 1], dt = b.t - a.t;
+              var v = e.type === 'pointerup' && dt > 0 ? clamp((b.x - a.x) / dt / d.k, -4, 4) : 0;   // px/ms
+              var Wd = slideW() + PH.gap, proj = PH.offset + v * 160, dir = 0;
+              if (PH.n > 1 && d.moved) { if (proj < -Wd * 0.22) dir = 1; else if (proj > Wd * 0.22) dir = -1; }
+              if (dir) renderDots(mod(PH.idx + dir, PH.n));
+              phSettle(dir, v);
+              phTimerStart();                                            // a manual swipe restarts the 30 s timer
+            }
+            function onRootClickCapture(e) {
+              if (suppressClick && performance.now() < suppressClick) { e.stopPropagation(); e.preventDefault(); }
+              suppressClick = 0;
+            }
+
             // --------------------------------------------------------------- tile date
             var dayKey = '';
             function refreshDate() {
@@ -2320,7 +2945,7 @@
               E.day.textContent = String(now.getDate());
               E.tile.setAttribute('aria-label', 'Calendar, ' + WDL[now.getDay()] + ' ' + now.getDate() + ' ' + MONL[now.getMonth()]);
               if (dayKey && k !== dayKey) {
-                if (revealed) renderList(true);          // Today/Tomorrow labels moved
+                if (revealed) renderContent(true);       // Today/Tomorrow labels moved
                 load(false);
               }
               dayKey = k;
@@ -2337,16 +2962,13 @@
               if (destroyed) return;
               if (state === 'opening' || state === 'closing') { pendingRelayout = true; return; }
               if (state !== 'open') return;
-              var g = computeGeom(function (gg) {
-                applyGeom({ pl: gg.pl, pw: gg.pw, bandH: gg.bandH, inset: gg.inset, T: gg.T, tl: gg.tl });
-                E.panel.style.height = '0px';
-                var h = E.list.scrollHeight;
-                return rendered === 'skeleton' ? MAX_H : gg.bandH + h + 2;
-              });
+              var g = computeGeom(measureQuiet, openMode);
               if (!g) return;
+              phStop();
               geom = g;
               applyGeom(g);
               applyPose(poseOpen(g), g);
+              phPlace(PH.offset);
             }
             var rzTimer = 0;
             function onResize() { clearTimeout(rzTimer); rzTimer = setTimeout(relayout, 140); }
@@ -2362,17 +2984,25 @@
               else if (act === 'retry') reload();
             }
             function onVisibility() {
-              if (document.hidden) return;
+              if (document.hidden) { phTimerStop(); return; }
+              phTimerStart();
               refreshDate();
               scheduleMidnight();
               if (Date.now() - lastLoadAt > 20000) load(false);
             }
             E.panel.addEventListener('click', onPanelClick);
+            E.slides.addEventListener('pointerdown', onPhDown);
+            E.slides.addEventListener('pointermove', onPhMove);
+            E.slides.addEventListener('pointerup', onPhUp);
+            E.slides.addEventListener('pointercancel', onPhUp);
+            E.slides.addEventListener('lostpointercapture', function (e) { if (PH.drag && e.pointerId === PH.drag.id) onPhUp({ type: 'pointercancel', pointerId: e.pointerId }); });
+            root.addEventListener('click', onRootClickCapture, true);
             document.addEventListener('visibilitychange', onVisibility);
             window.addEventListener('resize', onResize);
             var minuteTimer = setInterval(function () { if (dateKey(new Date()) !== dayKey) refreshDate(); }, 60000);
             var refreshTimer = setInterval(function () { load(false); }, REFRESH_MS);
 
+            setAccent(opts.accent);
             refreshDate();
             scheduleMidnight();
             load(false);
@@ -2392,13 +3022,20 @@
               refreshDate: refreshDate,
               reload: reload,
               intro: intro,
+              setAccent: setAccent,
+              setMode: setMode,
+              setPreferRight: function (b) { preferRight = !!b; },   // used from the next opening on
               relayout: relayout,
               destroy: function () {
                 if (destroyed) return;
                 if (cur) interrupt();
                 destroyed = true;
                 clearTimeout(midTimer); clearTimeout(rzTimer); clearTimeout(frostTimer); clearTimeout(warmTimer); clearInterval(minuteTimer); clearInterval(refreshTimer);
+                phTimerStop(); phStop(); phCancelDrag();
                 E.panel.removeEventListener('click', onPanelClick);
+                root.removeEventListener('click', onRootClickCapture, true);
+                Object.keys(palette ? palette.vars : {}).forEach(function (k) { root.style.removeProperty(k); });
+                root.classList.remove('cal-acc-light');
                 document.removeEventListener('visibilitychange', onVisibility);
                 window.removeEventListener('resize', onResize);
                 root.classList.remove('is-open', 'is-busy', 'is-active');
@@ -2407,6 +3044,7 @@
               },
               get isOpen() { return state === 'opening' || state === 'open'; },
               get isBusy() { return !!cur || state === 'thinking'; },
+              get mode() { return mode; },
               get state() { return state; }
             };
             root.__calWidget = ctrl;
@@ -5816,7 +6454,7 @@
                     function setAccent(color) {
                         look.accent = color.toLowerCase();
                         saveLook(); syncLook();
-                        if (controller && controller.setAccent) controller.setAccent(look.accent);
+                        if (controller) controller.setAccent(look.accent);
                     }
 
                     function mount() {
@@ -5895,12 +6533,12 @@
                         if (!b || b.dataset.mode === look.mode) return;
                         look.mode = b.dataset.mode;
                         saveLook(); syncLook();
-                        if (controller && controller.setMode) controller.setMode(look.mode);
+                        if (controller) controller.setMode(look.mode);
                     });
                     preferRightToggle.addEventListener('change', () => {
                         look.preferRight = preferRightToggle.checked;
                         saveLook();
-                        if (controller && controller.setPreferRight) controller.setPreferRight(look.preferRight);
+                        if (controller) controller.setPreferRight(look.preferRight);
                     });
                     // A tap on the date opens or closes the week. A drag (hasMoved) moves the widget instead.
                     widget.addEventListener('click', (e) => {
