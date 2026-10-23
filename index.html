@@ -29,7 +29,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@700&family=Roboto+Mono:wght@500&family=Roboto:wght@400;500&family=Playfair+Display:wght@700&family=Source+Code+Pro:wght@700&family=Inter:wght@400;500&family=Lora:wght@400;500&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@700&family=Roboto+Mono:wght@500&family=Roboto:wght@300;400;500;700&family=Playfair+Display:wght@700&family=Source+Code+Pro:wght@700&family=Inter:wght@400;500&family=Lora:wght@400;500&display=swap');
         :root {
             --widget-bg: rgba(0, 0, 0, 0.2);
             --widget-bg-light: rgba(255, 255, 255, 0.2);
@@ -433,8 +433,463 @@
         /* =================================================================
            CALENDAR WIDGET (hidden addon: type "admin" in the stock picker)
            ================================================================= */
-        #calendar-widget { top: 64%; left: 18%; }
-        /*CALENDAR-WIDGET-CSS*/
+        #calendar-widget { top: 64%; left: 30%; }
+        /* ==========================================================================
+           Calendar widget (tile + "Upcoming" window) for the car lockscreen.
+           Everything is scoped under #calendar-widget; keyframes are prefixed cal-.
+           Tile size is driven by --cal-size (default 84px; set it on the root or any
+           ancestor). Fonts used: Roboto (300 for the day number if loaded, falls
+           back to 400), Roboto Mono, Font Awesome 6 icons.
+           ========================================================================== */
+
+        #calendar-widget {
+          width: var(--cal-size, 84px);
+          height: var(--cal-size, 84px);
+          overflow: visible;
+          font-family: 'Roboto', system-ui, -apple-system, 'Segoe UI', sans-serif;
+          text-align: left;
+          line-height: 1.25;
+          color: #fff;
+          -webkit-tap-highlight-color: transparent;
+        }
+        /* is-open: window open or animating; is-active: any animation / hint showing. Raise above other widgets (menus sit at 1000). */
+        #calendar-widget.is-open,
+        #calendar-widget.is-active { z-index: 900; }
+
+        #calendar-widget *,
+        #calendar-widget *::before,
+        #calendar-widget *::after { box-sizing: border-box; }
+        #calendar-widget [hidden] { display: none !important; }
+
+        /* ---------- the tile ---------------------------------------------------- */
+        #calendar-widget .cal-tile {
+          position: absolute; left: 0; top: 0; width: 100%; height: 100%;
+          z-index: 3;
+          border-radius: 22.5%;
+          transform-origin: 50% 50%;
+          will-change: transform;
+          cursor: pointer;
+        }
+        #calendar-widget .cal-face {
+          position: absolute; left: 0; top: 0; right: 0; bottom: 0;
+          border-radius: inherit;
+          overflow: hidden;
+          background: linear-gradient(180deg, #ffffff 0%, #f9f9f9 55%, #efefef 100%);
+          box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.12), inset 0 -2px 4px rgba(0, 0, 0, 0.05);
+          transition: transform 0.14s ease;
+        }
+        #calendar-widget .cal-tile:active .cal-face { transform: scale(0.94); }
+        #calendar-widget .cal-month {
+          position: absolute; left: 0; right: 0; top: 0; height: 30%;
+          display: flex; align-items: center; justify-content: center;
+          padding-top: 2%;
+          background:
+            radial-gradient(120% 140% at 50% -30%, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0) 60%),
+            linear-gradient(180deg, #ff7468 0%, #f25b52 48%, #e64a40 100%);
+          box-shadow: inset 0 -1px 0 rgba(120, 10, 0, 0.18);
+          color: #fff;
+          font-family: 'Roboto', system-ui, -apple-system, 'Segoe UI', sans-serif;
+          font-size: calc(var(--cal-size, 84px) * 0.185);
+          font-weight: 700;
+          letter-spacing: 0.07em;
+          line-height: 1;
+          text-shadow: 0 1px 1px rgba(110, 0, 0, 0.18);
+        }
+        /* very subtle paper texture on the band */
+        #calendar-widget .cal-month::after {
+          content: ''; position: absolute; left: 0; top: 0; right: 0; bottom: 0;
+          background: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.035) 0 1px, rgba(255, 255, 255, 0) 1px 3px);
+          pointer-events: none;
+        }
+        #calendar-widget .cal-daynum {
+          position: absolute; left: 0; right: 0; top: 30%; bottom: 0;
+          display: flex; align-items: center; justify-content: center;
+          padding-bottom: 3%;
+          color: #2a2a2a;
+          font-family: 'Roboto', 'Helvetica Neue', system-ui, -apple-system, 'Segoe UI', sans-serif;
+          font-size: calc(var(--cal-size, 84px) * 0.5);
+          font-weight: 300;
+          letter-spacing: -0.035em;
+          line-height: 1;
+          font-variant-numeric: lining-nums;
+        }
+        #calendar-widget .cal-gloss {
+          position: absolute; left: 0; top: 0; right: 0; bottom: 0;
+          border-radius: inherit;
+          background: linear-gradient(180deg, rgba(255, 255, 255, 0.18) 0%, rgba(255, 255, 255, 0) 38%);
+          pointer-events: none;
+        }
+
+        /* drop shadow of the tile: its own layer so it stays "down" while the tile spins */
+        #calendar-widget .cal-tshadow {
+          position: absolute; left: 0; top: 0; width: 100%; height: 100%;
+          z-index: 2;
+          border-radius: 24%;
+          background: rgba(0, 0, 0, 0.42);
+          filter: blur(calc(var(--cal-size, 84px) * 0.075));
+          transform: translate(0, 5px) scale(0.9);
+          transform-origin: 50% 50%;
+          will-change: transform, opacity;
+          pointer-events: none;
+        }
+        /* soft contact shadow on the "ground" while the tile rolls */
+        #calendar-widget .cal-gshadow {
+          position: absolute; left: 4%; width: 92%; top: 92%; height: 16%;
+          z-index: 0;
+          border-radius: 50%;
+          background: radial-gradient(closest-side, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.22) 55%, rgba(0, 0, 0, 0));
+          opacity: 0;
+          transform-origin: 50% 50%;
+          will-change: transform, opacity;
+          pointer-events: none;
+        }
+
+        /* ---------- the window -------------------------------------------------- */
+        #calendar-widget .cal-panel {
+          position: absolute; left: 0; top: 0; width: 0; height: 0;
+          z-index: 1;
+          visibility: hidden;
+          pointer-events: none;
+          cursor: default;
+          user-select: none;
+          -webkit-user-select: none;
+        }
+        #calendar-widget .cal-panel.cal-show { visibility: visible; }
+        #calendar-widget .cal-panel.cal-ready { pointer-events: auto; }
+
+        /* Two glass layers: .cal-glass is a light, un-blurred layer that does all the springing (cheap to animate);
+           .cal-frost is the real frosted glass (backdrop blur) that cross-fades in once everything has settled and
+           back out as soon as the window starts closing, so the blur never has to be recomputed during motion. */
+        #calendar-widget .cal-frost {
+          position: absolute; left: 0; top: 0; right: 0; bottom: 0;
+          border-radius: 22px;
+          background: rgba(20, 20, 22, 0.72);
+          -webkit-backdrop-filter: blur(18px) saturate(140%);
+          backdrop-filter: blur(18px) saturate(140%);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          box-shadow: 0 22px 60px rgba(0, 0, 0, 0.42), 0 3px 10px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+          opacity: 0;
+          transition: opacity 0s linear 0.15s;
+          pointer-events: none;
+        }
+        #calendar-widget .cal-frosted .cal-frost { opacity: 1; transition: opacity 0s; }
+        #calendar-widget .cal-glass-wrap {
+          position: absolute; left: 0; top: 0; right: 0; bottom: 0;
+          opacity: 1;
+          transition: opacity 0.14s ease-out;
+          pointer-events: none;
+        }
+        #calendar-widget .cal-frosted .cal-glass-wrap { opacity: 0; transition: opacity 0.36s ease-in-out; }
+        #calendar-widget .cal-glass {
+          position: absolute; left: 0; top: 0; right: 0; bottom: 0;
+          border-radius: 22px;
+          background: rgba(27, 27, 31, 0.88);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          box-shadow: 0 22px 60px rgba(0, 0, 0, 0.42), 0 3px 10px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+          opacity: 0;
+          will-change: transform, opacity;
+        }
+        #calendar-widget .cal-content {
+          position: absolute; left: 0; top: 0; right: 0; bottom: 0;
+          display: flex; flex-direction: column;
+          border-radius: 22px;
+          overflow: hidden;
+          opacity: 0;
+        }
+
+        /* header band: sits next to the tile (bottom when the window opened upwards, top when downwards) */
+        #calendar-widget .cal-band {
+          position: relative;
+          flex: 0 0 auto;
+          height: var(--cal-band-h, 108px);
+          display: flex; align-items: center;
+          padding: 0 14px 0 var(--cal-band-pad, 110px);
+        }
+        #calendar-widget .cal-tr .cal-band {
+          flex-direction: row-reverse;
+          padding: 0 var(--cal-band-pad, 110px) 0 14px;
+          text-align: right;
+        }
+        #calendar-widget .cal-up .cal-band { order: 2; }
+        #calendar-widget .cal-up .cal-body { order: 1; }
+        #calendar-widget .cal-band::before {
+          content: ''; position: absolute; left: 14px; right: 14px; height: 1px;
+          background: rgba(255, 255, 255, 0.09);
+        }
+        #calendar-widget .cal-up .cal-band::before { top: 0; }
+        #calendar-widget .cal-down .cal-band::before { bottom: 0; }
+        #calendar-widget .cal-band-text { flex: 1 1 auto; min-width: 0; }
+        #calendar-widget .cal-band-title {
+          font-size: 19px; font-weight: 500; letter-spacing: 0.005em;
+          white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        #calendar-widget .cal-band-sub {
+          margin-top: 3px;
+          font-size: 13.5px; color: rgba(255, 255, 255, 0.62);
+          white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        #calendar-widget .cal-band-note {
+          display: inline-flex; align-items: center; gap: 6px;
+          margin-top: 6px; padding: 3px 9px;
+          border-radius: 999px;
+          background: rgba(255, 190, 80, 0.14);
+          color: #ffd486;
+          font-size: 12px; font-weight: 500;
+        }
+        #calendar-widget .cal-gear {
+          flex: 0 0 auto;
+          width: 44px; height: 44px; margin: 0; padding: 0;
+          border: 0; border-radius: 50%;
+          background: rgba(255, 255, 255, 0.08);
+          color: rgba(255, 255, 255, 0.86);
+          font-size: 18px; line-height: 1;
+          display: flex; align-items: center; justify-content: center;
+          cursor: pointer;
+          transition: transform 0.18s ease, background-color 0.18s ease;
+        }
+        #calendar-widget .cal-gear:active { transform: scale(0.9) rotate(40deg); background: rgba(255, 255, 255, 0.18); }
+
+        /* scrolling list */
+        #calendar-widget .cal-body {
+          position: relative;
+          flex: 1 1 auto;
+          min-height: 0;
+          overflow-x: hidden;
+          overflow-y: auto;
+          overscroll-behavior: contain;
+          -webkit-overflow-scrolling: touch;
+          touch-action: pan-y;
+          padding: 12px 14px 16px;
+          -webkit-mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0) 0, #000 10px, #000 calc(100% - 18px), rgba(0, 0, 0, 0) 100%);
+          mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0) 0, #000 10px, #000 calc(100% - 18px), rgba(0, 0, 0, 0) 100%);
+          scrollbar-width: thin;
+          scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+        }
+        #calendar-widget .cal-body::-webkit-scrollbar { width: 6px; }
+        #calendar-widget .cal-body::-webkit-scrollbar-track { background: transparent; }
+        #calendar-widget .cal-body::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 3px; }
+
+        #calendar-widget .cal-row {
+          position: relative;
+          display: flex; align-items: center; gap: 12px;
+          min-height: 62px;
+          margin-bottom: 6px; padding: 8px 12px 8px 9px;
+          border-radius: 15px;
+          background: rgba(255, 255, 255, 0.065);
+        }
+        #calendar-widget .cal-row:last-child { margin-bottom: 0; }
+        #calendar-widget .cal-row.cal-is-today { background: rgba(255, 255, 255, 0.095); }
+        /* mini date badge echoing the tile */
+        #calendar-widget .cal-badge {
+          flex: 0 0 auto;
+          width: 44px; height: 44px;
+          border-radius: 10px;
+          overflow: hidden;
+          background: linear-gradient(180deg, #ffffff 0%, #f6f6f6 60%, #ececec 100%);
+          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.32), inset 0 0 0 0.5px rgba(0, 0, 0, 0.12);
+          text-align: center;
+        }
+        #calendar-widget .cal-badge-m {
+          height: 14px; padding-top: 1px;
+          background: linear-gradient(180deg, #ff7468 0%, #f25b52 50%, #e64a40 100%);
+          color: #fff;
+          font-size: 9px; font-weight: 700; letter-spacing: 0.08em; line-height: 13px;
+        }
+        #calendar-widget .cal-badge-d {
+          height: 30px;
+          color: #2a2a2a;
+          font-size: 21px; font-weight: 300; letter-spacing: -0.03em; line-height: 29px;
+        }
+        #calendar-widget .cal-badge-today { box-shadow: 0 0 0 2px #ff6b5f, 0 2px 12px rgba(255, 107, 95, 0.5); }
+        #calendar-widget .cal-ev { flex: 1 1 auto; min-width: 0; }
+        #calendar-widget .cal-ev-title {
+          font-size: 15.5px; font-weight: 500; line-height: 1.25; color: #fff;
+          display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+          overflow: hidden; overflow-wrap: anywhere;
+        }
+        #calendar-widget .cal-ev-meta {
+          display: flex; align-items: center; gap: 6px;
+          margin-top: 3px;
+          font-size: 13px; color: rgba(255, 255, 255, 0.6);
+          white-space: nowrap; overflow: hidden;
+        }
+        #calendar-widget .cal-ev-time { font-family: 'Roboto Mono', ui-monospace, monospace; font-size: 12.5px; font-weight: 500; color: rgba(255, 255, 255, 0.86); }
+        #calendar-widget .cal-ev-time.cal-allday { font-family: 'Roboto', system-ui, sans-serif; font-size: 13px; }
+        #calendar-widget .cal-sep { opacity: 0.55; }
+        #calendar-widget .cal-ev-day { overflow: hidden; text-overflow: ellipsis; }
+        #calendar-widget .cal-hot { color: #ff8d85; font-weight: 500; }
+        #calendar-widget .cal-live {
+          flex: 0 0 auto;
+          padding: 2px 6px; border-radius: 6px;
+          background: #f25b52; color: #fff;
+          font-size: 10px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; line-height: 1.3;
+        }
+        #calendar-widget .cal-dot {
+          flex: 0 0 auto;
+          width: 8px; height: 8px; border-radius: 50%;
+          background: rgba(255, 255, 255, 0.45);
+          background: var(--c, rgba(255, 255, 255, 0.45));
+          box-shadow: 0 0 8px var(--c, rgba(255, 255, 255, 0));
+        }
+        #calendar-widget .cal-emoji { flex: 0 0 auto; font-size: 22px; line-height: 1; }
+        #calendar-widget .cal-ev-loc {
+          margin-top: 2px;
+          font-size: 12.5px; color: rgba(255, 255, 255, 0.5);
+          white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        #calendar-widget .cal-ev-loc i { font-size: 11px; margin-right: 5px; opacity: 0.8; }
+        #calendar-widget .cal-wait .cal-pi { opacity: 0; }
+
+        /* skeleton */
+        #calendar-widget .cal-sk { position: relative; overflow: hidden; background: rgba(255, 255, 255, 0.09); }
+        #calendar-widget .cal-sk::after {
+          content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 100%;
+          background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0));
+          transform: translateX(-100%);
+          animation: cal-shimmer 1.25s ease-in-out infinite;
+        }
+        #calendar-widget .cal-skel-row {
+          display: flex; align-items: center; gap: 12px;
+          height: 62px; margin-bottom: 6px; padding: 0 12px 0 9px;
+          border-radius: 15px; background: rgba(255, 255, 255, 0.045);
+        }
+        #calendar-widget .cal-skel-badge { flex: 0 0 auto; width: 44px; height: 44px; border-radius: 10px; }
+        #calendar-widget .cal-skel-lines { flex: 1 1 auto; }
+        #calendar-widget .cal-skel-l1 { height: 12px; width: 72%; border-radius: 6px; }
+        #calendar-widget .cal-skel-l2 { height: 10px; width: 44%; border-radius: 5px; margin-top: 8px; }
+
+        /* messages: error / not configured / all-empty */
+        #calendar-widget .cal-msg {
+          display: flex; flex-direction: column; align-items: center; justify-content: center;
+          min-height: 100%;
+          padding: 10px 16px 14px;
+          text-align: center;
+        }
+        #calendar-widget .cal-msg-icon {
+          width: 56px; height: 56px; margin-bottom: 12px;
+          border-radius: 18px;
+          display: flex; align-items: center; justify-content: center;
+          background: rgba(255, 255, 255, 0.09);
+          font-size: 24px; color: rgba(255, 255, 255, 0.85);
+        }
+        #calendar-widget .cal-msg-icon.cal-accent { background: rgba(242, 91, 82, 0.2); color: #ff8d85; }
+        #calendar-widget .cal-msg-title { font-size: 17px; font-weight: 500; }
+        #calendar-widget .cal-msg-sub { margin-top: 6px; max-width: 320px; font-size: 13.5px; line-height: 1.4; color: rgba(255, 255, 255, 0.6); overflow-wrap: anywhere; }
+        #calendar-widget .cal-btn {
+          display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+          min-height: 44px; margin: 16px 0 0; padding: 0 22px;
+          border: 0; border-radius: 22px;
+          background: rgba(255, 255, 255, 0.14);
+          color: #fff;
+          font-family: inherit; font-size: 15px; font-weight: 500;
+          cursor: pointer;
+          transition: transform 0.15s ease, background-color 0.15s ease;
+        }
+        #calendar-widget .cal-btn:active { transform: scale(0.95); background: rgba(255, 255, 255, 0.22); }
+        #calendar-widget .cal-btn-primary { background: #f25b52; box-shadow: 0 6px 18px rgba(242, 91, 82, 0.35); }
+        #calendar-widget .cal-btn-primary:active { background: #e14c43; }
+        #calendar-widget .cal-empty-art { font-size: 46px; line-height: 1; margin-bottom: 12px; animation: cal-float 3.2s ease-in-out infinite; }
+
+        /* ---------- list pop-in / pop-out -------------------------------------- */
+        #calendar-widget .cal-pop {
+          animation: cal-pop-up 560ms both;
+          animation-delay: calc(var(--i, 0) * 44ms);
+          transform-origin: 0 50%;
+        }
+        #calendar-widget .cal-tr .cal-pop { transform-origin: 100% 50%; }
+        #calendar-widget .cal-down .cal-pop { animation-name: cal-pop-down; }
+        #calendar-widget .cal-out {
+          animation: cal-out-up 230ms both;
+          animation-delay: calc(var(--i, 0) * 24ms);
+          transform-origin: 0 50%;
+        }
+        #calendar-widget .cal-tr .cal-out { transform-origin: 100% 50%; }
+        #calendar-widget .cal-down .cal-out { animation-name: cal-out-down; }
+        #calendar-widget .cal-swap { animation: cal-fade-in 260ms ease-out both; }
+
+        @keyframes cal-pop-up {
+          0%   { opacity: 0; transform: translate3d(0, 22px, 0) scale(0.7); animation-timing-function: cubic-bezier(0.2, 0.8, 0.35, 1); }
+          42%  { opacity: 1; transform: translate3d(0, -5px, 0) scale(1.035); animation-timing-function: ease-in-out; }
+          66%  { transform: translate3d(0, 2px, 0) scale(0.99); animation-timing-function: ease-in-out; }
+          84%  { transform: translate3d(0, -1px, 0) scale(1.004); animation-timing-function: ease-in-out; }
+          100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+        }
+        @keyframes cal-pop-down {
+          0%   { opacity: 0; transform: translate3d(0, -22px, 0) scale(0.7); animation-timing-function: cubic-bezier(0.2, 0.8, 0.35, 1); }
+          42%  { opacity: 1; transform: translate3d(0, 5px, 0) scale(1.035); animation-timing-function: ease-in-out; }
+          66%  { transform: translate3d(0, -2px, 0) scale(0.99); animation-timing-function: ease-in-out; }
+          84%  { transform: translate3d(0, 1px, 0) scale(1.004); animation-timing-function: ease-in-out; }
+          100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+        }
+        @keyframes cal-out-up {
+          0%   { opacity: 1; transform: translate3d(0, 0, 0) scale(1); animation-timing-function: ease-out; }
+          30%  { opacity: 1; transform: translate3d(0, -3px, 0) scale(1.02); animation-timing-function: ease-in; }
+          100% { opacity: 0; transform: translate3d(0, 18px, 0) scale(0.72); }
+        }
+        @keyframes cal-out-down {
+          0%   { opacity: 1; transform: translate3d(0, 0, 0) scale(1); animation-timing-function: ease-out; }
+          30%  { opacity: 1; transform: translate3d(0, 3px, 0) scale(1.02); animation-timing-function: ease-in; }
+          100% { opacity: 0; transform: translate3d(0, -18px, 0) scale(0.72); }
+        }
+        @keyframes cal-fade-in { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes cal-shimmer { to { transform: translateX(100%); } }
+        @keyframes cal-float {
+          0%, 100% { transform: translateY(0) rotate(-4deg); }
+          50%      { transform: translateY(-6px) rotate(4deg); }
+        }
+
+        /* ---------- intro sparkles --------------------------------------------- */
+        #calendar-widget .cal-spark {
+          position: absolute; left: 50%; top: 50%;
+          width: 8px; height: 8px; margin: -4px 0 0 -4px;
+          z-index: 1;
+          border-radius: 50%;
+          pointer-events: none;
+          will-change: transform, opacity;
+        }
+        #calendar-widget .cal-spark.cal-confetti { width: 5px; height: 11px; margin: -5.5px 0 0 -2.5px; border-radius: 1.5px; }
+        #calendar-widget .cal-spark.cal-star {
+          width: 13px; height: 13px; margin: -6.5px 0 0 -6.5px; border-radius: 0;
+          -webkit-clip-path: polygon(50% 0, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0 50%, 39% 39%);
+          clip-path: polygon(50% 0, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0 50%, 39% 39%);
+        }
+        #calendar-widget .cal-ring {
+          position: absolute; left: -10%; top: -10%; width: 120%; height: 120%;
+          z-index: 1;
+          border-radius: 30%;
+          border: 2px solid rgba(255, 255, 255, 0.75);
+          box-shadow: 0 0 16px rgba(255, 140, 120, 0.55);
+          pointer-events: none;
+          opacity: 0;
+        }
+
+        /* ---------- "No upcoming events" hint after the empty bounce ---------- */
+        #calendar-widget .cal-pill {
+          position: absolute; left: 0; top: 0;
+          z-index: 5;
+          display: inline-flex; align-items: center; gap: 8px;
+          padding: 9px 15px;
+          border-radius: 999px;
+          border: 1px solid rgba(255, 255, 255, 0.14);
+          background: rgba(24, 24, 27, 0.9);
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+          color: #fff;
+          font-size: 14.5px; font-weight: 500; line-height: 1.2;
+          white-space: nowrap;
+          pointer-events: none;
+        }
+        #calendar-widget .cal-pill i { color: #ff8d85; }
+
+        /* ---------- reduced motion --------------------------------------------- */
+        @media (prefers-reduced-motion: reduce) {
+          #calendar-widget .cal-pop,
+          #calendar-widget .cal-down .cal-pop { animation: cal-fade-in 180ms ease-out both; animation-delay: 0ms; }
+          #calendar-widget .cal-out,
+          #calendar-widget .cal-down .cal-out { animation: cal-fade-in 120ms ease-in reverse both; animation-delay: 0ms; }
+          #calendar-widget .cal-sk::after { animation: none; }
+          #calendar-widget .cal-empty-art { animation: none; }
+          #calendar-widget .cal-face { transition: none; }
+        }
         #calendar-settings-menu .menu-content { max-height: 88vh; overflow-y: auto; }
         #calendar-settings-menu .calendar-hint { color: #8e8e93; font-size: 0.85rem; margin: 6px 0 0; }
         #calendar-settings-menu .settings-section > label { text-align: left; color: #d6d6d8; font-size: 0.92rem; margin-bottom: 6px; }
@@ -571,7 +1026,7 @@
             <i class="fa-solid fa-video-slash"></i>
         </div>
 
-        <div id="calendar-widget" class="draggable-item hidden" title="Tap for your next 7 events"></div>
+        <div id="calendar-widget" class="draggable-item hidden" title="Tap for upcoming events"></div>
 
         <div id="settings-btn" class="draggable-item app-icon" title="Open settings menu"><svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="7.5" fill="rgba(80, 80, 80, 0.6)"/><circle cx="8" cy="8" r="4" fill="none" stroke="var(--icon-stroke-color)" stroke-width="1.5"/></svg></div>
         <div id="fun-stock-name-display" class="draggable-item"></div>
@@ -811,7 +1266,1122 @@
     <div id="flash-top" class="flash-overlay"></div>
     <div id="flash-bottom" class="flash-overlay"></div>
     
-    <!--CALENDAR-MODULES-->
+    <script>
+        /* ==========================================================================
+           calendar-widget.js - fancy calendar tile + "Upcoming" window for the car
+           lockscreen. Plain ES2017, no dependencies, no modules.
+
+           window.CalendarWidget.mount(rootEl, opts) -> controller
+             opts.loadEvents({ fresh }) -> Promise<{ events: Item[], stale?: boolean }>
+             opts.onSettings()
+             (optional) opts.emptyHint: false  -> no "No upcoming events" pill on the empty bounce
+           controller: toggle(), open(), close(), refreshDate(), reload(), intro(),
+                       relayout(), destroy(), isOpen, isBusy
+
+           All motion is sampled from JS pose functions into Web Animations keyframes
+           (transform / opacity only), so it runs on the compositor even when the main
+           thread is busy, and can be interrupted / reversed from any frame.
+           ========================================================================== */
+        (function () {
+          'use strict';
+          if (window.CalendarWidget) return;
+
+          // ---------------------------------------------------------------- tunables
+          var MAX_W = 440, MAX_H = 380, MARGIN = 16;
+          var GRAV = 4000;                    // px/s^2 - "gravity" for hops and loops
+          var STEP = 1000 / 60;               // keyframe sampling interval (ms)
+          var REFRESH_MS = 10 * 60 * 1000;    // background prefetch interval
+          var LOAD_TIMEOUT = 15000;
+          var THINK_MAX = 3200;               // max "thinking" time before opening with a skeleton
+
+          var MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+          var MONL = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+          var WD = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+          var WDL = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+          var PI2 = Math.PI * 2;
+
+          // ------------------------------------------------------------------- math
+          function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
+          function lerp(a, b, t) { return a + (b - a) * t; }
+          function smooth(t) { t = clamp(t, 0, 1); return t * t * (3 - 2 * t); }
+          function easeOutCubic(t) { t = clamp(t, 0, 1); return 1 - (1 - t) * (1 - t) * (1 - t); }
+          function bump(t, c, w) { var d = (t - c) / w; return Math.exp(-d * d); }
+          function W(period) { return PI2 / period; }
+          // Damped spring: displacement from rest after t ms, starting at x0 with velocity v0 (per ms).
+          function spring(t, x0, v0, w0, z) {
+            if (t <= 0) return x0;
+            var wd = w0 * Math.sqrt(1 - z * z), e = Math.exp(-z * w0 * t);
+            return e * (x0 * Math.cos(wd * t) + ((v0 + z * w0 * x0) / wd) * Math.sin(wd * t));
+          }
+          function softCap(v, cap) { return v <= 0 ? v : cap * Math.tanh(v / cap); }
+          function normDeg(r) { r = r % 360; if (r > 180) r -= 360; if (r <= -180) r += 360; return Math.abs(r) < 1e-6 ? 0 : r; }
+          function f2(n) { return Math.round(n * 100) / 100; }
+          function f4(n) { return Math.round(n * 10000) / 10000; }
+          function tf(x, y, r, sx, sy) {
+            return 'translate(' + f2(x) + 'px,' + f2(y) + 'px) rotate(' + f2(r) + 'deg) scale(' + f4(sx) + ',' + f4(sy) + ')';
+          }
+
+          // ------------------------------------------------------------------ dates
+          function pad2(n) { return (n < 10 ? '0' : '') + n; }
+          function dateKey(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
+          function parseKey(s) {
+            var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s || '');
+            return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null;
+          }
+          function addDays(d, n) { return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n); }
+          function parseISO(s) { if (!s) return null; var d = new Date(s); return isNaN(d.getTime()) ? null : d; }
+          function hhmm(d) { return pad2(d.getHours()) + ':' + pad2(d.getMinutes()); }
+
+          function esc(s) {
+            return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+              return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+            });
+          }
+          function safeColor(c) {
+            if (typeof c !== 'string' || c.length > 64 || !/^[#a-zA-Z0-9(),.%\s-]+$/.test(c)) return '';
+            try { if (window.CSS && CSS.supports && !CSS.supports('color', c)) return ''; } catch (e) { /* ignore */ }
+            return c;
+          }
+
+          // A cue fires a callback at a time on the animation timeline (so slow-mo / pausing keeps it in sync).
+          function makeCue(t, fn) {
+            var c = { fired: false, cancel: function () {} };
+            c.fire = function () { if (c.fired) return; c.fired = true; c.cancel(); fn(); };
+            if (t <= 0) { c.fire(); return c; }
+            try {
+              var a = new Animation(new KeyframeEffect(null, null, { duration: t }), document.timeline);
+              a.onfinish = function () { c.fire(); };
+              a.play();
+              c.cancel = function () { try { a.onfinish = null; a.cancel(); } catch (e) { /* ignore */ } };
+            } catch (e) {
+              var h = setTimeout(function () { c.fire(); }, t);
+              c.cancel = function () { clearTimeout(h); };
+            }
+            return c;
+          }
+
+          var TEMPLATE =
+            '<div class="cal-gshadow" aria-hidden="true"></div>' +
+            '<div id="calendar-panel" class="cal-panel" role="dialog" aria-label="Upcoming events" aria-hidden="true">' +
+              '<div class="cal-frost"></div>' +
+              '<div class="cal-glass-wrap"><div class="cal-glass"></div></div>' +
+              '<div class="cal-content">' +
+                '<div class="cal-band">' +
+                  '<div class="cal-band-text">' +
+                    '<div class="cal-band-title">Upcoming</div>' +
+                    '<div class="cal-band-sub"></div>' +
+                    '<div class="cal-band-note" hidden><i class="fa-solid fa-cloud-arrow-down"></i><span>offline \u2013 showing saved</span></div>' +
+                  '</div>' +
+                  '<button type="button" class="cal-gear" data-cal-act="settings" aria-label="Calendar settings"><i class="fa-solid fa-gear"></i></button>' +
+                '</div>' +
+                '<div class="cal-body"></div>' +
+              '</div>' +
+            '</div>' +
+            '<div class="cal-tshadow" aria-hidden="true"></div>' +
+            '<div id="calendar-tile" class="cal-tile" role="button">' +
+              '<div class="cal-face"><div class="cal-month"></div><div class="cal-daynum"></div><div class="cal-gloss"></div></div>' +
+            '</div>';
+
+          var ALL_KEYS = ['gsh', 'glass', 'body', 'band', 'tsh', 'tile'];
+          var TILE_KEYS = ['gsh', 'tsh', 'tile'];
+
+          function mount(root, opts) {
+            if (!root || root.nodeType !== 1) throw new Error('CalendarWidget.mount: rootEl must be an element');
+            if (root.__calWidget) return root.__calWidget;
+            opts = opts || {};
+
+            root.innerHTML = TEMPLATE;
+            var $ = function (s) { return root.querySelector(s); };
+            var E = {
+              tile: $('.cal-tile'), tsh: $('.cal-tshadow'), gsh: $('.cal-gshadow'),
+              panel: $('.cal-panel'), glass: $('.cal-glass'), body: $('.cal-content'), band: $('.cal-band'),
+              list: $('.cal-body'), title: $('.cal-band-title'), sub: $('.cal-band-sub'), note: $('.cal-band-note'),
+              month: $('.cal-month'), day: $('.cal-daynum')
+            };
+            var mq = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
+            function reduced() { return !!(mq && mq.matches); }
+
+            // ---------------------------------------------------------------- state
+            var state = 'closed';        // closed | thinking | opening | open | closing | bouncing | intro
+            var cur = null;              // running action record
+            var geom = null;             // geometry of the current/last opening
+            var revealed = false;        // list content has been revealed in the window
+            var rendered = '';           // signature of what the list currently shows
+            var pendingRelayout = false;
+            var thinkInfo = null;
+            var extras = [];             // temporary elements (sparkles, pill)
+            var destroyed = false;
+
+            var known = null;            // last successful result { events, stale }
+            var lastError = null;        // error of the latest failed load (cleared on success)
+            var loadSeq = 0, settledGen = 0, inflight = 0, lastLoadAt = 0;
+
+            // ============================================================ animation
+            function G0() { return { x: 0, y: 0, sx: 1, sy: 1, o: 0 }; }
+            function T0() { return { x: 0, y: 0, r: 0, sx: 1, sy: 1, o: 1 }; }
+
+            function glassPose(px, py, g) {
+              var sx = g.sx0 + (1 - g.sx0) * px, sy = g.sy0 + (1 - g.sy0) * py;
+              if (sx > 1) sx = 1 + softCap(sx - 1, g.capX);
+              if (sy > 1) sy = 1 + softCap(sy - 1, g.capY);
+              return { px: px, py: py, sx: Math.max(sx, 0.02), sy: Math.max(sy, 0.02), o: smooth(Math.min(px, py) / 0.2) };
+            }
+            function poseClosed(g) {
+              return { tile: T0(), lift: 0, g: G0(), glass: g ? glassPose(0, 0, g) : { px: 0, py: 0, sx: 1, sy: 1, o: 0 }, band: { o: 0, k: 16 }, body: { o: 0 } };
+            }
+            function poseOpen(g) {
+              return { tile: { x: g.tx, y: g.ty, r: 0, sx: 1, sy: 1, o: 1 }, lift: 0, g: G0(), glass: glassPose(1, 1, g), band: { o: 1, k: 0 }, body: { o: 1 } };
+            }
+            function fillPose(p, g) {
+              var base = poseClosed(g);
+              ['tile', 'g', 'glass', 'band', 'body'].forEach(function (k) { if (!p[k]) p[k] = base[k]; });
+              if (p.lift == null) p.lift = 0;
+              return p;
+            }
+
+            function toCSS(p, g) {
+              var t = p.tile, lift = clamp(p.lift || 0, 0, 220), out = {};
+              out.tile = { transform: tf(t.x, t.y, t.r, t.sx, t.sy), opacity: f4(t.o) };
+              var k = 0.9 + lift * 0.0005;
+              out.tsh = { transform: tf(t.x, t.y + 5 + lift * 0.07, t.r, t.sx * k, t.sy * k), opacity: f4(t.o * (1 - Math.min(0.55, lift / 240))) };
+              var gg = p.g || G0();
+              out.gsh = { transform: 'translate(' + f2(gg.x) + 'px,' + f2(gg.y) + 'px) scale(' + f4(gg.sx) + ',' + f4(gg.sy) + ')', opacity: f4(clamp(gg.o, 0, 1)) };
+              var gl = p.glass || { sx: 1, sy: 1, o: 0 };
+              out.glass = { transform: 'scale(' + f4(gl.sx) + ',' + f4(gl.sy) + ')', opacity: f4(clamp(gl.o, 0, 1)) };
+              var b = p.band || { o: 0, k: 0 }, side = g && g.tl === false ? 1 : -1;
+              out.band = { transform: 'translate(' + f2(b.k * side) + 'px,0px)', opacity: f4(clamp(b.o, 0, 1)) };
+              out.body = { opacity: f4(clamp(p.body ? p.body.o : 0, 0, 1)) };
+              return out;
+            }
+            function applyPose(p, g, keys) {
+              var c = toCSS(p, g);
+              (keys || ALL_KEYS).forEach(function (k) { E[k].style.transform = c[k].transform || ''; E[k].style.opacity = String(c[k].opacity); });
+            }
+            function clearInline() {
+              ALL_KEYS.forEach(function (k) { E[k].style.transform = ''; E[k].style.opacity = ''; });
+            }
+
+            function sample(a, keys) {
+              var n = Math.max(2, Math.ceil(a.dur / STEP) + 1), frames = {}, i, j;
+              keys.forEach(function (k) { frames[k] = []; });
+              for (i = 0; i < n; i++) {
+                var off = i / (n - 1), c = toCSS(a.fn(a.dur * off), a.g);
+                for (j = 0; j < keys.length; j++) {
+                  var f = c[keys[j]], kf = { offset: off, opacity: f.opacity };
+                  if (f.transform) kf.transform = f.transform;
+                  frames[keys[j]].push(kf);
+                }
+              }
+              // drop keyframes that sit inside a run of identical values (keeps parsing work small)
+              keys.forEach(function (k) {
+                var src = frames[k], out = [src[0]];
+                for (var m = 1; m < src.length - 1; m++) {
+                  var p = src[m - 1], q = src[m], r = src[m + 1];
+                  if (p.opacity === q.opacity && q.opacity === r.opacity && p.transform === q.transform && q.transform === r.transform) continue;
+                  out.push(q);
+                }
+                out.push(src[src.length - 1]);
+                frames[k] = out;
+              });
+              return frames;
+            }
+            function run(a) {
+              var keys = a.keys || ALL_KEYS;
+              var frames = sample(a, keys);
+              var rec = { a: a, keys: keys, anims: [], cues: [] };
+              cur = rec;
+              keys.forEach(function (k) {
+                rec.anims.push(E[k].animate(frames[k], { duration: a.dur, fill: 'forwards', easing: 'linear' }));
+              });
+              sync();
+              (a.cues || []).forEach(function (q) {
+                rec.cues.push(makeCue(q.t, function () { if (cur === rec) q.fn(); }));
+              });
+              rec.anims[0].onfinish = function () { if (cur === rec) finish(rec); };
+            }
+            function finish(rec) {
+              rec.cues.forEach(function (c) { c.fire(); });
+              if (cur !== rec) return;
+              var p = rec.a.final ? rec.a.final() : rec.a.fn(rec.a.dur);
+              p.tile.r = normDeg(p.tile.r);
+              applyPose(p, rec.a.g, rec.keys);
+              rec.anims.forEach(function (x) { x.cancel(); });
+              cur = null;
+              if (rec.a.end) rec.a.end();
+              sync();
+            }
+            // Freeze the running action on its current frame; returns the pose there.
+            function interrupt() {
+              var rec = cur;
+              if (!rec) return null;
+              var t = rec.anims[0] ? rec.anims[0].currentTime : 0;
+              t = (typeof t === 'number' && isFinite(t)) ? clamp(t, 0, rec.a.dur) : 0;
+              var p = rec.a.fn(t);
+              applyPose(p, rec.a.g, rec.keys);
+              rec.anims.forEach(function (x) { x.cancel(); });
+              rec.cues.forEach(function (c) { c.cancel(); });
+              cur = null;
+              return fillPose(p, rec.a.g || geom);
+            }
+            function sync() {
+              var open = state === 'opening' || state === 'open' || state === 'closing';
+              root.classList.toggle('is-open', open);
+              root.classList.toggle('is-busy', !!cur || state === 'thinking');
+              root.classList.toggle('is-active', !!cur || state !== 'closed' || extras.length > 0);
+            }
+
+            // ---------------------------------------------------------------- rolls
+            function grounded(t, g) {
+              var atHome = Math.abs(t.x) < 3 && Math.abs(t.y) < 3;
+              var atCorner = g && Math.abs(t.x - g.tx) < 3 && Math.abs(t.y - g.ty) < 3;
+              return (atHome || atCorner) && Math.abs(normDeg(t.r)) < 8 && Math.abs(t.sy - 1) < 0.08;
+            }
+
+            // Tile travels from p0 to p1 along a looping path (prolate-trochoid-like: x advances steadily, the tile hops
+            // through `n` loop-de-loops while rolling n full turns), lands with squash, rocks and settles.
+            function makeRoll(p0, p1, g, antic) {
+              var T = g.T, gs = g.up ? 1 : -1;       // gs=+1: ground below (loops go up); -1: "ceiling" (loops go down)
+              var dx = p1.x - p0.x, dy = p1.y - p0.y, dist = Math.abs(dx);
+              var s = dx > 0.5 ? 1 : dx < -0.5 ? -1 : (g.tl ? -1 : 1);
+              var c0 = 1 - p0.sy, o0 = p0.o == null ? 1 : p0.o, r0 = p0.r;
+
+              if (dist < 28 && Math.abs(dy) < 28) {            // no room to roll: spring into place
+                var rT = Math.round(r0 / 360) * 360;
+                return {
+                  dur: 520, impact: 0, settleOnly: true,
+                  at: function (t) {
+                    var k = spring(t, 1, 0, W(380), 0.5), kr = spring(t, 1, 0, W(420), 0.42), c = c0 * spring(t, 1, 0, W(220), 0.35);
+                    return {
+                      tile: { x: lerp(p1.x, p0.x, k), y: lerp(p1.y, p0.y, k), r: rT + (r0 - rT) * kr, sx: 1 + c * 0.85, sy: 1 - c, o: lerp(o0, 1, smooth(t / 160)) },
+                      lift: 0, g: G0()
+                    };
+                  }
+                };
+              }
+
+              var A = antic ? 230 : 0;
+              var n = dist > 200 ? 2 : 1;
+              var a = dist / (PI2 * n);
+              var Hmax = clamp(Math.min(g.loopRoom, T * 1.75), 18, 190) * (n === 1 ? 0.82 : 1);
+              var bBase = Math.min(2.9 * a, T * 1.1);
+              var H = [], B = [], D = [], S0 = [], F = 0, k;
+              for (k = 0; k < n; k++) {
+                H[k] = Hmax * Math.pow(0.72, k);
+                B[k] = bBase * Math.pow(0.85, k);
+                D[k] = 2 * Math.sqrt(2 * H[k] / GRAV) * 1000;
+                S0[k] = F; F += D[k];
+              }
+              var impact = A + F, dur = impact + 660;
+              var r1 = Math.round((r0 + s * 360 * n) / 360) * 360;
+              var landK = 0.42 * Math.sqrt(H[n - 1] / 90);
+
+              return {
+                dur: dur, impact: impact, settleOnly: false,
+                at: function (t) {
+                  var x, y, r, c = 0, lean = 0, h = 0, base, gx, env;
+                  if (t < A) {                                      // anticipation: squash + lean back
+                    var e = easeOutCubic(t / (A * 0.75));
+                    x = p0.x - s * 5 * e; y = p0.y; base = p0.y; r = r0; lean = -11 * e; c = 0.15 * e;
+                  } else if (t < impact) {                          // flight through the loops
+                    var tf0 = t - A, kk = n - 1;
+                    while (kk > 0 && tf0 < S0[kk]) kk--;
+                    var tau = clamp((tf0 - S0[kk]) / D[kk], 0, 1), phi = PI2 * (kk + tau), frac = (kk + tau) / n;
+                    var fwd = a * phi + B[kk] * Math.sin(phi);
+                    x = p0.x + s * fwd; base = p0.y + dy * frac; y = base; r = r0 + (r1 - r0) * frac;
+                    h = H[kk] * 4 * tau * (1 - tau);
+                    if (antic) {
+                      var rel = 1 - smooth(tf0 / 110);
+                      x -= s * 5 * rel; lean = -11 * rel;
+                      c = 0.15 * Math.exp(-(tf0 / 34) * (tf0 / 34)) - 0.12 * bump(tf0, 82, 40);
+                    } else {
+                      c = c0 * Math.exp(-tf0 / 70);
+                    }
+                    for (var j = 1; j < n; j++) c += 0.2 * bump(tf0, S0[j], 28) - 0.1 * bump(tf0, S0[j] + 70, 36);
+                    c -= 0.07 * bump(tf0, F - 70, 45);
+                  } else {                                          // landing: squash, rebound, rock and settle
+                    var te = t - impact;
+                    x = p1.x; y = p1.y; base = p1.y; r = r1;
+                    c = landK * Math.exp(-0.0105 * te) * Math.sin(0.0299 * te);
+                    lean = 9 * Math.exp(-0.009 * te) * Math.sin(PI2 * te / 300);
+                    h = Math.max(0, -c) * T * 0.3;
+                  }
+                  gx = x;
+                  var sy = 1 - c, sx = 1 + c * 0.85;
+                  y -= gs * h;
+                  y += gs * (1 - sy) * T / 2;                       // squash anchored to the ground
+                  var lr = s * gs * lean, rad = lr * Math.PI / 180, pv = gs * T / 2;
+                  x += pv * Math.sin(rad); y += pv * (1 - Math.cos(rad));   // lean pivots on the contact edge
+                  r += lr;
+                  env = smooth(t / (antic ? 140 : 90)) * (1 - smooth((t - impact - 260) / 360));
+                  var hn = Math.min(1, h / 150), gsc = 1 - 0.5 * hn;
+                  return {
+                    tile: { x: x, y: y, r: r, sx: sx, sy: sy, o: lerp(o0, 1, smooth(t / 150)) },
+                    lift: h,
+                    g: { x: gx, y: base, sx: gsc * (1 + 0.6 * Math.max(0, c)), sy: gsc * (1 - 0.3 * Math.max(0, c)), o: gs > 0 ? (1 - 0.65 * hn) * env : 0 }
+                  };
+                }
+              };
+            }
+
+            // Hops in place (empty bounce / thinking): hops = [{h, tilt}]
+            function makeHops(g, hops, antic, settle, landAmp) {
+              var T = g.T, gs = g.up ? 1 : -1, A = antic, S0 = [], D = [], F = 0;
+              hops.forEach(function (hp, i) { D[i] = Math.max(120, 2 * Math.sqrt(2 * Math.max(hp.h, 1) / GRAV) * 1000); S0[i] = F; F += D[i]; });
+              var impact = A + F, dur = impact + settle, last = hops[hops.length - 1].h;
+              var landK = (landAmp == null ? 0.4 : landAmp) * Math.sqrt(Math.max(last, 4) / 64);
+              return {
+                dur: dur, impact: impact, starts: S0.map(function (v) { return v + A; }),
+                at: function (t) {
+                  var c = 0, h = 0, r = 0, lean = 0;
+                  if (t < A) {
+                    c = 0.16 * easeOutCubic(t / (A * 0.8));
+                  } else if (t < impact) {
+                    var tf0 = t - A, k = hops.length - 1;
+                    while (k > 0 && tf0 < S0[k]) k--;
+                    var tau = clamp((tf0 - S0[k]) / D[k], 0, 1);
+                    h = hops[k].h * 4 * tau * (1 - tau);
+                    r = hops[k].tilt * Math.sin(Math.PI * tau);
+                    c = 0.16 * Math.exp(-(tf0 / 30) * (tf0 / 30)) - 0.12 * bump(tf0, 70, 38) * Math.min(1, hops[0].h / 30);
+                    for (var j = 1; j < hops.length; j++) {
+                      var str = Math.sqrt(hops[j - 1].h / 64);
+                      c += 0.24 * str * bump(tf0, S0[j], 30) - 0.1 * str * bump(tf0, S0[j] + 66, 36);
+                      c -= 0.06 * str * bump(tf0, S0[j] - 48, 34);
+                    }
+                  } else {
+                    var te = t - impact;
+                    c = landK * Math.exp(-0.0105 * te) * Math.sin(0.0299 * te);
+                    lean = 4 * Math.exp(-0.01 * te) * Math.sin(PI2 * te / 280);
+                    h = Math.max(0, -c) * T * 0.25;
+                  }
+                  var sy = 1 - c, sx = 1 + c * 0.85, y = -gs * h + gs * (1 - sy) * T / 2;
+                  var rad = lean * Math.PI / 180, pv = gs * T / 2, x = pv * Math.sin(rad);
+                  y += pv * (1 - Math.cos(rad));
+                  var hn = Math.min(1, h / 120), env = smooth(t / 110) * (1 - smooth((t - impact - 150) / 300));
+                  return {
+                    tile: { x: x, y: y, r: r + lean, sx: sx, sy: sy, o: 1 }, lift: h,
+                    g: { x: 0, y: 0, sx: (1 - 0.55 * hn) * (1 + 0.6 * Math.max(0, c)), sy: (1 - 0.55 * hn), o: gs > 0 ? (1 - 0.7 * hn) * env : 0 }
+                  };
+                }
+              };
+            }
+
+            // --------------------------------------------------------------- actions
+            function buildOpen(from, g) {
+              var roll = makeRoll(from.tile, { x: g.tx, y: g.ty }, g, grounded(from.tile, g));
+              var tP = roll.settleOnly ? 0 : roll.impact + 30;
+              var f0 = from.glass, b0 = from.band.o, c0 = from.body.o;
+              var dur = Math.max(roll.dur, tP + 820), revealT = tP + 190;
+              return {
+                g: g, dur: dur,
+                fn: function (t) {
+                  var p = roll.at(Math.min(t, roll.dur)), te = t - tP;
+                  var kx = te <= 0 ? 1 : spring(te, 1, 0, W(440), 0.52);
+                  var ky = te <= 22 ? 1 : spring(te - 22, 1, 0, W(480), 0.46);
+                  p.glass = glassPose(1 - (1 - f0.px) * kx, 1 - (1 - f0.py) * ky, g);
+                  if (te > 0) {
+                    var pu = 0.07 * bump(te, 55, 45) - 0.025 * bump(te, 140, 45);
+                    p.tile.sx *= 1 + pu; p.tile.sy *= 1 + pu;
+                    p.g.o *= 1 - smooth(te / 180);
+                  }
+                  var bo = lerp(b0, 1, smooth((te - 150) / 230));
+                  p.band = { o: bo, k: (1 - bo) * 16 };
+                  p.body = { o: lerp(c0, 1, smooth(te / 90)) };
+                  return p;
+                },
+                cues: [{ t: 0, fn: openStarted }, { t: revealT, fn: reveal }, { t: revealT + 140, fn: makeReady }],
+                final: function () { return poseOpen(g); },
+                end: openEnded
+              };
+            }
+            function buildClose(from, g) {
+              var f0 = from.glass, b0 = from.band.o, c0 = from.body.o;
+              var glassVis = Math.max(f0.px, f0.py) > 0.04 && f0.o > 0.02;
+              var tC = glassVis ? (c0 > 0.05 ? 150 : 30) : 0, tR = glassVis ? tC + 330 : 0;
+              var start = from.tile, sq0 = 1 - start.sy;
+              var roll = makeRoll({ x: start.x, y: start.y, r: start.r, sx: 1, sy: 1, o: start.o }, { x: 0, y: 0 }, g, grounded(start, g));
+              return {
+                g: g, dur: tR + roll.dur,
+                fn: function (t) {
+                  var p;
+                  if (t < tR) {
+                    var c = sq0 * spring(t, 1, 0, W(220), 0.35);
+                    p = { tile: { x: start.x, y: start.y, r: start.r, sx: 1 + 0.85 * c, sy: 1 - c, o: start.o }, lift: 0, g: G0() };
+                  } else {
+                    p = roll.at(t - tR);
+                  }
+                  var tc = t - tC;
+                  var kx = tc <= 0 ? 1 : spring(tc, 1, 0, W(420), 0.74);
+                  var ky = tc <= 16 ? 1 : spring(tc - 16, 1, 0, W(450), 0.72);
+                  p.glass = glassPose(f0.px * kx, f0.py * ky, g);
+                  if (glassVis) {
+                    var gulp = 0.085 * bump(tc, 285, 42) - 0.03 * bump(tc, 370, 45);
+                    p.tile.sx *= 1 + gulp; p.tile.sy *= 1 + gulp;
+                  }
+                  var bo = b0 * (1 - smooth(t / 140));
+                  p.band = { o: bo, k: (1 - bo) * 12 };
+                  p.body = { o: c0 * (1 - smooth((t - 80) / 180)) };
+                  return p;
+                },
+                cues: [{ t: 0, fn: closeStarted }],
+                end: closeEnded
+              };
+            }
+            // prefers-reduced-motion: quick fades instead of the roll
+            function buildOpenRM(from, g) {
+              var o0 = from.tile.o, atCorner = Math.abs(from.tile.x - g.tx) < 2 && Math.abs(from.tile.y - g.ty) < 2;
+              var go0 = from.glass.o, b0 = from.band.o, c0 = from.body.o;
+              return {
+                g: g, dur: 300,
+                fn: function (t) {
+                  var tile;
+                  if (atCorner) tile = { x: g.tx, y: g.ty, r: 0, sx: 1, sy: 1, o: lerp(o0, 1, smooth(t / 150)) };
+                  else if (t < 110) { var q = smooth(t / 110); tile = { x: from.tile.x, y: from.tile.y, r: 0, sx: 1 - 0.1 * q, sy: 1 - 0.1 * q, o: o0 * (1 - q) }; }
+                  else { var q2 = smooth((t - 110) / 150); tile = { x: g.tx, y: g.ty, r: 0, sx: 0.9 + 0.1 * q2, sy: 0.9 + 0.1 * q2, o: q2 }; }
+                  var go = lerp(go0, 1, smooth(t / 240)), gsc = 0.97 + 0.03 * go;
+                  return {
+                    tile: tile, lift: 0, g: G0(),
+                    glass: { px: go, py: go, sx: gsc, sy: gsc, o: go },
+                    band: { o: lerp(b0, 1, smooth((t - 90) / 180)), k: 0 }, body: { o: lerp(c0, 1, smooth(t / 140)) }
+                  };
+                },
+                cues: [{ t: 0, fn: openStarted }, { t: 120, fn: reveal }, { t: 200, fn: makeReady }],
+                final: function () { return poseOpen(g); },
+                end: openEnded
+              };
+            }
+            function buildCloseRM(from, g) {
+              var o0 = from.tile.o, go0 = from.glass.o, b0 = from.band.o, c0 = from.body.o, tx = from.tile.x, ty = from.tile.y;
+              var atHome = Math.abs(tx) < 2 && Math.abs(ty) < 2;
+              return {
+                g: g, dur: 300,
+                fn: function (t) {
+                  var tile;
+                  if (atHome) tile = { x: 0, y: 0, r: 0, sx: 1, sy: 1, o: lerp(o0, 1, smooth(t / 150)) };
+                  else if (t < 130) { var q = smooth(t / 130); tile = { x: tx, y: ty, r: 0, sx: 1 - 0.1 * q, sy: 1 - 0.1 * q, o: o0 * (1 - q) }; }
+                  else { var q2 = smooth((t - 130) / 150); tile = { x: 0, y: 0, r: 0, sx: 0.9 + 0.1 * q2, sy: 0.9 + 0.1 * q2, o: q2 }; }
+                  var go = go0 * (1 - smooth(t / 200)), gsc = 0.97 + 0.03 * go;
+                  return {
+                    tile: tile, lift: 0, g: G0(),
+                    glass: { px: go, py: go, sx: gsc, sy: gsc, o: go },
+                    band: { o: b0 * (1 - smooth(t / 120)), k: 0 }, body: { o: c0 * (1 - smooth(t / 160)) }
+                  };
+                },
+                cues: [{ t: 0, fn: closeStarted }],
+                end: closeEnded
+              };
+            }
+
+            function openStarted() {
+              E.panel.classList.add('cal-show');
+              E.panel.setAttribute('aria-hidden', 'false');
+              if (!revealed && E.list.className.indexOf('cal-wait') < 0) renderList(false);
+            }
+            function reveal() {
+              revealed = true;
+              E.list.classList.remove('cal-wait');
+              staggerIn();
+            }
+            function makeReady() { E.panel.classList.add('cal-ready'); }
+            var frostTimer = 0;
+            function frost(on, delay) {
+              clearTimeout(frostTimer);
+              if (!on) { E.panel.classList.remove('cal-frosted'); return; }
+              frostTimer = setTimeout(function () { if (state === 'open') E.panel.classList.add('cal-frosted'); }, delay || 0);
+            }
+            function openEnded() {
+              state = 'open';
+              makeReady();
+              frost(true, reduced() ? 0 : 260);
+              if (pendingRelayout) { pendingRelayout = false; relayout(); }
+            }
+            function closeStarted() {
+              frost(false);
+              E.panel.classList.remove('cal-ready');
+              if (revealed) staggerOut();
+              revealed = false;
+            }
+            function closeEnded() {
+              state = 'closed';
+              pendingRelayout = false;
+              frost(false);
+              E.panel.classList.remove('cal-show', 'cal-ready');
+              E.panel.setAttribute('aria-hidden', 'true');
+              resetItems();
+              E.list.classList.remove('cal-swap');
+              E.list.classList.add('cal-wait');
+              E.list.scrollTop = 0;
+              clearInline();
+            }
+
+            // -------------------------------------------------------------- geometry
+            function bounds() {
+              var b = { l: 0, t: 0, r: window.innerWidth || document.documentElement.clientWidth, b: window.innerHeight || document.documentElement.clientHeight };
+              var op = root.offsetParent;
+              if (op && op !== document.body && op !== document.documentElement) {
+                var pr = op.getBoundingClientRect();
+                if (pr.width > 240 && pr.height > 240) {
+                  b.l = Math.max(b.l, pr.left); b.t = Math.max(b.t, pr.top);
+                  b.r = Math.min(b.r, pr.right); b.b = Math.min(b.b, pr.bottom);
+                }
+              }
+              return b;
+            }
+            // Local (root-relative, unscaled px) frame: viewport bounds and margins.
+            function frame() {
+              var rect = root.getBoundingClientRect(), T = root.offsetWidth;
+              if (!T || !rect.width || !rect.height) return null;
+              var k = rect.width / T || 1, b = bounds(), M = MARGIN / k;
+              var f = { T: T, k: k, vl: (b.l - rect.left) / k, vt: (b.t - rect.top) / k, vr: (b.r - rect.left) / k, vb: (b.b - rect.top) / k };
+              f.L = f.vl + M; f.R = f.vr - M; f.TOP = f.vt + M; f.BOT = f.vb - M;
+              return f;
+            }
+            function computeGeom(measure) {
+              var f = frame();
+              if (!f) return null;
+              var T = f.T, inset = Math.round(T * 0.14), bandH = T + 2 * inset;
+              var pw = Math.min(MAX_W, Math.max(f.R - f.L, T + 2 * inset + 80));
+              var roomL = T - f.L, roomR = f.R;
+              var dir = roomL >= pw ? -1 : roomR >= pw ? 1 : (roomL >= roomR ? -1 : 1), tl = dir < 0;
+              var pl = tl ? T - pw : 0;
+              if (pl + pw > f.R) pl = f.R - pw;
+              if (pl < f.L) pl = f.L;
+              var tx = tl ? pl + inset : pl + pw - inset - T;
+
+              var g = { T: T, k: f.k, inset: inset, bandH: bandH, pw: pw, pl: pl, tx: tx, tl: tl };
+              var want = measure ? measure(g) : MAX_H;
+              var ph = clamp(want, Math.min(bandH + 96, MAX_H), MAX_H);
+              var roomUp = T + inset - f.TOP, roomDown = f.BOT + inset;
+              var up = roomUp >= ph ? true : roomDown >= ph ? false : roomUp >= roomDown;
+              ph = Math.max(Math.min(ph, up ? roomUp : roomDown, f.BOT - f.TOP), Math.min(bandH + 60, f.BOT - f.TOP));
+              var pt;
+              if (up) { pt = Math.min(T + inset, f.BOT) - ph; if (pt < f.TOP) pt = f.TOP; }
+              else { pt = Math.max(-inset, f.TOP); if (pt + ph > f.BOT) pt = f.BOT - ph; }
+              var ty = up ? pt + ph - inset - T : pt + inset;
+              var loopRoom = up ? (Math.min(0, ty) - f.TOP - 17) : (f.BOT - Math.max(T, ty + T) - 17);
+
+              var cx = tx + T / 2, cy = ty + T / 2;
+              g.ph = ph; g.pt = pt; g.ty = ty; g.up = up; g.loopRoom = loopRoom;
+              g.sx0 = T / pw; g.sy0 = T / ph; g.ox = cx - pl; g.oy = cy - pt;
+              var eL = cx - pl, eR = pl + pw - cx, eT = cy - pt, eB = pt + ph - cy;
+              var sL = pl - (f.vl + 4), sR = (f.vr - 4) - (pl + pw), sT = pt - (f.vt + 4), sB = (f.vb - 4) - (pt + ph);
+              g.capX = clamp(Math.min(eL > 1 ? sL / eL : 1, eR > 1 ? sR / eR : 1), 0.004, 0.11);
+              g.capY = clamp(Math.min(eT > 1 ? sT / eT : 1, eB > 1 ? sB / eB : 1), 0.004, 0.11);
+              return g;
+            }
+            function applyGeom(g) {
+              var s = E.panel.style;
+              s.left = f2(g.pl) + 'px'; s.top = f2(g.pt) + 'px'; s.width = f2(g.pw) + 'px';
+              if (g.ph != null) s.height = f2(g.ph) + 'px';
+              s.setProperty('--cal-band-h', g.bandH + 'px');
+              s.setProperty('--cal-band-pad', (g.inset + g.T + 14) + 'px');
+              if (g.ox != null) E.glass.style.transformOrigin = f2(g.ox) + 'px ' + f2(g.oy) + 'px';
+              var c = E.panel.classList;
+              c.toggle('cal-tl', !!g.tl); c.toggle('cal-tr', !g.tl);
+              if (g.up != null) { c.toggle('cal-up', !!g.up); c.toggle('cal-down', !g.up); }
+            }
+            // Lay the window out for the current content and return its natural height.
+            function measureContent(g) {
+              applyGeom({ pl: g.pl, pw: g.pw, bandH: g.bandH, inset: g.inset, T: g.T, tl: g.tl });
+              E.panel.style.height = '0px';
+              renderList(false);
+              var h = E.list.scrollHeight;
+              if (!known && !lastError) return MAX_H;                 // skeleton: data still coming
+              return g.bandH + h + 2;
+            }
+
+            // ------------------------------------------------------------ open/close
+            function startOpen() {
+              var g = computeGeom(measureContent);
+              if (!g) { state = 'closed'; sync(); return; }
+              geom = g;
+              applyGeom(g);
+              revealed = false;
+              state = 'opening';
+              var from = poseClosed(g);
+              run(reduced() ? buildOpenRM(from, g) : buildOpen(from, g));
+            }
+            function reverseToOpen() {
+              var from = interrupt();
+              state = 'opening';
+              run(reduced() ? buildOpenRM(from, geom) : buildOpen(from, geom));
+            }
+            function startClose(from) {
+              state = 'closing';
+              run(reduced() ? buildCloseRM(from, geom) : buildClose(from, geom));
+            }
+
+            function open() {
+              if (destroyed) return;
+              if (state === 'open' || state === 'opening' || state === 'bouncing' || state === 'thinking') return;
+              if (state === 'closing') { reverseToOpen(); return; }
+              if (state === 'intro') skipIntro();
+              if (!frame()) return;                                     // hidden / not laid out
+              if (known) {
+                load(false);                                            // quiet background refresh
+                if (!known.events.length) startBounce(); else startOpen();
+                return;
+              }
+              if (!inflight) load(false);
+              startThinking();
+            }
+            function close() {
+              if (destroyed) return;
+              if (state === 'opening') { startClose(interrupt()); return; }
+              if (state === 'open') { startClose(poseOpen(geom)); return; }
+              if (state === 'thinking') { cancelThinking(); }
+            }
+            function toggle() {
+              if (destroyed) return;
+              if (state === 'opening' || state === 'open') close();
+              else if (state === 'thinking') cancelThinking();
+              else if (state === 'bouncing') return;
+              else open();
+            }
+
+            // -------------------------------------------- thinking (no data yet)
+            function startThinking() {
+              thinkInfo = { t0: Date.now(), gen: settledGen };
+              state = 'thinking';
+              thinkCycle();
+            }
+            function thinkCycle() {
+              var f = frame();
+              var g = { T: f ? f.T : 84, up: !f || (0 - f.TOP) >= 30 };
+              var act;
+              if (reduced()) {
+                act = { dur: 600, keys: TILE_KEYS, fn: function (t) { var p = poseClosed(); p.tile.o = 1 - 0.35 * Math.sin(Math.PI * t / 600); return p; } };
+              } else {
+                var T = g.T, gs = g.up ? 1 : -1;
+                act = {
+                  dur: 560, keys: TILE_KEYS,
+                  fn: function (t) {
+                    var tau = clamp((t - 150) / 180, 0, 1), h = 9 * 4 * tau * (1 - tau);
+                    var lean = 8 * Math.sin(PI2 * t / 280) * Math.sin(Math.PI * t / 560);
+                    var c = 0.08 * bump(t, 140, 30) + 0.08 * bump(t, 338, 30) - 0.05 * bump(t, 205, 40);
+                    var sy = 1 - c, sx = 1 + 0.85 * c, rad = lean * Math.PI / 180, pv = gs * T / 2;
+                    return {
+                      tile: { x: pv * Math.sin(rad), y: -gs * h + gs * (1 - sy) * T / 2 + pv * (1 - Math.cos(rad)), r: lean, sx: sx, sy: sy, o: 1 },
+                      lift: h, g: { x: 0, y: 0, sx: 1 - h / 60, sy: 1 - h / 60, o: gs > 0 ? 0.5 * Math.sin(Math.PI * t / 560) : 0 }
+                    };
+                  }
+                };
+              }
+              act.end = afterThinkCycle;
+              run(act);
+            }
+            function afterThinkCycle() {
+              if (state !== 'thinking') return;
+              var info = thinkInfo;
+              if (known) { state = 'closed'; if (!known.events.length) startBounce(); else startOpen(); return; }
+              if (lastError && settledGen > info.gen) { state = 'closed'; startOpen(); return; }
+              if (Date.now() - info.t0 > THINK_MAX) { state = 'closed'; startOpen(); return; }
+              thinkCycle();
+            }
+            function cancelThinking() {
+              var from = interrupt();
+              state = 'closed';
+              thinkInfo = null;
+              if (from && !grounded(from.tile, null)) {
+                var f = frame(), g = { T: f ? f.T : 84, up: true, tl: true, loopRoom: 60 };
+                var settle = makeRoll(from.tile, { x: 0, y: 0 }, g, false);
+                run({ dur: settle.dur, keys: TILE_KEYS, fn: settle.at, end: function () { clearInline(); } });
+              } else {
+                clearInline();
+              }
+              sync();
+            }
+
+            // ------------------------------------------- empty: bounce in place
+            function startBounce() {
+              var f = frame();
+              if (!f) return;
+              state = 'bouncing';
+              var room = 0 - f.TOP - 17, up = room >= 40;
+              var g = { T: f.T, up: up };
+              var act;
+              if (reduced()) {
+                act = { dur: 320, keys: TILE_KEYS, fn: function (t) { var p = poseClosed(), s = 1 - 0.05 * Math.sin(Math.PI * t / 320); p.tile.sx = s; p.tile.sy = s; return p; }, cues: [{ t: 60, fn: function () { showPill(f); } }] };
+              } else {
+                var H1 = clamp(up ? room : (f.BOT - f.T - 17), 8, 66);
+                var hops = makeHops(g, [{ h: H1, tilt: -9 }, { h: H1 * 0.5, tilt: 8 }, { h: H1 * 0.2, tilt: -4 }], 130, 520);
+                act = { dur: hops.dur, keys: TILE_KEYS, fn: hops.at, cues: [{ t: hops.impact + 20, fn: function () { showPill(f); } }] };
+              }
+              act.end = function () { state = 'closed'; clearInline(); };
+              run(act);
+            }
+            function showPill(f) {
+              if (opts.emptyHint === false || destroyed) return;
+              var old = root.querySelector('.cal-pill');
+              if (old) removeExtra(old);
+              var el = document.createElement('div');
+              el.className = 'cal-pill';
+              el.setAttribute('role', 'status');
+              el.innerHTML = '<i class="fa-regular fa-calendar-check"></i><span>No upcoming events</span>';
+              root.appendChild(el);
+              extras.push(el);
+              sync();
+              var w = el.offsetWidth, h = el.offsetHeight, T = f.T;
+              var left = clamp(T / 2 - w / 2, f.L - 8, f.R + 8 - w);
+              var above = (0 - f.TOP) >= h + 14;
+              el.style.left = f2(left) + 'px';
+              el.style.top = f2(above ? -h - 12 : T + 12) + 'px';
+              el.style.transformOrigin = f2(T / 2 - left) + 'px ' + (above ? '100%' : '0%');
+              var dy = above ? 8 : -8;
+              var anim = el.animate([
+                { offset: 0, opacity: 0, transform: 'translate(0,' + dy + 'px) scale(0.6)' },
+                { offset: 0.07, opacity: 1, transform: 'translate(0,' + (-dy * 0.3) + 'px) scale(1.06)' },
+                { offset: 0.12, opacity: 1, transform: 'translate(0,0px) scale(0.98)' },
+                { offset: 0.16, opacity: 1, transform: 'translate(0,0px) scale(1)' },
+                { offset: 0.86, opacity: 1, transform: 'translate(0,0px) scale(1)' },
+                { offset: 1, opacity: 0, transform: 'translate(0,' + (dy * 0.5) + 'px) scale(0.9)' }
+              ], { duration: reduced() ? 1800 : 2300, easing: 'ease-out', fill: 'both' });
+              anim.onfinish = function () { removeExtra(el); };
+            }
+            function removeExtra(el) {
+              var i = extras.indexOf(el);
+              if (i >= 0) extras.splice(i, 1);
+              if (el.parentNode) el.parentNode.removeChild(el);
+              sync();
+            }
+
+            // ------------------------------------------------------- intro (unlock)
+            function intro() {
+              if (destroyed || state !== 'closed' || cur) return;
+              var f = frame();
+              if (!f) return;
+              state = 'intro';
+              var act;
+              if (reduced()) {
+                act = { dur: 260, keys: TILE_KEYS, fn: function (t) { var p = poseClosed(), q = smooth(t / 260); p.tile.o = q; p.tile.sx = p.tile.sy = 0.92 + 0.08 * q; return p; } };
+              } else {
+                var T = f.T;
+                act = {
+                  dur: 1000, keys: TILE_KEYS,
+                  fn: function (t) {
+                    var k = spring(t, 1, 0, W(380), 0.38), sc = 1 - 0.78 * k;
+                    var j = 0.1 * Math.exp(-t / 260) * Math.sin(PI2 * t / 240 + 0.6) * smooth(t / 60);
+                    var hop = 22 * bump(t, 170, 85);
+                    var r = -16 * spring(t, 1, 0, W(470), 0.33);
+                    var gsc = Math.max(0.2, sc) * (1 - hop / 60);
+                    return {
+                      tile: { x: 0, y: -hop + (1 - sc) * T * 0.15, r: r, sx: Math.max(0.05, sc * (1 + j)), sy: Math.max(0.05, sc * (1 - j)), o: smooth(t / 80) },
+                      lift: hop,
+                      g: { x: 0, y: 0, sx: gsc, sy: gsc, o: 0.85 * smooth((t - 40) / 160) * (1 - smooth((t - 640) / 320)) }
+                    };
+                  },
+                  cues: [{ t: 120, fn: function () { burst(T); } }]
+                };
+              }
+              act.end = function () { state = 'closed'; clearInline(); prerender(); };
+              run(act);
+            }
+            function skipIntro() {
+              if (state !== 'intro') return;
+              interrupt();
+              state = 'closed';
+              clearInline();
+              extras.slice().forEach(function (el) { if (el.className.indexOf('cal-spark') >= 0 || el.className.indexOf('cal-ring') >= 0) removeExtra(el); });
+              sync();
+            }
+            function burst(T) {
+              var colors = ['#ff6b5f', '#ffd166', '#ffffff', '#5ac8fa', '#a78bfa', '#34d399', '#ff9f43'];
+              var kinds = ['', ' cal-confetti', ' cal-star'];
+              var ring = document.createElement('div');
+              ring.className = 'cal-ring';
+              root.insertBefore(ring, E.tsh);
+              extras.push(ring);
+              ring.animate([
+                { opacity: 0.9, transform: 'scale(0.55)' },
+                { opacity: 0, transform: 'scale(1.9)' }
+              ], { duration: 560, easing: 'cubic-bezier(.15,.7,.3,1)', fill: 'both' }).onfinish = function () { removeExtra(ring); };
+              var N = 18;
+              for (var i = 0; i < N; i++) {
+                (function (i) {
+                  var el = document.createElement('i');
+                  el.className = 'cal-spark' + kinds[i % 3];
+                  el.style.background = colors[i % colors.length];
+                  root.appendChild(el);
+                  extras.push(el);
+                  var ang = (i / N) * PI2 + (Math.random() - 0.5) * 0.45 - Math.PI / 2;
+                  var dist = T * (0.85 + Math.random() * 0.75), life = 650 + Math.random() * 300;
+                  var spin = (Math.random() - 0.5) * 900, grav = 120 + Math.random() * 80;
+                  var frames = [];
+                  for (var s = 0; s <= 12; s++) {
+                    var u = s / 12, out = 1 - Math.pow(1 - u, 3);
+                    var x = Math.cos(ang) * dist * out, y = Math.sin(ang) * dist * out + grav * u * u;
+                    var sc = u < 0.15 ? lerp(0.2, 1.25, u / 0.15) : lerp(1.25, 0.35, (u - 0.15) / 0.85);
+                    frames.push({ offset: u, opacity: u < 0.6 ? 1 : 1 - (u - 0.6) / 0.4, transform: 'translate(' + f2(x) + 'px,' + f2(y) + 'px) rotate(' + f2(spin * u) + 'deg) scale(' + f4(sc) + ')' });
+                  }
+                  el.animate(frames, { duration: life, easing: 'linear', fill: 'both' }).onfinish = function () { removeExtra(el); };
+                })(i);
+              }
+              sync();
+            }
+
+            // ================================================================= data
+            function normalize(res) {
+              var evs = res && Array.isArray(res.events) ? res.events.filter(function (e) { return e && typeof e === 'object'; }).slice(0, 20) : [];
+              return { events: evs, stale: !!(res && res.stale) };
+            }
+            function load(fresh) {
+              if (destroyed || typeof opts.loadEvents !== 'function') {
+                if (!destroyed && typeof opts.loadEvents !== 'function' && !known) { lastError = new Error('No loadEvents function'); settledGen++; }
+                return;
+              }
+              var seq = ++loadSeq;
+              inflight++;
+              lastLoadAt = Date.now();
+              var p;
+              try { p = Promise.resolve(opts.loadEvents({ fresh: !!fresh })); } catch (e) { p = Promise.reject(e); }
+              var timer;
+              var timeout = new Promise(function (_, rej) {
+                timer = setTimeout(function () { var e = new Error('The calendar is taking too long to answer.'); e.code = 'timeout'; rej(e); }, LOAD_TIMEOUT);
+              });
+              Promise.race([p, timeout]).then(function (res) {
+                clearTimeout(timer); inflight--;
+                if (destroyed || seq !== loadSeq) return;
+                known = normalize(res); lastError = null; settledGen++;
+                onData();
+              }, function (err) {
+                clearTimeout(timer); inflight--;
+                if (destroyed || seq !== loadSeq) return;
+                lastError = err || new Error('Unknown error'); settledGen++;
+                onData();
+              });
+            }
+            function onData() {
+              if (state === 'opening' && !revealed) renderList(false);      // still rolling: swap hidden content
+              else if (revealed) renderList(true);
+              else if (state === 'closed' && !cur) prerender();
+            }
+            // Lay the list out while idle (hidden), so the text shaping/layout cost is not paid on the tap.
+            function prerender() {
+              var f = frame();
+              if (!f || !known) return;
+              E.panel.style.width = f2(Math.min(MAX_W, Math.max(f.R - f.L, f.T + 200))) + 'px';
+              E.panel.style.height = '0px';
+              renderList(false);
+              void E.list.scrollHeight;
+            }
+            function reload() {
+              if (revealed && !known) { lastError = null; renderList(true); }  // show the skeleton while retrying
+              load(true);
+            }
+
+            // ------------------------------------------------------------ rendering
+            function bandText(title, sub) {
+              E.title.textContent = title;
+              E.sub.textContent = sub;
+            }
+            function renderList(animate) {
+              var mode, html;
+              E.note.hidden = !(known && known.stale);
+              if (known && known.events.length) {
+                var n = known.events.length;
+                mode = 'list:' + JSON.stringify(known.events) + Math.floor(Date.now() / 60000);
+                html = known.events.map(rowHTML).join('');
+                bandText('Upcoming', n === 1 ? '1 event' : 'Next ' + n + ' events');
+              } else if (known) {
+                mode = 'empty';
+                html = '<div class="cal-msg cal-pi"><div class="cal-empty-art">\uD83C\uDF34</div>' +
+                  '<div class="cal-msg-title">Nothing coming up</div>' +
+                  '<div class="cal-msg-sub">Your calendar is wide open. Enjoy the drive!</div></div>';
+                bandText('Upcoming', 'All clear');
+              } else if (lastError && lastError.code === 'no-url') {
+                mode = 'nourl';
+                html = '<div class="cal-msg cal-pi"><div class="cal-msg-icon cal-accent"><i class="fa-solid fa-link"></i></div>' +
+                  '<div class="cal-msg-title">Connect your HomeDash</div>' +
+                  '<div class="cal-msg-sub">Add your HomeDash calendar link to see what\u2019s coming up.</div>' +
+                  '<button type="button" class="cal-btn cal-btn-primary" data-cal-act="settings"><i class="fa-solid fa-plug"></i>Connect</button></div>';
+                bandText('Calendar', 'Not connected');
+              } else if (lastError) {
+                mode = 'error:' + (lastError.message || '');
+                html = '<div class="cal-msg cal-pi"><div class="cal-msg-icon"><i class="fa-solid fa-cloud-bolt"></i></div>' +
+                  '<div class="cal-msg-title">Couldn\u2019t load your calendar</div>' +
+                  '<div class="cal-msg-sub">' + esc(lastError.message || 'Something went wrong.') + '</div>' +
+                  '<button type="button" class="cal-btn" data-cal-act="retry"><i class="fa-solid fa-rotate-right"></i>Retry</button></div>';
+                bandText('Upcoming', 'Couldn\u2019t refresh');
+              } else {
+                mode = 'skeleton';
+                var sk = '';
+                for (var i = 0; i < 4; i++) {
+                  sk += '<div class="cal-skel-row cal-pi"><div class="cal-skel-badge cal-sk"></div><div class="cal-skel-lines">' +
+                    '<div class="cal-skel-l1 cal-sk" style="width:' + [74, 58, 66, 50][i] + '%"></div><div class="cal-skel-l2 cal-sk"></div></div></div>';
+                }
+                html = sk;
+                bandText('Upcoming', 'Loading\u2026');
+              }
+              if (mode === rendered) {
+                if (!animate) { resetItems(); E.list.classList.add('cal-wait'); }
+                return;
+              }
+              var prev = rendered;
+              rendered = mode;
+              E.list.innerHTML = html;
+              E.list.scrollTop = 0;
+              if (!animate) { E.list.classList.add('cal-wait'); return; }
+              E.list.classList.remove('cal-wait');
+              if (prev.indexOf('list:') === 0 && mode.indexOf('list:') === 0) {
+                E.list.classList.remove('cal-swap'); void E.list.offsetWidth; E.list.classList.add('cal-swap');
+              } else {
+                staggerIn();
+              }
+            }
+            function rowHTML(ev) {
+              var now = new Date(), tk = dateKey(now), tm = dateKey(addDays(now, 1));
+              var st = parseISO(ev.start), en = parseISO(ev.end);
+              var key = parseKey(ev.date) ? ev.date.slice(0, 10) : (st ? dateKey(st) : tk);
+              var d = parseKey(key);
+              var isToday = key === tk, isTmr = key === tm;
+              var day = isToday ? 'Today' : isTmr ? 'Tomorrow' : (key < tk ? WD[d.getDay()] + ' ' + d.getDate() + ' ' + MON[d.getMonth()] : WDL[d.getDay()]);
+              var time = ev.allDay ? 'All day' : (ev.timeLabel || (st ? hhmm(st) : ''));
+              var live = !ev.allDay && st && en && now >= st && now < en;
+              var color = safeColor(ev.color);
+              var title = String(ev.title || 'Untitled event');
+              var h = '<div class="cal-row cal-pi' + (isToday ? ' cal-is-today' : '') + '">' +
+                '<div class="cal-badge' + (isToday ? ' cal-badge-today' : '') + '" aria-hidden="true"><div class="cal-badge-m">' + MON[d.getMonth()].toUpperCase() +
+                '</div><div class="cal-badge-d">' + d.getDate() + '</div></div>' +
+                '<div class="cal-ev"><div class="cal-ev-title">' + esc(title) + '</div>' +
+                '<div class="cal-ev-meta">' +
+                  (color ? '<span class="cal-dot" style="--c:' + esc(color) + '"></span>' : '') +
+                  (live ? '<span class="cal-live">Now</span>' : '') +
+                  (time ? '<span class="cal-ev-time' + (ev.allDay ? ' cal-allday' : '') + '">' + esc(time) + '</span><span class="cal-sep">\u00B7</span>' : '') +
+                  '<span class="cal-ev-day' + (isToday || isTmr ? ' cal-hot' : '') + '">' + day + '</span>' +
+                '</div>' +
+                (ev.location ? '<div class="cal-ev-loc"><i class="fa-solid fa-location-dot"></i>' + esc(ev.location) + '</div>' : '') +
+                '</div>' +
+                (ev.emoji ? '<div class="cal-emoji" aria-hidden="true">' + esc(String(ev.emoji).slice(0, 8)) + '</div>' : '') +
+                '</div>';
+              return h;
+            }
+            // Pop the visible items in, starting next to the tile and spilling outwards.
+            function resetItems() {
+              Array.prototype.forEach.call(E.list.querySelectorAll('.cal-pop, .cal-out'), function (el) { el.classList.remove('cal-pop', 'cal-out'); });
+            }
+            function staggerIn() {
+              var items = Array.prototype.slice.call(E.list.querySelectorAll('.cal-pi'));
+              var vis = visibleItems(items);
+              var fromBottom = geom && geom.up;
+              if (fromBottom) vis.reverse();
+              items.forEach(function (el) { el.classList.remove('cal-pop', 'cal-out'); });
+              void E.list.offsetWidth;
+              vis.forEach(function (el, i) { el.style.setProperty('--i', String(Math.min(i, 9))); el.classList.add('cal-pop'); });
+            }
+            function staggerOut() {
+              var items = Array.prototype.slice.call(E.list.querySelectorAll('.cal-pi'));
+              var vis = visibleItems(items);
+              if (!(geom && geom.up)) vis.reverse();
+              vis.forEach(function (el, i) { el.classList.remove('cal-pop'); el.style.setProperty('--i', String(Math.min(i, 8))); el.classList.add('cal-out'); });
+            }
+            function visibleItems(items) {
+              var top = E.list.scrollTop, h = E.list.clientHeight || 9999;
+              return items.filter(function (el) { var y = el.offsetTop - top; return y + el.offsetHeight > 0 && y < h; });
+            }
+
+            // --------------------------------------------------------------- tile date
+            var dayKey = '';
+            function refreshDate() {
+              var now = new Date(), k = dateKey(now);
+              E.month.textContent = MON[now.getMonth()].toUpperCase();
+              E.day.textContent = String(now.getDate());
+              E.tile.setAttribute('aria-label', 'Calendar, ' + WDL[now.getDay()] + ' ' + now.getDate() + ' ' + MONL[now.getMonth()]);
+              if (dayKey && k !== dayKey) {
+                if (revealed) renderList(true);          // Today/Tomorrow labels moved
+                load(false);
+              }
+              dayKey = k;
+            }
+            var midTimer = 0;
+            function scheduleMidnight() {
+              clearTimeout(midTimer);
+              var now = new Date(), next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 1);
+              midTimer = setTimeout(function () { refreshDate(); scheduleMidnight(); }, Math.min(next - now, 2147000000));
+            }
+
+            // ------------------------------------------------------------- relayout
+            function relayout() {
+              if (destroyed) return;
+              if (state === 'opening' || state === 'closing') { pendingRelayout = true; return; }
+              if (state !== 'open') return;
+              var g = computeGeom(function (gg) {
+                applyGeom({ pl: gg.pl, pw: gg.pw, bandH: gg.bandH, inset: gg.inset, T: gg.T, tl: gg.tl });
+                E.panel.style.height = '0px';
+                var h = E.list.scrollHeight;
+                return rendered === 'skeleton' ? MAX_H : gg.bandH + h + 2;
+              });
+              if (!g) return;
+              geom = g;
+              applyGeom(g);
+              applyPose(poseOpen(g), g);
+            }
+            var rzTimer = 0;
+            function onResize() { clearTimeout(rzTimer); rzTimer = setTimeout(relayout, 140); }
+
+            // ------------------------------------------------------------ listeners
+            function onPanelClick(e) {
+              var b = e.target && e.target.closest ? e.target.closest('[data-cal-act]') : null;
+              if (!b || !E.panel.contains(b)) return;
+              e.stopPropagation();
+              e.preventDefault();
+              var act = b.getAttribute('data-cal-act');
+              if (act === 'settings') { if (typeof opts.onSettings === 'function') opts.onSettings(); }
+              else if (act === 'retry') reload();
+            }
+            function onVisibility() {
+              if (document.hidden) return;
+              refreshDate();
+              scheduleMidnight();
+              if (Date.now() - lastLoadAt > 20000) load(false);
+            }
+            E.panel.addEventListener('click', onPanelClick);
+            document.addEventListener('visibilitychange', onVisibility);
+            window.addEventListener('resize', onResize);
+            var minuteTimer = setInterval(function () { if (dateKey(new Date()) !== dayKey) refreshDate(); }, 60000);
+            var refreshTimer = setInterval(function () { load(false); }, REFRESH_MS);
+
+            refreshDate();
+            scheduleMidnight();
+            load(false);
+            // Warm up the pose/sampling code once while idle so the first tap starts instantly on slow CPUs.
+            var warmTimer = setTimeout(function () {
+              try {
+                var g = { T: 84, k: 1, inset: 12, bandH: 108, pw: 440, pl: -344, tx: -332, tl: true, ph: 380, pt: -284, ty: 0, up: true, loopRoom: 200, sx0: 0.19, sy0: 0.22, ox: 54, oy: 326, capX: 0.1, capY: 0.1 };
+                sample(buildOpen(poseClosed(g), g), ALL_KEYS);
+                if (state === 'closed' && !cur) prerender();
+              } catch (e) { /* warm-up only */ }
+            }, 2500);
+
+            var ctrl = {
+              toggle: toggle,
+              open: open,
+              close: close,
+              refreshDate: refreshDate,
+              reload: reload,
+              intro: intro,
+              relayout: relayout,
+              destroy: function () {
+                if (destroyed) return;
+                if (cur) interrupt();
+                destroyed = true;
+                clearTimeout(midTimer); clearTimeout(rzTimer); clearTimeout(frostTimer); clearTimeout(warmTimer); clearInterval(minuteTimer); clearInterval(refreshTimer);
+                E.panel.removeEventListener('click', onPanelClick);
+                document.removeEventListener('visibilitychange', onVisibility);
+                window.removeEventListener('resize', onResize);
+                root.classList.remove('is-open', 'is-busy', 'is-active');
+                root.innerHTML = '';
+                delete root.__calWidget;
+              },
+              get isOpen() { return state === 'opening' || state === 'open'; },
+              get isBusy() { return !!cur || state === 'thinking'; },
+              get state() { return state; }
+            };
+            root.__calWidget = ctrl;
+            return ctrl;
+          }
+
+          window.CalendarWidget = { mount: mount };
+        })();
+    </script>
     <script>
         /*
          * homedash-calendar.js - data layer for the lockscreen calendar widget.
@@ -4174,8 +5744,9 @@
                         const first = !isUnlocked() || widget.classList.contains('hidden');
                         write(UNLOCK_KEY, 'true');
                         toggleRow.classList.remove('hidden');
-                        show(true);
-                        if (first && controller && controller.intro) setTimeout(() => controller.intro(), 350); // once the stock picker has faded
+                        if (!first) return;
+                        // It appears once the stock picker has faded, popping in with its intro.
+                        setTimeout(() => { show(true); if (controller) controller.intro(); }, 350);
                     }
                     function lock() {
                         show(false);
