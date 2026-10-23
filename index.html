@@ -1286,6 +1286,8 @@
                     <button type="button" class="calendar-chip" data-mode="photo"><i class="fa-solid fa-images"></i> Photos</button>
                 </div>
                 <p class="calendar-hint">Photos shows one event at a time with its HomeDash picture, moving on every 30 seconds. Swipe to go back or forward.</p>
+                <div class="setting-toggle"><label for="calendar-prefer-right-toggle">Prefer bounce right</label><input type="checkbox" id="calendar-prefer-right-toggle"></div>
+                <p class="calendar-hint">The date rolls right and the window opens to its left. Near the right edge it still rolls left.</p>
             </div>
             <div class="settings-section">
                 <button id="calendar-lock-btn" type="button">Hide the calendar addon</button>
@@ -2430,8 +2432,13 @@
          * Item = { id, title, date ('YYYY-MM-DD', the local day it occurs), start (ISO),
          *          end? (ISO), allDay, timeLabel ('14:00' | 'All day' | '14:00–15:30'),
          *          location?, color?, emoji? } plus extras: multiDay?/endDate? (last
-         *          day), recurring?, featured?, imageUrl? (https only), ongoing (started
-         *          and not yet over).
+         *          day), recurring?, featured?, ongoing (started and not yet over),
+         *          and when the task has an https photo: imageUrl, imageFocusX (0-100),
+         *          imageFocusY (0-100), imageZoom (1-1.8), normalised like HomeDash's
+         *          imageFocusStyle. HomeDash draws them as object-position: X% Y%;
+         *          transform-origin: X% Y%; transform: scale(zoom) on an object-fit:
+         *          cover image. A borrowed photo is already the task's own imageUrl
+         *          (HomeDash writes it in on save), so nothing is resolved here.
          * upcoming() lists at most `limit` items sorted by start (all-day items first
          * within a day): everything starting at/after `now`, today's all-day items,
          * and timed items still in progress. Ended items are left out (a task without
@@ -2697,9 +2704,44 @@
             return /^(#[0-9a-f]{3,8}|(rgb|rgba|hsl|hsla)\([\d\s.,%/+-]+\)|[a-z]{3,20})$/i.test(text) ? text : '';
           }
 
+          // https only: the lockscreen is an https page, and data: URLs are huge.
           function cleanImageUrl(value) {
             var text = String(value || '').trim();
-            return /^https?:\/\//i.test(text) && text.length <= 1000 ? text : '';
+            return /^https:\/\/[^\s"'<>]+$/i.test(text) && text.length <= 1000 ? text : '';
+          }
+
+          // HomeDash index.html clampPercent / clampZoom, as imageFocusStyle uses them.
+          function clampPercent(value, fallback) {
+            var number = Number(value);
+            if (!Number.isFinite(number)) return fallback;
+            return Math.max(0, Math.min(100, Math.round(number * 10) / 10));
+          }
+
+          function clampZoom(value, fallback) {
+            var number = Number(value);
+            if (!Number.isFinite(number)) return fallback;
+            return Math.max(1, Math.min(1.8, Math.round(number * 100) / 100));
+          }
+
+          // { imageUrl, imageFocusX, imageFocusY, imageZoom } or null. The defaults
+          // are the ones imageFocusStyle uses for a task that has a picture.
+          function photoOf(event) {
+            var imageUrl = cleanImageUrl(event.imageUrl);
+            if (!imageUrl) return null;
+            return {
+              imageUrl: imageUrl,
+              imageFocusX: clampPercent(event.imageFocusX, 50),
+              imageFocusY: clampPercent(event.imageFocusY, 38),
+              imageZoom: clampZoom(event.imageZoom, 1.01)
+            };
+          }
+
+          function copyPhoto(target, photo) {
+            if (!photo) return;
+            target.imageUrl = photo.imageUrl;
+            target.imageFocusX = photo.imageFocusX;
+            target.imageFocusY = photo.imageFocusY;
+            target.imageZoom = photo.imageZoom;
           }
 
           // One occurrence -> Item, or null once it has ended. Timed tasks stay while
@@ -2756,8 +2798,7 @@
             }
             if (occurrence.repeat !== 'none') item.recurring = true;
             if (event.featured) item.featured = true;
-            var imageUrl = cleanImageUrl(event.imageUrl);
-            if (imageUrl) item.imageUrl = imageUrl;
+            copyPhoto(item, photoOf(event));
             item.ongoing = start.getTime() <= now.getTime() && finish > now.getTime();
             item._order = occurrence.order;
             return item;
@@ -2890,8 +2931,7 @@
               }
               if (event.featured) copy.featured = true;
               if (event.allDay === true) copy.allDay = true;
-              var imageUrl = cleanImageUrl(event.imageUrl); // never a data: URL
-              if (imageUrl) copy.imageUrl = imageUrl;
+              copyPhoto(copy, photoOf(event)); // never a data: URL; framing already normalised
               var color = cleanColor(event.color);
               if (color) copy.color = color;
               var emoji = String(event.emoji || '').trim();
@@ -5748,6 +5788,7 @@
                     const accentInput = document.getElementById('calendar-accent-input');
                     const swatches = document.getElementById('calendar-swatches');
                     const modeChips = document.getElementById('calendar-mode-chips');
+                    const preferRightToggle = document.getElementById('calendar-prefer-right-toggle');
                     const data = window.homeDashCalendar;
                     let controller = null;
 
@@ -5762,6 +5803,7 @@
                         return {
                             accent: /^#[0-9a-f]{6}$/i.test(saved.accent) ? saved.accent.toLowerCase() : DEFAULT_ACCENT,
                             mode: saved.mode === 'photo' ? 'photo' : 'list',
+                            preferRight: saved.preferRight === true,
                         };
                     })();
                     const saveLook = () => write(LOOK_KEY, JSON.stringify(look));
@@ -5769,6 +5811,7 @@
                         accentInput.value = look.accent;
                         swatches.querySelectorAll('.calendar-swatch').forEach((b) => b.classList.toggle('active', b.dataset.color === look.accent));
                         modeChips.querySelectorAll('.calendar-chip').forEach((b) => b.classList.toggle('active', b.dataset.mode === look.mode));
+                        preferRightToggle.checked = look.preferRight;
                     }
                     function setAccent(color) {
                         look.accent = color.toLowerCase();
@@ -5783,6 +5826,7 @@
                             onSettings: openSettings,
                             accent: look.accent,
                             mode: look.mode,
+                            preferRight: look.preferRight,
                         });
                         window.calendarWidget = controller;
                     }
@@ -5852,6 +5896,11 @@
                         look.mode = b.dataset.mode;
                         saveLook(); syncLook();
                         if (controller && controller.setMode) controller.setMode(look.mode);
+                    });
+                    preferRightToggle.addEventListener('change', () => {
+                        look.preferRight = preferRightToggle.checked;
+                        saveLook();
+                        if (controller && controller.setPreferRight) controller.setPreferRight(look.preferRight);
                     });
                     // A tap on the date opens or closes the week. A drag (hasMoved) moves the widget instead.
                     widget.addEventListener('click', (e) => {
