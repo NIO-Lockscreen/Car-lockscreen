@@ -571,7 +571,7 @@
             <i class="fa-solid fa-video-slash"></i>
         </div>
 
-        <div id="calendar-widget" class="draggable-item hidden" title="Tap for the next 7 days"></div>
+        <div id="calendar-widget" class="draggable-item hidden" title="Tap for your next 7 events"></div>
 
         <div id="settings-btn" class="draggable-item app-icon" title="Open settings menu"><svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="7.5" fill="rgba(80, 80, 80, 0.6)"/><circle cx="8" cy="8" r="4" fill="none" stroke="var(--icon-stroke-color)" stroke-width="1.5"/></svg></div>
         <div id="fun-stock-name-display" class="draggable-item"></div>
@@ -796,7 +796,7 @@
             <div class="settings-section">
                 <label for="calendar-url-input">HomeDash address</label>
                 <input type="text" id="calendar-url-input" inputmode="url" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="https://home-dash-eta.vercel.app">
-                <p class="calendar-hint">The calendar shows the next 7 days from this HomeDash.</p>
+                <p class="calendar-hint">The calendar shows the next 7 events from this HomeDash.</p>
                 <div class="calendar-settings-actions"><button id="calendar-default-btn" type="button">Use default</button><button id="save-calendar-btn" type="button">Save and test</button></div>
                 <div id="calendar-settings-status"></div>
             </div>
@@ -3420,7 +3420,7 @@
 
                 // =================================================================
                 // CALENDAR WIDGET: a hidden addon, unlocked by typing "admin" in the stock picker.
-                // Tap the date and it rolls away and opens the next 7 days from HomeDash.
+                // Tap the date and it rolls away and opens the next 7 events from HomeDash.
                 // =================================================================
                 window.calendarAddon = (function setupCalendarWidget() {
                     const UNLOCK_KEY = 'calendarAddonUnlocked';
@@ -3441,7 +3441,7 @@
                     function mount() {
                         if (controller || !window.CalendarWidget || !data) return;
                         controller = window.CalendarWidget.mount(widget, {
-                            loadDays: (opts) => data.load(opts),
+                            loadEvents: (opts) => data.load(opts),
                             onSettings: openSettings,
                         });
                         window.calendarWidget = controller;
@@ -3489,8 +3489,8 @@
                         setStatus('Connecting…');
                         data.load({ fresh: true }).then((result) => {
                             if (result.stale) { setStatus("Couldn't reach HomeDash. Showing the events saved on the car.", 'bad'); return; }
-                            const count = result.days.reduce((n, day) => n + day.items.length, 0);
-                            setStatus(`Connected. ${count} event${count === 1 ? '' : 's'} in the next 7 days.`, 'ok');
+                            const count = result.events.length;
+                            setStatus(count ? `Connected. Next up: ${result.events[0].title}.` : 'Connected. Nothing coming up.', 'ok');
                             if (controller) controller.reload();
                         }, (err) => setStatus(err && err.message ? err.message : "Couldn't reach HomeDash.", 'bad'));
                     }
