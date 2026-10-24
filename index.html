@@ -2836,7 +2836,10 @@
               var evs = known.events, sig = JSON.stringify(evs) + '|' + dateKey(new Date()) + '|' + Math.floor(Date.now() / 60000);
               E.phStale.hidden = !known.stale;
               if (sig === sigPhoto) return false;
-              phStop(); phCancelDrag();
+              // Never redraw under a finger or a slide still on its way: a refresh landing mid-swipe used to cancel
+              // the swipe, so it did nothing. phRedrawIfDue() catches up once the slides are at rest.
+              if (gestureActive() || PH.wheel || PH.anim) { PH.redraw = true; return false; }
+              PH.redraw = false;
               var curEv = PH.events[PH.idx], ni = PH.idx, i;
               if (curEv && curEv.id != null) for (i = 0; i < evs.length; i++) if (evs[i].id === curEv.id) { ni = i; break; }
               PH.events = evs; PH.n = evs.length; PH.idx = Math.min(ni, Math.max(0, PH.n - 1)); PH.offset = 0;
@@ -2844,6 +2847,9 @@
               fillSlots(); markCurrent(); phPlace(0); renderDots();
               if (PH.n < 2) phTimerStop();
               return true;
+            }
+            function phRedrawIfDue() {
+              if (PH.redraw && view === 'photo' && known && !PH.anim && !PH.wheel && !gestureActive()) renderPhoto();
             }
 
             // Every opening starts on the first upcoming event: reset before the window is laid out / animated.
@@ -2891,6 +2897,7 @@
                 phPlace(PH.offset);
                 anims.forEach(function (a) { a.cancel(); });
                 if (done) done();
+                phRedrawIfDue();
               };
             }
             function phStop() {
@@ -2902,6 +2909,18 @@
               PH.offset = rec.fn(t);
               phPlace(PH.offset);
               rec.anims.forEach(function (a) { a.cancel(); });
+            }
+            // A move cut short (by a swipe, the timer or a resize) counts once it is past halfway: the slide it was
+            // heading for becomes the current one and the offset carries on from there. Never counted, it left the
+            // next swipe only the slide already in view to reach, so that swipe did nothing.
+            function phRebase() {
+              var Wd = slideW() + PH.gap;
+              while (PH.n > 1 && Math.abs(PH.offset) > Wd / 2) {
+                var dir = PH.offset < 0 ? 1 : -1, off = PH.offset + dir * Wd;
+                phCommit(dir);
+                PH.offset = off;
+                phPlace(off);
+              }
             }
             function phCommit(dir) {
               var sl = PH.slots;
@@ -2926,8 +2945,9 @@
             function phAuto() {
               PH.timer = 0;
               if (!photoLive() || state !== 'open' || PH.n < 2 || PH.drag || document.hidden) return;
+              phStop(); phRebase();
               renderDots(mod(PH.idx + 1, PH.n));
-              if (reduced()) { phStop(); phCommit(1); PH.slots[1].classList.add('cal-fadein'); phTimerStart(); return; }
+              if (reduced()) { phCommit(1); PH.slots[1].classList.add('cal-fadein'); phTimerStart(); return; }
               var Wd = slideW() + PH.gap, off0 = PH.offset, dur = 1150;
               phAnimate(function (t) {
                 var u = clamp(t / dur, 0, 1), e = u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
@@ -2957,7 +2977,8 @@
               }
               if (!touchy && e.button !== 0) return;
               e.preventDefault();                                        // no text selection / image drag / emulated mouse events
-              phTimerStop(); phStop();
+              phTimerStop(); phStop(); phRebase();
+              renderDots();                                              // the dots may still show where the cut-short move was heading
               try { E.slides.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
               PH.drag = { id: e.pointerId, x0: e.clientX, lx: e.clientX, ly: e.clientY, off0: PH.offset, moved: false, k: (geom && geom.k) || 1, pts: [{ x: e.clientX, t: e.timeStamp }] };
               E.slides.classList.add('is-dragging');
@@ -2982,7 +3003,7 @@
               if (PH.pinch && PH.pinch.pts[e.pointerId]) { endPinch(e.pointerId); return; }
               if (PH.ignore && PH.ignore[e.pointerId]) {
                 delete PH.ignore[e.pointerId];
-                if (!Object.keys(PH.ignore).length) { PH.ignore = null; suppressClick = performance.now() + 500; phTimerStart(); }
+                if (!Object.keys(PH.ignore).length) { PH.ignore = null; suppressClick = performance.now() + 500; phTimerStart(); phRedrawIfDue(); }
                 return;
               }
               var d = PH.drag;
@@ -3149,6 +3170,7 @@
                 settleScale(Wh.disp, target, 0);
                 reportScale(target);
                 phTimerStart();
+                phRedrawIfDue();
               }, 220);
             }
             // Finish any resize gesture right now (before the window closes / switches / re-lays out).
@@ -3217,11 +3239,18 @@
               endGestures();
               var g = computeGeom(measureQuiet, openMode);
               if (!g) return;
+              // Stopping a slide on its way (or the drag endGestures() just ended) used to leave it frozen half way,
+              // and the auto-advance it belonged to never came back. Count it if it was past halfway and settle on
+              // the current slide.
               phStop();
+              phRebase();
+              PH.offset = 0;
               geom = g;
               applyGeom(g);
               applyPose(poseOpen(g), g);
               phPlace(PH.offset);
+              if (!PH.timer) phTimerStart();
+              phRedrawIfDue();
             }
             var rzTimer = 0;
             function onResize() { clearTimeout(rzTimer); rzTimer = setTimeout(relayout, 140); }
