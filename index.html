@@ -842,6 +842,7 @@
         #calendar-widget .cal-slide.is-current .cal-ph-kb { animation: cal-kb-a 26s ease-in-out infinite alternate; }
         #calendar-widget .cal-slide.is-current.kb-b .cal-ph-kb { animation-name: cal-kb-b; }
         #calendar-widget .cal-panel:not(.cal-show) .cal-ph-kb { animation-play-state: paused; }
+        #calendar-widget .cal-v-photo .cal-frost { display: none; }
         @keyframes cal-kb-a { from { transform: scale(1) translate3d(0, 0, 0); } to { transform: scale(1.08) translate3d(-1.6%, -1.1%, 0); } }
         @keyframes cal-kb-b { from { transform: scale(1) translate3d(0, 0, 0); } to { transform: scale(1.08) translate3d(1.6%, -0.8%, 0); } }
 
@@ -860,7 +861,7 @@
           overflow: visible;
           background: linear-gradient(180deg, #ffffff 0%, #f6f6f6 60%, #ececec 100%);
           box-shadow: 0 16px 36px rgba(0, 0, 0, 0.32), 0 2px 6px rgba(0, 0, 0, 0.18);
-          transform: rotate(-6deg);
+          transform: rotate(-6deg) scale(var(--cal-ph-bs, 1));
           text-align: center;
         }
         #calendar-widget .cal-ph-badge-m {
@@ -889,7 +890,7 @@
         #calendar-widget .cal-up.cal-tr .cal-ph-cap { right: var(--cal-band-pad, 110px); bottom: calc(var(--cal-inset, 12px) + 3px); }
         #calendar-widget .cal-ph-title {
           color: #fff;
-          font-size: 26px; font-weight: 700; line-height: 1.13; letter-spacing: -0.01em;
+          font-size: calc(26px * var(--cal-ph-fs, 1)); font-weight: 700; line-height: 1.13; letter-spacing: -0.01em;
           text-shadow: 0 2px 14px rgba(0, 0, 0, 0.35);
           display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
           overflow: hidden; overflow-wrap: anywhere;
@@ -898,7 +899,7 @@
           display: flex; align-items: center; gap: 7px;
           margin-top: 6px;
           color: rgba(255, 255, 255, 0.9);
-          font-size: 16px; font-weight: 500;
+          font-size: calc(16px * var(--cal-ph-fs, 1)); font-weight: 500;
           text-shadow: 0 1px 8px rgba(0, 0, 0, 0.35);
           white-space: nowrap; overflow: hidden;
         }
@@ -907,10 +908,15 @@
         #calendar-widget .cal-ph-loc {
           margin-top: 3px;
           color: rgba(255, 255, 255, 0.72);
-          font-size: 13px;
+          font-size: calc(13px * var(--cal-ph-fs, 1));
           white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
         #calendar-widget .cal-ph-loc i { font-size: 11px; margin-right: 5px; }
+        /* pinch-resized photo window */
+        #calendar-widget .cal-panel.cal-v-photo,
+        #calendar-widget.is-open .cal-tile { touch-action: none; }
+        #calendar-widget .cal-ph-small .cal-ph-loc { display: none; }
+        #calendar-widget .cal-ph-small .cal-ph-badge { top: 45%; }
         #calendar-widget .cal-ph-top {
           position: absolute; left: 0; right: 0; top: 14px;
           display: flex; align-items: center; justify-content: center; gap: 8px;
@@ -1482,9 +1488,11 @@
              opts.mode: 'list' | 'photo'     list of events, or a full-bleed photo slideshow
              opts.preferRight: boolean       roll right by default (left only when there is no room)
              (optional) opts.emptyHint: false  -> no "No upcoming events" pill on the empty bounce
+             opts.photoScale: number         photo window size factor (0.7 - 2.2, default 1)
+             opts.onPhotoScale(scale)        called once at the end of each pinch / ctrl+wheel resize
              (optional) opts.slideMs: number   photo auto-advance interval (default 30000)
            controller: toggle(), open(), close(), refreshDate(), reload(), intro(),
-                       setAccent(hex), setMode(mode), setPreferRight(bool),
+                       setAccent(hex), setMode(mode), setPreferRight(bool), setPhotoScale(s),
                        relayout(), destroy(), isOpen, isBusy, mode, state
 
            All motion is sampled from JS pose functions into Web Animations keyframes
@@ -1497,7 +1505,8 @@
 
           // ---------------------------------------------------------------- tunables
           var MAX_W = 440, MAX_H = 380, MARGIN = 16;
-          var PHOTO_W = 520, PHOTO_H = 340;   // photo-mode window
+          var PHOTO_W = 520, PHOTO_H = 340;   // photo-mode window at scale 1
+          var PS_MIN = 0.7, PS_MAX = 2.2;     // pinch-resize range
           var SLIDE_MS = 30000;               // photo auto-advance
           var DEFAULT_ACCENT = '#f25b52';
           var GRAV = 4000;                    // px/s^2 - "gravity" for hops and loops
@@ -1680,6 +1689,7 @@
             var sigPhoto = '';           // signature of the rendered slideshow
             var pendingSwitch = false;
             var preferRight = !!opts.preferRight;
+            var photoScale = num(opts.photoScale, 1, PS_MIN, PS_MAX);
             var slideMs = Math.max(1500, +opts.slideMs || SLIDE_MS);
             var palette = null;
             var suppressClick = 0;       // swallow the click that follows a swipe
@@ -2128,6 +2138,7 @@
               revealed = false;
             }
             function switchApply(g) {
+              if (mode === 'photo') resetSlideshow();
               geom = g; openMode = mode;
               applyGeom(g);
               renderContent(false);
@@ -2171,6 +2182,7 @@
             }
             function closeEnded() {
               state = 'closed';
+              resetSlideshow();
               pendingRelayout = false;
               frost(false);
               E.panel.classList.remove('cal-show', 'cal-ready');
@@ -2204,12 +2216,19 @@
               f.L = f.vl + M; f.R = f.vr - M; f.TOP = f.vt + M; f.BOT = f.vb - M;
               return f;
             }
-            function dims(m) { return m === 'photo' ? { w: PHOTO_W, h: PHOTO_H } : { w: MAX_W, h: MAX_H }; }
+            function dims(m) { return m === 'photo' ? { w: PHOTO_W * photoScale, h: PHOTO_H * photoScale } : { w: MAX_W, h: MAX_H }; }
             function computeGeom(measure, m) {
               var f = frame();
               if (!f) return null;
-              var dm = dims(m || mode);
+              m = m || mode;
+              var dm = dims(m);
               var T = f.T, inset = Math.round(T * 0.14), bandH = T + 2 * inset;
+              var roomUp = T + inset - f.TOP, roomDown = f.BOT + inset;   // height available above / below
+              var ps = null;
+              if (m === 'photo') {                                        // uniform scale, clamped to what the viewport can hold
+                ps = Math.max(0.3, Math.min(photoScale, (f.R - f.L) / PHOTO_W, Math.max(roomUp, roomDown) / PHOTO_H));
+                dm = { w: PHOTO_W * ps, h: PHOTO_H * ps };
+              }
               var pw = Math.min(dm.w, Math.max(f.R - f.L, T + 2 * inset + 80));
               var roomL = T - f.L, roomR = f.R;   // room for a window reaching left of the tile's right edge / right of its left edge
               var dir = preferRight
@@ -2221,20 +2240,23 @@
               if (pl < f.L) pl = f.L;
               var tx = tl ? pl + inset : pl + pw - inset - T;
 
-              var g = { T: T, k: f.k, inset: inset, bandH: bandH, pw: pw, pl: pl, tx: tx, tl: tl };
+              var g = { T: T, k: f.k, inset: inset, bandH: bandH, pw: pw, pl: pl, tx: tx, tl: tl, ps: ps };
               var want = measure ? measure(g) : dm.h;
+              if (m === 'photo') want = dm.h;
               var ph = clamp(want, Math.min(bandH + 96, dm.h), dm.h);
-              var roomUp = T + inset - f.TOP, roomDown = f.BOT + inset;
               var up = roomUp >= ph ? true : roomDown >= ph ? false : roomUp >= roomDown;
               ph = Math.max(Math.min(ph, up ? roomUp : roomDown, f.BOT - f.TOP), Math.min(bandH + 60, f.BOT - f.TOP));
               var pt;
               if (up) { pt = Math.min(T + inset, f.BOT) - ph; if (pt < f.TOP) pt = f.TOP; }
               else { pt = Math.max(-inset, f.TOP); if (pt + ph > f.BOT) pt = f.BOT - ph; }
               var ty = up ? pt + ph - inset - T : pt + inset;
-              var loopRoom = up ? (Math.min(0, ty) - f.TOP - 17) : (f.BOT - Math.max(T, ty + T) - 17);
-
-              var cx = tx + T / 2, cy = ty + T / 2;
-              g.ph = ph; g.pt = pt; g.ty = ty; g.up = up; g.loopRoom = loopRoom;
+              g.ph = ph; g.pt = pt; g.ty = ty; g.up = up;
+              g.loopRoom = up ? (Math.min(0, ty) - f.TOP - 17) : (f.BOT - Math.max(T, ty + T) - 17);
+              return finishGeom(g, f);
+            }
+            // Derived values for the window spring (origin at the tile centre, start scale, overshoot caps).
+            function finishGeom(g, f) {
+              var T = g.T, pl = g.pl, pt = g.pt, pw = g.pw, ph = g.ph, cx = g.tx + T / 2, cy = g.ty + T / 2;
               g.sx0 = T / pw; g.sy0 = T / ph; g.ox = cx - pl; g.oy = cy - pt;
               var eL = cx - pl, eR = pl + pw - cx, eT = cy - pt, eB = pt + ph - cy;
               var sL = pl - (f.vl + 4), sR = (f.vr - 4) - (pl + pw), sT = pt - (f.vt + 4), sB = (f.vb - 4) - (pt + ph);
@@ -2253,13 +2275,23 @@
               var c = E.panel.classList;
               c.toggle('cal-tl', !!g.tl); c.toggle('cal-tr', !g.tl);
               if (g.up != null) { c.toggle('cal-up', !!g.up); c.toggle('cal-down', !g.up); }
+              if (g.ps != null) setPhotoVars(g.ps);
+            }
+            // Caption text never shrinks below its default size; it grows a little on big windows.
+            function setPhotoVars(sc) {
+              var fs = Math.round(Math.max(1, 1 + (sc - 1) * 0.35) * 50) / 50;                                   // coarse steps: fewer restyles while pinching
+              var bs = Math.round((sc < 0.86 ? clamp(sc * 0.88, 0.6, 1) : clamp(sc, 0.72, 1.7)) * 50) / 50;
+              var small = sc < 0.86, st = E.panel.style;
+              if (PH.vFs !== fs) { PH.vFs = fs; st.setProperty('--cal-ph-fs', String(fs)); }
+              if (PH.vBs !== bs) { PH.vBs = bs; st.setProperty('--cal-ph-bs', String(bs)); }
+              if (PH.vSm !== small) { PH.vSm = small; E.panel.classList.toggle('cal-ph-small', small); }
             }
             // Lay the window out for the current content and return its natural height.
             function measureContent(g) {
-              applyGeom({ pl: g.pl, pw: g.pw, bandH: g.bandH, inset: g.inset, T: g.T, tl: g.tl });
+              applyGeom({ pl: g.pl, pw: g.pw, bandH: g.bandH, inset: g.inset, T: g.T, tl: g.tl, ps: g.ps });
               E.panel.style.height = '0px';
               renderContent(false);
-              if (mode === 'photo') return PHOTO_H;                   // photo window has a fixed, photo-friendly size
+              if (mode === 'photo') return PHOTO_H;                   // photo window: fixed aspect, size set by photoScale
               var h = E.list.scrollHeight;
               if (!known && !lastError) return MAX_H;                 // skeleton: data still coming
               return g.bandH + h + 2;
@@ -2280,6 +2312,7 @@
 
             // ------------------------------------------------------------ open/close
             function startOpen() {
+              resetSlideshow();
               var g = computeGeom(measureContent);
               if (!g) { state = 'closed'; sync(); return; }
               geom = g; openMode = mode;
@@ -2291,6 +2324,7 @@
               run(reduced() ? buildOpenRM(from, g) : buildOpen(from, g));
             }
             function reverseToOpen() {
+              resetSlideshow();
               var from = interrupt();
               state = 'opening';
               run(reduced() ? buildOpenRM(from, geom) : buildOpen(from, geom));
@@ -2300,6 +2334,7 @@
               run(reduced() ? buildCloseRM(from, geom) : buildClose(from, geom));
             }
             function startSwitch() {
+              endGestures();
               var gOld = geom, gNew = computeGeom(measureQuiet, mode);
               if (!gOld || !gNew) return;
               state = 'opening';
@@ -2336,7 +2371,7 @@
             function close() {
               if (destroyed) return;
               if (state === 'opening') { startClose(interrupt()); return; }
-              if (state === 'open') { startClose(poseOpen(geom)); return; }
+              if (state === 'open') { endGestures(); startClose(poseOpen(geom)); return; }
               if (state === 'thinking') { cancelThinking(); }
             }
             function toggle() {
@@ -2724,7 +2759,8 @@
             // ====================================================== photo slideshow
             // Three slots (prev / current / next) positioned by transforms. When the current slide moves on, it keeps
             // its DOM (and loaded photo); only the slot that wraps around to the far side is re-rendered.
-            var PH = { slots: Array.prototype.slice.call(root.querySelectorAll('.cal-slide')), events: [], n: 0, idx: 0, offset: 0, gap: 14, anim: null, timer: 0, drag: null };
+            var PH = { slots: Array.prototype.slice.call(root.querySelectorAll('.cal-slide')), events: [], n: 0, idx: 0, offset: 0, gap: 14, anim: null, timer: 0, drag: null,
+                       pinch: null, ignore: null, wheel: null, liveScale: null, scaleRaf: 0, kb: null };
 
             function evInfo(ev) {
               var now = new Date(), tk = dateKey(now), tm = dateKey(addDays(now, 1));
@@ -2801,7 +2837,7 @@
               E.phStale.hidden = !known.stale;
               if (sig === sigPhoto) return false;
               phStop(); phCancelDrag();
-              var curEv = PH.events[PH.idx], ni = 0, i;
+              var curEv = PH.events[PH.idx], ni = PH.idx, i;
               if (curEv && curEv.id != null) for (i = 0; i < evs.length; i++) if (evs[i].id === curEv.id) { ni = i; break; }
               PH.events = evs; PH.n = evs.length; PH.idx = Math.min(ni, Math.max(0, PH.n - 1)); PH.offset = 0;
               sigPhoto = sig;
@@ -2810,6 +2846,14 @@
               return true;
             }
 
+            // Every opening starts on the first upcoming event: reset before the window is laid out / animated.
+            function resetSlideshow() {
+              phTimerStop();
+              if (PH.anim) phStop();
+              if (PH.idx === 0 && PH.offset === 0) return;
+              PH.idx = 0; PH.offset = 0;
+              if (PH.n) { fillSlots(); markCurrent(); phPlace(0); renderDots(); }
+            }
             function slideW() { return E.slides.clientWidth || (geom ? geom.pw : PHOTO_W); }
             function slotPose(pos, Wd) {
               var u = Math.min(1, Math.abs(pos) / Wd);
@@ -2875,7 +2919,7 @@
             function phTimerStop() { clearTimeout(PH.timer); PH.timer = 0; }
             function phTimerStart() {
               phTimerStop();
-              if (destroyed || !photoLive() || state !== 'open' || PH.n < 2 || PH.drag || document.hidden) return;
+              if (destroyed || !photoLive() || state !== 'open' || PH.n < 2 || PH.drag || PH.pinch || PH.ignore || PH.wheel || document.hidden) return;
               PH.timer = setTimeout(phAuto, slideMs);
             }
             // Calm auto-advance: ease-in-out slide with parallax; a quick cross-fade under reduced motion.
@@ -2898,18 +2942,33 @@
               E.slides.classList.remove('is-dragging');
             }
             function onPhDown(e) {
-              if (PH.drag || !photoLive() || !E.panel.classList.contains('cal-ready')) return;
-              if (e.pointerType === 'mouse' && e.button !== 0) return;
+              if (!photoLive() || !E.panel.classList.contains('cal-ready')) return;
+              var touchy = e.pointerType !== 'mouse';
+              if (PH.pinch || PH.ignore || PH.drag) {
+                if (!touchy) return;
+                e.preventDefault();
+                try { E.slides.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+                var left = PH.ignore ? Object.keys(PH.ignore) : [];
+                if (PH.drag && PH.drag.id !== e.pointerId) startPinch(e, { id: PH.drag.id, x: PH.drag.lx, y: PH.drag.ly });
+                else if (!PH.pinch && left.length === 1) {                 // re-pinch with the finger left over from the last pinch
+                  var o = PH.ignore[left[0]]; PH.ignore = null; startPinch(e, { id: +left[0], x: o.x, y: o.y });
+                } else { PH.ignore = PH.ignore || {}; PH.ignore[e.pointerId] = { x: e.clientX, y: e.clientY }; }   // extra finger
+                return;
+              }
+              if (!touchy && e.button !== 0) return;
               e.preventDefault();                                        // no text selection / image drag / emulated mouse events
               phTimerStop(); phStop();
               try { E.slides.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
-              PH.drag = { id: e.pointerId, x0: e.clientX, off0: PH.offset, moved: false, k: (geom && geom.k) || 1, pts: [{ x: e.clientX, t: e.timeStamp }] };
+              PH.drag = { id: e.pointerId, x0: e.clientX, lx: e.clientX, ly: e.clientY, off0: PH.offset, moved: false, k: (geom && geom.k) || 1, pts: [{ x: e.clientX, t: e.timeStamp }] };
               E.slides.classList.add('is-dragging');
             }
             function onPhMove(e) {
+              if (PH.pinch) { if (PH.pinch.pts[e.pointerId]) { e.preventDefault(); pinchMove(e); } return; }
+              if (PH.ignore && PH.ignore[e.pointerId]) { PH.ignore[e.pointerId] = { x: e.clientX, y: e.clientY }; return; }
               var d = PH.drag;
               if (!d || e.pointerId !== d.id) return;
               e.preventDefault();
+              d.lx = e.clientX; d.ly = e.clientY;
               var dx = (e.clientX - d.x0) / d.k, Wd = slideW() + PH.gap, off = d.off0 + dx;
               if (!d.moved && Math.abs(dx) > 6) d.moved = true;
               if (PH.n < 2) off *= 0.35;                                  // nothing to swipe to: rubber band
@@ -2920,6 +2979,12 @@
               while (d.pts.length > 2 && e.timeStamp - d.pts[0].t > 90) d.pts.shift();
             }
             function onPhUp(e) {
+              if (PH.pinch && PH.pinch.pts[e.pointerId]) { endPinch(e.pointerId); return; }
+              if (PH.ignore && PH.ignore[e.pointerId]) {
+                delete PH.ignore[e.pointerId];
+                if (!Object.keys(PH.ignore).length) { PH.ignore = null; suppressClick = performance.now() + 500; phTimerStart(); }
+                return;
+              }
               var d = PH.drag;
               if (!d || e.pointerId !== d.id) return;
               phCancelDrag();
@@ -2933,8 +2998,195 @@
               phTimerStart();                                            // a manual swipe restarts the 30 s timer
             }
             function onRootClickCapture(e) {
-              if (suppressClick && performance.now() < suppressClick) { e.stopPropagation(); e.preventDefault(); }
-              suppressClick = 0;
+              if (gestureActive() || (suppressClick && performance.now() < suppressClick)) { e.stopPropagation(); e.preventDefault(); }
+              if (!gestureActive()) suppressClick = 0;
+            }
+
+            // ---------------------------------------------- pinch to resize (photo mode)
+            // The window grows / shrinks away from the tile's corner (the tile never moves), keeps the 520:340 aspect,
+            // follows the fingers live, rubber-bands past the limits and settles with a spring.
+            function gestureActive() { return !!(PH.drag || PH.pinch || PH.ignore); }
+            function curScale() { return PH.liveScale != null ? PH.liveScale : (geom && geom.ps) || photoScale; }
+            function anchorOf(g) { return { x: g.tl ? g.tx - g.inset : g.tx + g.T + g.inset, y: g.up ? g.ty + g.T + g.inset : g.ty - g.inset }; }
+            function photoRect(sc) {
+              var a = anchorOf(geom), w = PHOTO_W * sc, h = PHOTO_H * sc;
+              return { pl: geom.tl ? a.x : a.x - w, pt: geom.up ? a.y - h : a.y, pw: w, ph: h };
+            }
+            function scaleLimits() {
+              var f = frame(), g = geom;
+              if (!f || !g) return { lo: PS_MIN, hi: PS_MAX };
+              var a = anchorOf(g), wMax = g.tl ? f.R - a.x : a.x - f.L, hMax = g.up ? a.y - f.TOP : f.BOT - a.y;
+              var hi = Math.max(0.3, Math.min(PS_MAX, wMax / PHOTO_W, hMax / PHOTO_H));
+              return { lo: Math.min(PS_MIN, hi), hi: hi };
+            }
+            function rubber(v, L) {
+              if (v > L.hi) return L.hi + Math.min((v - L.hi) * 0.28, L.hi * 0.06);
+              if (v < L.lo) return L.lo - Math.min((L.lo - v) * 0.28, L.lo * 0.08);
+              return v;
+            }
+            function applyLiveScale(sc) {
+              var r = photoRect(sc), st = E.panel.style;
+              if (PH.liveScale == null) kbPause();                                 // Ken Burns holds still while the layers resize
+              st.left = f2(r.pl) + 'px'; st.top = f2(r.pt) + 'px'; st.width = f2(r.pw) + 'px'; st.height = f2(r.ph) + 'px';
+              setPhotoVars(sc);
+              PH.liveScale = sc;
+              phPlace(PH.offset);
+            }
+            function commitScale(sc) {
+              var r = photoRect(sc), f = frame();
+              geom.pl = r.pl; geom.pt = r.pt; geom.pw = r.pw; geom.ph = r.ph; geom.ps = sc;
+              if (f) finishGeom(geom, f);
+              applyGeom(geom);
+              PH.liveScale = null;
+              kbResume();
+              phPlace(PH.offset);
+            }
+            // Pausing through the Animations API (not the CSS play-state) keeps resizing smooth; it resumes where it stopped.
+            function kbPause() {
+              if (PH.kb) return;
+              try {
+                PH.kb = E.slides.getAnimations({ subtree: true }).filter(function (a) { return a.animationName && a.animationName.indexOf('cal-kb') === 0 && a.playState === 'running'; });
+                PH.kb.forEach(function (a) { a.pause(); });
+              } catch (err) { PH.kb = null; }
+            }
+            function kbResume() {
+              var l = PH.kb;
+              PH.kb = null;
+              if (l) l.forEach(function (a) { try { if (a.playState === 'paused') a.play(); } catch (err) { /* gone */ } });
+            }
+            function frameSoon(fn) { if (!PH.scaleRaf) PH.scaleRaf = requestAnimationFrame(function () { PH.scaleRaf = 0; fn(); }); }
+            function stopScaleRaf() { if (PH.scaleRaf) { cancelAnimationFrame(PH.scaleRaf); PH.scaleRaf = 0; } }
+            function settleScale(from, target, v0) {
+              stopScaleRaf();
+              if (reduced() || (Math.abs(from - target) < 0.0005 && Math.abs(v0) < 0.00005)) { applyLiveScale(target); commitScale(target); return; }
+              var t0 = 0, w0 = W(420), z = 0.55, cap = scaleLimits().hi * 1.04;
+              var step = function (now) {
+                if (!t0) t0 = now;
+                var t = now - t0;
+                if (t > 900) { PH.scaleRaf = 0; applyLiveScale(target); commitScale(target); return; }
+                applyLiveScale(Math.min(target + spring(t, from - target, v0, w0, z), Math.max(cap, target)));
+                PH.scaleRaf = requestAnimationFrame(step);
+              };
+              PH.scaleRaf = requestAnimationFrame(step);
+            }
+            function reportScale(sc) {
+              photoScale = sc;
+              if (typeof opts.onPhotoScale === 'function') { try { opts.onPhotoScale(Math.round(sc * 1000) / 1000); } catch (err) { /* host error */ } }
+            }
+            function snapSlides() {
+              phStop();
+              var Wd = slideW() + PH.gap;
+              if (PH.offset < -Wd / 2) phCommit(1); else if (PH.offset > Wd / 2) phCommit(-1); else { PH.offset = 0; phPlace(0); }
+            }
+            function pinchDist(P) {
+              var ids = Object.keys(P.pts);
+              if (ids.length < 2) return 0;
+              var a = P.pts[ids[0]], b = P.pts[ids[1]];
+              return Math.sqrt((a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y));
+            }
+            function startPinch(e, first) {
+              phTimerStop();
+              stopScaleRaf();
+              E.slides.classList.remove('is-dragging');
+              PH.drag = null;
+              snapSlides();
+              var s0 = curScale(), P = { pts: {}, s0: s0, L: scaleLimits(), raw: s0, disp: s0, hist: [{ s: s0, t: e.timeStamp }] };
+              P.pts[first.id] = { x: first.x, y: first.y };
+              P.pts[e.pointerId] = { x: e.clientX, y: e.clientY };
+              P.d0 = Math.max(24, pinchDist(P));
+              PH.pinch = P;
+              E.panel.classList.add('cal-pinching');
+            }
+            function pinchMove(e) {
+              var P = PH.pinch;
+              P.pts[e.pointerId] = { x: e.clientX, y: e.clientY };
+              P.raw = P.s0 * pinchDist(P) / P.d0;
+              P.disp = rubber(P.raw, P.L);
+              P.hist.push({ s: P.disp, t: e.timeStamp });
+              while (P.hist.length > 2 && e.timeStamp - P.hist[0].t > 100) P.hist.shift();
+              frameSoon(function () { if (PH.pinch) applyLiveScale(PH.pinch.disp); });
+            }
+            // One finger lifted: the pinch is over. Fingers still down are ignored until they lift (never a swipe).
+            function endPinch(liftedId) {
+              var P = PH.pinch;
+              PH.pinch = null;
+              E.panel.classList.remove('cal-pinching');
+              stopScaleRaf();
+              applyLiveScale(P.disp);
+              Object.keys(P.pts).forEach(function (id) {
+                if (+id !== liftedId) { PH.ignore = PH.ignore || {}; PH.ignore[id] = P.pts[id]; }
+              });
+              suppressClick = performance.now() + 600;
+              var a = P.hist[0], b = P.hist[P.hist.length - 1];
+              var v = a && b && b.t > a.t ? clamp((b.s - a.s) / (b.t - a.t) * 0.5, -0.0015, 0.0015) : 0;
+              var target = clamp(P.raw, P.L.lo, P.L.hi);
+              settleScale(P.disp, target, v);
+              reportScale(target);
+              phTimerStart();
+            }
+            // Desktop: ctrl + wheel (trackpad pinch) over the photo window.
+            function onWheel(e) {
+              if (!e.ctrlKey || view !== 'photo' || openMode !== 'photo' || state !== 'open' || cur || !geom || geom.ps == null || PH.pinch) return;
+              e.preventDefault();
+              e.stopPropagation();
+              var Wh = PH.wheel;
+              if (!Wh) {
+                phTimerStop(); stopScaleRaf(); snapSlides();
+                Wh = PH.wheel = { raw: curScale(), L: scaleLimits(), timer: 0 };
+                Wh.disp = Wh.raw;
+              }
+              var dy = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 400 : 1);
+              Wh.raw = clamp(Wh.raw * Math.exp(-dy * 0.01), Wh.L.lo * 0.8, Wh.L.hi * 1.25);
+              Wh.disp = rubber(Wh.raw, Wh.L);
+              frameSoon(function () { if (PH.wheel) applyLiveScale(PH.wheel.disp); });
+              clearTimeout(Wh.timer);
+              Wh.timer = setTimeout(function () {
+                if (PH.wheel !== Wh) return;
+                PH.wheel = null;
+                stopScaleRaf();
+                applyLiveScale(Wh.disp);
+                var target = clamp(Wh.raw, Wh.L.lo, Wh.L.hi);
+                settleScale(Wh.disp, target, 0);
+                reportScale(target);
+                phTimerStart();
+              }, 220);
+            }
+            // Finish any resize gesture right now (before the window closes / switches / re-lays out).
+            function endGestures() {
+              if (PH.pinch) {
+                var P = PH.pinch; PH.pinch = null; E.panel.classList.remove('cal-pinching');
+                stopScaleRaf(); commitScale(clamp(P.raw, P.L.lo, P.L.hi)); reportScale(geom.ps);
+              } else if (PH.wheel) {
+                var Wh = PH.wheel; PH.wheel = null; clearTimeout(Wh.timer);
+                stopScaleRaf(); commitScale(clamp(Wh.raw, Wh.L.lo, Wh.L.hi)); reportScale(geom.ps);
+              } else if (PH.liveScale != null && geom) {
+                stopScaleRaf(); var L = scaleLimits(); commitScale(clamp(PH.liveScale, L.lo, L.hi));
+              }
+              PH.ignore = null;
+              phCancelDrag();
+            }
+            function setPhotoScale(sc) {
+              if (destroyed) return;
+              photoScale = num(sc, 1, PS_MIN, PS_MAX);
+              if (state === 'open' && !cur && openMode === 'photo' && geom && geom.ps != null && !PH.pinch && !PH.wheel) {
+                var L = scaleLimits();                                  // live, clamped to the viewport (no callback)
+                settleScale(curScale(), clamp(photoScale, L.lo, L.hi), 0);
+              } else if (state === 'closed' && !cur) {
+                prerender();
+              }
+            }
+            // While a finger is on the photo window, keep any other touch inside the widget (e.g. a second finger on the
+            // tile) away from the host's tap / drag handlers.
+            function onRootPointerDownCapture(e) {
+              if (!gestureActive() || e.pointerType === 'mouse' || E.slides.contains(e.target)) return;
+              e.stopPropagation();
+              if (e.cancelable) e.preventDefault();
+              onPhDown(e);
+            }
+            function onRootTouchCapture(e) {
+              if (!gestureActive() || E.panel.contains(e.target)) return;
+              e.stopPropagation();
+              if (e.cancelable) e.preventDefault();
             }
 
             // --------------------------------------------------------------- tile date
@@ -2962,6 +3214,7 @@
               if (destroyed) return;
               if (state === 'opening' || state === 'closing') { pendingRelayout = true; return; }
               if (state !== 'open') return;
+              endGestures();
               var g = computeGeom(measureQuiet, openMode);
               if (!g) return;
               phStop();
@@ -2995,8 +3248,13 @@
             E.slides.addEventListener('pointermove', onPhMove);
             E.slides.addEventListener('pointerup', onPhUp);
             E.slides.addEventListener('pointercancel', onPhUp);
-            E.slides.addEventListener('lostpointercapture', function (e) { if (PH.drag && e.pointerId === PH.drag.id) onPhUp({ type: 'pointercancel', pointerId: e.pointerId }); });
+            E.slides.addEventListener('lostpointercapture', function (e) {
+              if ((PH.drag && e.pointerId === PH.drag.id) || (PH.pinch && PH.pinch.pts[e.pointerId]) || (PH.ignore && PH.ignore[e.pointerId])) onPhUp({ type: 'pointercancel', pointerId: e.pointerId });
+            });
             root.addEventListener('click', onRootClickCapture, true);
+            root.addEventListener('pointerdown', onRootPointerDownCapture, true);
+            ['touchstart', 'touchmove', 'touchend', 'touchcancel', 'mousedown'].forEach(function (t) { root.addEventListener(t, onRootTouchCapture, { capture: true, passive: false }); });
+            E.panel.addEventListener('wheel', onWheel, { passive: false });
             document.addEventListener('visibilitychange', onVisibility);
             window.addEventListener('resize', onResize);
             var minuteTimer = setInterval(function () { if (dateKey(new Date()) !== dayKey) refreshDate(); }, 60000);
@@ -3025,14 +3283,18 @@
               setAccent: setAccent,
               setMode: setMode,
               setPreferRight: function (b) { preferRight = !!b; },   // used from the next opening on
+              setPhotoScale: setPhotoScale,
               relayout: relayout,
               destroy: function () {
                 if (destroyed) return;
                 if (cur) interrupt();
                 destroyed = true;
                 clearTimeout(midTimer); clearTimeout(rzTimer); clearTimeout(frostTimer); clearTimeout(warmTimer); clearInterval(minuteTimer); clearInterval(refreshTimer);
-                phTimerStop(); phStop(); phCancelDrag();
+                phTimerStop(); phStop(); phCancelDrag(); stopScaleRaf();
+                if (PH.wheel) clearTimeout(PH.wheel.timer);
                 E.panel.removeEventListener('click', onPanelClick);
+                root.removeEventListener('pointerdown', onRootPointerDownCapture, true);
+                ['touchstart', 'touchmove', 'touchend', 'touchcancel', 'mousedown'].forEach(function (t) { root.removeEventListener(t, onRootTouchCapture, { capture: true, passive: false }); });
                 root.removeEventListener('click', onRootClickCapture, true);
                 Object.keys(palette ? palette.vars : {}).forEach(function (k) { root.style.removeProperty(k); });
                 root.classList.remove('cal-acc-light');
@@ -3045,6 +3307,7 @@
               get isOpen() { return state === 'opening' || state === 'open'; },
               get isBusy() { return !!cur || state === 'thinking'; },
               get mode() { return mode; },
+              get photoScale() { return photoScale; },
               get state() { return state; }
             };
             root.__calWidget = ctrl;
