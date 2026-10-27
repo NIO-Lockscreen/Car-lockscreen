@@ -1486,6 +1486,7 @@
              opts.onSettings()
              opts.accent: '#rrggbb'          tile band / badges / accents (default '#f25b52')
              opts.mode: 'list' | 'photo'     list of events, or a full-bleed photo slideshow
+                                             (photo: the tile shows the next event's day, not today)
              opts.preferRight: boolean       roll right by default (left only when there is no room)
              (optional) opts.emptyHint: false  -> no "No upcoming events" pill on the empty bounce
              opts.photoScale: number         photo window size factor (0.7 - 2.2, default 1)
@@ -2344,6 +2345,7 @@
               m = m === 'photo' ? 'photo' : 'list';
               if (destroyed || m === mode) return;
               mode = m;
+              paintTile();
               if (state === 'open' && !cur) startSwitch();
               else if (state === 'opening') pendingSwitch = true;         // switch once the window has settled
               else if (state === 'closed' && !cur) prerender();
@@ -2594,6 +2596,7 @@
               });
             }
             function onData() {
+              paintTile();
               if (state === 'opening' && !revealed) renderContent(false);   // still rolling: swap hidden content
               else if (revealed) renderContent(true);
               else if (state === 'closed' && !cur) prerender();
@@ -3212,12 +3215,21 @@
             }
 
             // --------------------------------------------------------------- tile date
+            // Today's date; in photo mode the day of the next event instead (today while one is already under way).
+            function paintTile() {
+              var now = new Date(), d = now, next = false;
+              if (mode === 'photo' && known && known.events.length) {
+                var ed = evInfo(known.events[0]).d;
+                if (ed && dateKey(ed) > dateKey(now)) { d = ed; next = true; }
+              }
+              E.month.textContent = MON[d.getMonth()].toUpperCase();
+              E.day.textContent = String(d.getDate());
+              E.tile.setAttribute('aria-label', 'Calendar, ' + (next ? 'next event ' : '') + WDL[d.getDay()] + ' ' + d.getDate() + ' ' + MONL[d.getMonth()]);
+            }
             var dayKey = '';
             function refreshDate() {
-              var now = new Date(), k = dateKey(now);
-              E.month.textContent = MON[now.getMonth()].toUpperCase();
-              E.day.textContent = String(now.getDate());
-              E.tile.setAttribute('aria-label', 'Calendar, ' + WDL[now.getDay()] + ' ' + now.getDate() + ' ' + MONL[now.getMonth()]);
+              var k = dateKey(new Date());
+              paintTile();
               if (dayKey && k !== dayKey) {
                 if (revealed) renderContent(true);       // Today/Tomorrow labels moved
                 load(false);
