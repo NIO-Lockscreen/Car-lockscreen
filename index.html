@@ -922,12 +922,17 @@
           display: flex; align-items: center; justify-content: center; gap: 8px;
           pointer-events: none;
         }
+        /* the 1/7 pill only shows while a finger is on the photos, and lingers briefly after it lifts */
         #calendar-widget .cal-ph-dots {
           display: flex; align-items: center; gap: 5px;
           padding: 6px 10px;
           border-radius: 999px;
           background: rgba(0, 0, 0, 0.34);
+          opacity: 0;
+          transition: opacity 0.45s ease 0.7s;
         }
+        #calendar-widget .cal-ph-touch .cal-ph-dots { opacity: 1; transition: opacity 0.18s ease; }
+        #calendar-widget .cal-panel:not(.cal-ready) .cal-ph-dots { opacity: 0; transition: none; }
         #calendar-widget .cal-ph-dots i { width: 6px; height: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.5); transition: width 0.3s ease, background-color 0.3s ease; }
         #calendar-widget .cal-ph-dots i.on { width: 16px; background: #fff; }
         #calendar-widget .cal-ph-count { margin-left: 4px; color: rgba(255, 255, 255, 0.85); font-size: 11.5px; font-weight: 500; font-variant-numeric: tabular-nums; }
@@ -1486,7 +1491,7 @@
              opts.onSettings()
              opts.accent: '#rrggbb'          tile band / badges / accents (default '#f25b52')
              opts.mode: 'list' | 'photo'     list of events, or a full-bleed photo slideshow
-                                             (photo: the tile shows the next event's day, not today)
+                                             (photo: the tile shows the day of the event on screen)
              opts.preferRight: boolean       roll right by default (left only when there is no room)
              (optional) opts.emptyHint: false  -> no "No upcoming events" pill on the empty bounce
              opts.photoScale: number         photo window size factor (0.7 - 2.2, default 1)
@@ -1642,7 +1647,7 @@
                 '<div class="cal-body"></div>' +
                 '<div class="cal-photo">' +
                   '<div class="cal-slides" aria-roledescription="carousel"><div class="cal-slide"></div><div class="cal-slide"></div><div class="cal-slide"></div></div>' +
-                  '<div class="cal-ph-top"><div class="cal-ph-dots cal-pi" aria-hidden="true"></div>' +
+                  '<div class="cal-ph-top"><div class="cal-ph-dots" aria-hidden="true"></div>' +
                     '<div class="cal-ph-stale cal-pi" hidden><i class="fa-solid fa-cloud-arrow-down"></i><span>offline \u2013 showing saved</span></div></div>' +
                   '<button type="button" class="cal-ph-gear cal-pi" data-cal-act="settings" aria-label="Calendar settings"><i class="fa-solid fa-gear"></i></button>' +
                 '</div>' +
@@ -2762,7 +2767,7 @@
             // ====================================================== photo slideshow
             // Three slots (prev / current / next) positioned by transforms. When the current slide moves on, it keeps
             // its DOM (and loaded photo); only the slot that wraps around to the far side is re-rendered.
-            var PH = { slots: Array.prototype.slice.call(root.querySelectorAll('.cal-slide')), events: [], n: 0, idx: 0, offset: 0, gap: 14, anim: null, timer: 0, drag: null,
+            var PH = { slots: Array.prototype.slice.call(root.querySelectorAll('.cal-slide')), events: [], n: 0, idx: 0, shown: 0, offset: 0, gap: 14, anim: null, timer: 0, drag: null,
                        pinch: null, ignore: null, wheel: null, liveScale: null, scaleRaf: 0, kb: null };
 
             function evInfo(ev) {
@@ -2834,7 +2839,10 @@
               Array.prototype.forEach.call(E.dots.querySelectorAll('i'), function (el, k) { el.classList.toggle('on', k === a); });
               E.dots.querySelector('.cal-ph-count').textContent = (a + 1) + '/' + n;
               E.dots.hidden = n < 2;
+              PH.shown = a;                                              // the tile follows the dots
+              paintTile();
             }
+            function syncTouch() { E.photo.classList.toggle('cal-ph-touch', gestureActive()); }
             function renderPhoto() {
               var evs = known.events, sig = JSON.stringify(evs) + '|' + dateKey(new Date()) + '|' + Math.floor(Date.now() / 60000);
               E.phStale.hidden = !known.stale;
@@ -2859,7 +2867,7 @@
             function resetSlideshow() {
               phTimerStop();
               if (PH.anim) phStop();
-              if (PH.idx === 0 && PH.offset === 0) return;
+              if (PH.idx === 0 && PH.offset === 0) { if (PH.n) renderDots(); return; }
               PH.idx = 0; PH.offset = 0;
               if (PH.n) { fillSlots(); markCurrent(); phPlace(0); renderDots(); }
             }
@@ -2963,6 +2971,7 @@
               PH.drag = null;
               try { E.slides.releasePointerCapture(id); } catch (e) { /* ignore */ }
               E.slides.classList.remove('is-dragging');
+              syncTouch();
             }
             function onPhDown(e) {
               if (!photoLive() || !E.panel.classList.contains('cal-ready')) return;
@@ -2985,6 +2994,7 @@
               try { E.slides.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
               PH.drag = { id: e.pointerId, x0: e.clientX, lx: e.clientX, ly: e.clientY, off0: PH.offset, moved: false, k: (geom && geom.k) || 1, pts: [{ x: e.clientX, t: e.timeStamp }] };
               E.slides.classList.add('is-dragging');
+              syncTouch();
             }
             function onPhMove(e) {
               if (PH.pinch) { if (PH.pinch.pts[e.pointerId]) { e.preventDefault(); pinchMove(e); } return; }
@@ -3006,7 +3016,7 @@
               if (PH.pinch && PH.pinch.pts[e.pointerId]) { endPinch(e.pointerId); return; }
               if (PH.ignore && PH.ignore[e.pointerId]) {
                 delete PH.ignore[e.pointerId];
-                if (!Object.keys(PH.ignore).length) { PH.ignore = null; suppressClick = performance.now() + 500; phTimerStart(); phRedrawIfDue(); }
+                if (!Object.keys(PH.ignore).length) { PH.ignore = null; suppressClick = performance.now() + 500; syncTouch(); phTimerStart(); phRedrawIfDue(); }
                 return;
               }
               var d = PH.drag;
@@ -3146,6 +3156,7 @@
               var target = clamp(P.raw, P.L.lo, P.L.hi);
               settleScale(P.disp, target, v);
               reportScale(target);
+              syncTouch();
               phTimerStart();
             }
             // Desktop: ctrl + wheel (trackpad pinch) over the photo window.
@@ -3189,6 +3200,7 @@
               }
               PH.ignore = null;
               phCancelDrag();
+              syncTouch();
             }
             function setPhotoScale(sc) {
               if (destroyed) return;
@@ -3215,16 +3227,18 @@
             }
 
             // --------------------------------------------------------------- tile date
-            // Today's date; in photo mode the day of the next event instead (today while one is already under way).
+            // Today's date; in photo mode the day of the event on the current slide instead (the first one while closed,
+            // today while it is already under way).
             function paintTile() {
-              var now = new Date(), d = now, next = false;
-              if (mode === 'photo' && known && known.events.length) {
-                var ed = evInfo(known.events[0]).d;
-                if (ed && dateKey(ed) > dateKey(now)) { d = ed; next = true; }
+              var now = new Date(), d = now, ev = null;
+              if (mode === 'photo' && known && known.events.length) ev = PH.events[PH.shown] || known.events[0];
+              if (ev) {
+                var ed = evInfo(ev).d;
+                if (ed && dateKey(ed) > dateKey(now)) d = ed;
               }
               E.month.textContent = MON[d.getMonth()].toUpperCase();
               E.day.textContent = String(d.getDate());
-              E.tile.setAttribute('aria-label', 'Calendar, ' + (next ? 'next event ' : '') + WDL[d.getDay()] + ' ' + d.getDate() + ' ' + MONL[d.getMonth()]);
+              E.tile.setAttribute('aria-label', 'Calendar, ' + (d !== now ? 'event on ' : '') + WDL[d.getDay()] + ' ' + d.getDate() + ' ' + MONL[d.getMonth()]);
             }
             var dayKey = '';
             function refreshDate() {
