@@ -1515,8 +1515,7 @@
           var PS_MIN = 0.7, PS_MAX = 2.2;     // pinch-resize range
           var SLIDE_MS = 30000;               // photo auto-advance
           var DEFAULT_ACCENT = '#f25b52';
-          var GRAV = 4000;                    // px/s^2 - "gravity" for hops
-          var ROLL_G = 8000;                  // px/s^2 - gravity for the tumbling roll (sets how fast it tumbles)
+          var GRAV = 4000;                    // px/s^2 - gravity for every hop, jump and rock
           var CORNER = 0.225;                 // tile corner radius / tile size (matches the tile's CSS border-radius)
           var STEP = 1000 / 60;               // keyframe sampling interval (ms)
           var REFRESH_MS = 10 * 60 * 1000;    // background prefetch interval
@@ -1853,16 +1852,16 @@
               return (atHome || atCorner) && Math.abs(normDeg(t.r)) < 8 && Math.abs(t.sy - 1) < 0.08;
             }
 
-            // The tile tumbles from p0 to p1 like a real rounded box. It pivots on the rounded corner touching the ground
-            // (spin locked to travel: no sliding backwards, no flying), slows as it climbs over each corner and
-            // speeds up as it falls onto the next face, loses energy every time a face slaps down, and after the last face
-            // lands it rocks on its corners, each rock smaller and quicker, until it rests. The tilt is integrated from the
-            // rolling equation of motion once, up front, and looked up per frame. The number of turns is whole (it lands
-            // upright); any difference between that rolled distance and the gap is made up by a slight skid as faces land.
+            // The tile jumps from p0 to p1 like a soft, bouncy tile tossed along a table. It crouches and leans back onto
+            // its trailing corner, springs off, and flies real parabolas under GRAV: steady drift and steady spin in the air
+            // (no drifting backwards), flipping forward in whole quarter turns (about as fast as it would roll, so the spin
+            // matches the travel) so a face meets the ground. Each landing squashes it flat for a moment before it bounces on,
+            // keeping about a third of the height and 72% of the speed; after the last landing it wobbles and rocks on its
+            // corners until it rests.
             function makeRoll(p0, p1, g, antic) {
               var T = g.T;
               var dx = p1.x - p0.x, dy = p1.y - p0.y, dist = Math.abs(dx);
-              var s = dx > 0.5 ? 1 : dx < -0.5 ? -1 : (g.tl ? -1 : 1);   // +1: rolls right (clockwise)
+              var s = dx > 0.5 ? 1 : dx < -0.5 ? -1 : (g.tl ? -1 : 1);   // +1: travels right (spins clockwise)
               var c0 = 1 - p0.sy, o0 = p0.o == null ? 1 : p0.o, r0 = p0.r;
 
               if (dist < 28 && Math.abs(dy) < 28) {            // no room to roll: spring into place
@@ -1879,100 +1878,125 @@
                 };
               }
 
-              var b = boxRoll(T, ROLL_G), Q = b.Q, DEG = 180 / Math.PI;
-              // psi: total tilt progress (rad) in the rolling direction; the tile lies flat whenever psi is a multiple of Q.
-              function far(psi) { var j = Math.floor(psi / Q); return j * b.adv + b.x(psi - j * Q); }   // centre travel, no slip
-              function rise(psi) { return b.y(psi - Math.floor(psi / Q) * Q); }                        // centre rise
-              function skidAt(psi) { var j = Math.floor(psi / Q), u = psi / Q - j; return j + u + Math.sin(PI2 * u) / PI2; }
-              var th0 = mod(s * r0, 90) / DEG;                                 // starting tilt (0 = flat)
+              var b = boxRoll(T, GRAV), DEG = 180 / Math.PI, gms = GRAV / 1e6, FR = 0.72, k;   // gms: gravity in px/ms^2
+              var ground0 = g.tx != null && Math.abs(g.tx) > 1 ? (g.ty || 0) * clamp(p0.x / g.tx, 0, 1) : 0;
+              var h0 = Math.max(0, ground0 - p0.y);                               // starts in the air (interrupted mid-hop)
+              var room = g.headroom != null ? g.headroom : g.up ? g.loopRoom : T;
+              var H0 = clamp(Math.min(room, T * 1.45), 18, 170) * clamp(0.45 + dist / 600, 0.5, 1.1) * clamp(dist / 180, 0.3, 1);
 
-              // Whole turns that best fit the gap; a little extra skid is fine, spinning in place is not.
-              var phMin = mod(-s * r0, 360), best = null;
-              for (var i = 0; i < 12; i++) {
-                var ph = phMin + 360 * i;
-                if (ph < 1) continue;
-                var dns = far(th0 + ph / DEG) - far(th0), L = Math.log(Math.max(dist, 1) / Math.max(dns, 1));
-                var cost = L >= 0 ? L : -1.4 * L;
-                if (!best || cost < best.cost) best = { cost: cost, ph: ph, dns: dns };
+              // Hops (height, flight time) and the moments on the ground between them. Each bounce keeps a third of the
+              // height; with little headroom it keeps more (and more of its speed), skipping along in more, lower hops
+              // instead of shooting across in one.
+              var H, D, C, n, v0, RH = [0.33, 0.5, 0.65, 0.8];
+              for (var ri = 0; ri < RH.length; ri++) {
+                FR = 0.72 + (RH[ri] - 0.33) * 0.4;
+                H = []; D = []; C = []; n = 0;
+                for (var hk = H0; n < (ri ? 7 : 3) && (n === 0 || hk >= (ri ? 6 : 12)); hk *= RH[ri]) {
+                  H.push(hk); D.push(Math.sqrt(8 * hk / gms)); C.push(30 + 15 * Math.sqrt(hk / 90)); n++;
+                }
+                var coef = 0;                                                     // distance covered per unit of launch speed
+                for (k = 0; k < n; k++) coef += Math.pow(FR, k) * (D[k] + (k < n - 1 ? C[k] * (1 + FR) / 2 : 0));
+                v0 = dist / coef;                                                 // px/ms
+                if (v0 <= 0.9) break;
               }
-              var psiEnd = th0 + best.ph / DEG;                               // ends flat and upright (r0 + s*ph is a multiple of 360)
-              var extra = dist - best.dns, sk0 = skidAt(th0), skN = skidAt(psiEnd) - sk0;
-              var jEnd = Math.round(psiEnd / Q), nq = jEnd - Math.floor(th0 / Q);
 
-              // Energy plan, worked back from the last quarter: it clears its corner with a little to spare, and each
-              // earlier face landing cost energy (longer rolls lose less per landing, so the first turns aren't a blur).
-              var Bar = ROLL_G * b.y(Q / 2), EL = Bar * 1.5;
-              var e = nq > 1 ? Math.pow(Math.min(2.6, 1 + 0.45 * (nq - 1)), -1 / (nq - 1)) : 1;
-              var E0 = EL / Math.pow(e, 2 * (nq - 1)), thS = th0 - Math.floor(th0 / Q) * Q;
-              var w = Math.sqrt(2 * Math.max(E0 - ROLL_G * b.y(thS), 0.05 * Bar) / b.M(thS));
+              // Quarter turns per hop: close to a rolling spin, landing on a face, ending upright.
+              var d0 = mod(-s * r0, 90), need = Math.round((mod(-s * r0, 360) - d0) / 90) % 4;
+              var ideal = [], dp = [{ c: 0, q: [] }, null, null, null], m, v;   // dp[m]: cheapest choice so far with turns = m (mod 4)
+              for (k = 0; k < n; k++) {
+                ideal[k] = v0 * Math.pow(FR, k) * D[k] / b.adv * 1.1 - (k ? 0 : d0 / 90);
+                var lo = Math.max(0, Math.round(ideal[k]) - 2), nx = [null, null, null, null];
+                for (m = 0; m < 4; m++) {
+                  if (!dp[m]) continue;
+                  for (v = lo; v < lo + 6; v++) {
+                    var cst = dp[m].c + (v - ideal[k]) * (v - ideal[k]) * (k ? 1.5 : 1), mm = (m + v) % 4;
+                    if (!nx[mm] || cst < nx[mm].c) nx[mm] = { c: cst, q: dp[m].q.concat(v) };
+                  }
+                }
+                dp = nx;
+              }
+              var best = dp[need];
 
-              var dt = 0.001, th = thS, j = Math.floor(th0 / Q), tab = [th0], hits = [], tLand = 0, rolling = true, step, n;
-              for (step = 1; step < 8000; step++) {
-                if (rolling) {
-                  n = rk4(b, th, w, dt);
-                  if (n[0] >= Q) {                                      // the next face slaps down
-                    j++;
-                    hits.push({ t: (step - 1 + (Q - th) / (n[0] - th)), v: Math.abs(n[1]) * b.cc, k: j >= jEnd ? 1 : 0 });
-                    if (j >= jEnd) { rolling = false; tLand = step; th = n[0] - Q; w = n[1] * 0.5; }
-                    else { th = n[0] - Q; w = Math.max(n[1] * e, 0.3); }
-                  } else { th = n[0]; w = Math.max(n[1], 0.3); }
-                  tab.push(rolling ? j * Q + th : psiEnd + th);
-                } else {                                                // rocking on the corners around psiEnd
-                  n = rk4(b, th, w, dt);
-                  if (th !== 0 && (n[0] > 0) !== (th > 0)) {           // flat again: slaps down, rocks onto the other corner
-                    hits.push({ t: step, v: Math.abs(n[1]) * b.cc, k: 2 });
-                    w = n[1] * 0.5;
-                    if (0.5 * b.M(0) * w * w < ROLL_G * b.y(0.4 / DEG)) { tab.push(psiEnd); break; }
-                    th = n[0];
-                  } else { th = n[0]; w = n[1]; }
-                  tab.push(psiEnd + th);
+              var A = antic ? 200 : 0, seg = [], t = A, x = 0, r = r0;
+              for (k = 0; k < n; k++) {
+                var vk = v0 * Math.pow(FR, k), rot = s * (best.q[k] * 90 + (k ? 0 : d0));
+                seg.push({ air: true, t0: t, t1: t + D[k], x0: x, v: vk, r0: r, dr: rot, H: H[k], h0: k ? 0 : h0 });
+                t += D[k]; x += vk * D[k]; r += rot;
+                if (k < n - 1) {
+                  seg.push({ air: false, t0: t, t1: t + C[k], x0: x, v: vk, v1: vk * FR, r0: r,
+                             vi: Math.sqrt(2 * gms * H[k]) * 1000, vo: Math.sqrt(2 * gms * H[k + 1]) * 1000 });
+                  t += C[k]; x += C[k] * vk * (1 + FR) / 2;
                 }
               }
-              if (rolling) tLand = tab.length - 1;
-              tab[tab.length - 1] = psiEnd;
+              var impact = t, rEnd = r;
 
-              // It's a soft, jelly-ish tile: it crouches and leans back before pushing off, stretches as a face falls and
-              // squashes as it slaps down, and the last landing squashes hard and wobbles out (with a little rebound hop).
-              var A = antic ? 200 : 0, impact = A + tLand, dur = A + Math.max(tab.length + 20, tLand + 480);
-              var vL = 0;
-              hits.forEach(function (hq) { if (hq.k === 1) vL = hq.v; });
-              var landK = 0.4 * Math.sqrt(clamp(vL / 190, 0.5, 1.5));
-              var ground0 = g.tx != null && Math.abs(g.tx) > 1 ? (g.ty || 0) * clamp(p0.x / g.tx, 0, 1) : 0;
-              var off0 = p0.y - (ground0 - rise(th0)), tFall = off0 < 0 ? Math.sqrt(2 * -off0 / GRAV) * 1000 : 0;
+              // After the last landing: rock forward on the leading corner with what is left of the drift, then settle.
+              // Angular momentum about the front corner, capped well short of tipping it over (a rock of at most ~8 degrees).
+              var w = Math.min(v0 * Math.pow(FR, n - 1) * 1000 * (T / 2) / b.M(0), Math.sqrt(0.6 * GRAV * b.y(Math.PI / 4) / b.M(0)));
+              var a = 0, tab = [0], hits = [], step, nn;
+              for (step = 1; step < 3000; step++) {
+                nn = rk4(b, a, w, 0.001);
+                if (a !== 0 && (nn[0] > 0) !== (a > 0)) {                  // flat again: slaps down, rocks onto the other corner
+                  hits.push({ t: impact + step, v: Math.abs(nn[1]) * b.cc });
+                  w = nn[1] * 0.5;
+                  if (0.5 * b.M(0) * w * w < GRAV * b.y(0.4 / DEG)) { tab.push(0); break; }
+                  a = nn[0];
+                } else { a = nn[0]; w = nn[1]; }
+                tab.push(a);
+              }
+              tab[tab.length - 1] = 0;
+              var dur = impact + Math.max(tab.length + 20, 480);
+              var vl = Math.sqrt(2 * gms * (H[n - 1] + (n === 1 ? h0 : 0))) * 1000;
+              var landK = Math.max(0.22, 0.42 * Math.sqrt(vl * vl / (2 * GRAV) / 90));
 
               return {
                 dur: dur, impact: impact, settleOnly: false,
                 at: function (t) {
-                  var te = t - A, k = clamp(te, 0, tab.length - 1), i0 = Math.floor(k), i1 = Math.min(i0 + 1, tab.length - 1);
-                  var psi = tab[i0] + (tab[i1] - tab[i0]) * (k - i0), c = 0, hop = 0, cl;
-                  if (te < 0) {                                        // crouch, rocking back onto the trailing corner
-                    var u = t / A;
+                  var x, h = 0, r, c, hop = 0, cl, i, sg = null;
+                  if (t < A) {                                        // crouch, rocking back onto the trailing corner
+                    var u = t / A, lean = 9 * Math.sin(Math.PI * u * u) / DEG;   // back, then whipping forward as it springs
+                    x = -b.x(lean); h = b.y(lean); r = r0 - s * lean * DEG;
                     c = 0.15 * easeOutCubic(u / 0.75);
-                    psi -= 9 * Math.sin(Math.PI * u * u) / DEG;          // back and whipping forward again as it pushes off
-                  } else if (antic) c = 0.15 * Math.exp(-(te / 34) * (te / 34)) - 0.12 * bump(te, 82, 40);   // spring off
-                  else c = c0 * Math.exp(-te / 70);
-                  for (var q = 0; q < hits.length; q++) {
-                    var hq = hits[q], tq = te - hq.t;
-                    if (tq < -60 || tq > 560) continue;
-                    if (hq.k === 1) {                                  // last face lands: big squash that wobbles out
-                      if (tq > 0) { cl = landK * Math.exp(-0.0105 * tq) * Math.sin(0.0299 * tq); c += cl; hop = Math.max(0, -cl) * T * 0.3; }
-                      else c -= 0.07 * bump(tq, -25, 22);                // stretched as it falls onto it
-                    } else if (tq > 0) {                               // a face slaps down mid-roll (or while rocking)
-                      c += Math.min(hq.k ? 0.12 : 0.28, hq.v * (hq.k ? 0.0008 : 0.0006)) * Math.exp(-tq / 45) * Math.sin(tq / 22);
-                    } else if (!hq.k) c -= Math.min(0.06, hq.v * 0.00014) * bump(tq, -22, 18);
+                  } else {
+                    for (i = 0; i < seg.length; i++) if (t < seg[i].t1) { sg = seg[i]; break; }
+                    if (sg && sg.air) {                               // ballistic: steady drift and spin, parabolic height
+                      var ta = t - sg.t0, tau = ta / (sg.t1 - sg.t0);
+                      x = sg.x0 + sg.v * ta; r = sg.r0 + sg.dr * tau;
+                      h = Math.max(sg.h0 * (1 - tau) + 4 * sg.H * tau * (1 - tau), b.y(mod(s * r, 90) / DEG));   // corners stay above ground
+                    } else if (sg) {                                  // on the ground between bounces: face down, friction slows it
+                      var tg = t - sg.t0;
+                      x = sg.x0 + sg.v * tg - (sg.v - sg.v1) * tg * tg / (2 * (sg.t1 - sg.t0)); r = sg.r0;
+                    } else {                                          // landed: rocking on the corners
+                      var kk = clamp(t - impact, 0, tab.length - 1), i0 = Math.floor(kk), i1 = Math.min(i0 + 1, tab.length - 1);
+                      var ar = tab[i0] + (tab[i1] - tab[i0]) * (kk - i0);
+                      x = dist + (ar >= 0 ? b.x(ar) : -b.x(-ar)); h = b.y(Math.abs(ar)); r = rEnd + s * ar * DEG;
+                    }
+                    var tl = t - A;
+                    c = antic ? 0.15 * Math.exp(-(tl / 34) * (tl / 34)) - 0.12 * bump(tl, 82, 40)   // spring off
+                              : c0 * Math.exp(-t / 70);
                   }
-                  var skid = te >= tLand ? extra : extra * clamp((skidAt(psi) - sk0) / skN, 0, 1);
-                  var base = lerp(ground0, p1.y, clamp((psi - th0) / (psiEnd - th0), 0, 1)), h = rise(psi);
-                  var off = off0 < 0 ? off0 * (1 - Math.min(1, (Math.max(te, 0) / tFall) * (Math.max(te, 0) / tFall)))
-                                     : off0 * (1 - smooth(te / 120));
-                  var x = p0.x + s * (far(psi) - far(th0) + skid), sy = 1 - c, sx = 1 + c * 0.85;
-                  var y = base + off - h - hop + (1 - sy) * T / 2;     // squash anchored to the ground
-                  var lift = h + hop + Math.max(0, -off), hn = Math.min(1, lift / 150);
+                  for (i = 0; i < seg.length; i++) {                  // bounces: stretch falling in, squash flat, stretch springing off
+                    var gq = seg[i];
+                    if (gq.air) continue;
+                    var tb = t - gq.t0, Tc = gq.t1 - gq.t0;
+                    c -= Math.min(0.1, gq.vi * 0.00009) * bump(tb, -22, 18);
+                    if (tb >= 0 && tb <= Tc) c += Math.min(0.34, gq.vi * 0.0003) * Math.sin(Math.PI * tb / Tc);
+                    c -= Math.min(0.14, gq.vo * 0.00016) * bump(tb, Tc + 30, 26);
+                  }
+                  var tq = t - impact;                                // last landing: big squash that wobbles out
+                  c -= Math.min(0.1, vl * 0.00009) * bump(tq, -22, 18);
+                  if (tq > 0) { cl = landK * Math.exp(-0.0105 * tq) * Math.sin(0.0299 * tq); c += cl; hop = Math.max(0, -cl) * T * 0.3; }
+                  for (i = 0; i < hits.length; i++) {                 // little slaps while it rocks
+                    var th = t - hits[i].t;
+                    if (th > 0 && th < 300) c += Math.min(0.12, hits[i].v * 0.0008) * Math.exp(-th / 45) * Math.sin(th / 22);
+                  }
+                  var sy = 1 - c, sx = 1 + c * 0.85, hh = h + hop, hn = Math.min(1, hh / 150);
+                  var base = lerp(ground0, p1.y, clamp(x / dist, 0, 1)), X = p0.x + s * x;
                   var env = smooth(t / (antic ? 140 : 90)) * (1 - smooth((t - impact - 40) / Math.max(120, dur - impact - 60)));
                   return {
-                    tile: { x: x, y: y, r: r0 + s * (psi - th0) * DEG, sx: sx, sy: sy, o: lerp(o0, 1, smooth(t / 150)) },
-                    lift: lift,
-                    g: { x: x, y: base, sx: (1 - 0.5 * hn) * (1 + 0.6 * Math.max(0, c)), sy: (1 - 0.5 * hn) * (1 - 0.3 * Math.max(0, c)), o: (1 - 0.65 * hn) * env }
+                    tile: { x: X, y: base - hh + (1 - sy) * T / 2, r: r, sx: sx, sy: sy, o: lerp(o0, 1, smooth(t / 150)) },   // squash anchored to the ground
+                    lift: hh,
+                    g: { x: X, y: base, sx: (1 - 0.5 * hn) * (1 + 0.6 * Math.max(0, c)), sy: (1 - 0.5 * hn) * (1 - 0.3 * Math.max(0, c)), o: (1 - 0.65 * hn) * env }
                   };
                 }
               };
@@ -2324,6 +2348,7 @@
               var ty = up ? pt + ph - inset - T : pt + inset;
               g.ph = ph; g.pt = pt; g.ty = ty; g.up = up;
               g.loopRoom = up ? (Math.min(0, ty) - f.TOP - 17) : (f.BOT - Math.max(T, ty + T) - 17);
+              g.headroom = Math.min(0, ty) - f.TOP - 17;                  // room above the tile for the jump
               return finishGeom(g, f);
             }
             // Derived values for the window spring (origin at the tile centre, start scale, overshoot caps).
