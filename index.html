@@ -528,7 +528,7 @@
           pointer-events: none;
         }
 
-        /* to-dos: plain centred text over (or under) the tile, on a soft blurred scrim; ink picked by pickTodoInk */
+        /* to-dos: plain centred text over (or under) the open window, on a soft blurred scrim; ink picked by pickTodoInk */
         #calendar-widget .cal-todos {
           position: absolute; left: 0; top: 0; z-index: 2;
           width: max-content; max-width: 360px;
@@ -548,9 +548,8 @@
         }
         #calendar-widget .cal-todos.cal-todos-dark { color: #1a1a1e; text-shadow: 0 1px 1px rgba(255, 255, 255, 0.55), 0 0 12px rgba(255, 255, 255, 0.6); }
         #calendar-widget .cal-todos.cal-todos-dark::before { background: rgba(255, 255, 255, calc(var(--cal-todo-scrim, 0.36) + 0.1)); }
-        #calendar-widget .cal-todos.cal-todos-on { opacity: 1; visibility: visible; transition: opacity 0.4s ease 0.15s, visibility 0s; }
-        #calendar-widget.is-open .cal-todos.cal-todos-on,
-        #calendar-widget.is-busy .cal-todos.cal-todos-on { opacity: 0; visibility: hidden; transition: opacity 0.12s ease, visibility 0s linear 0.12s; }
+        #calendar-widget .cal-todos.cal-todos-on { opacity: 0; visibility: hidden; transition: opacity 0.12s ease, visibility 0s linear 0.12s; }
+        #calendar-widget.is-open:not(.is-busy) .cal-todos.cal-todos-on { opacity: 1; visibility: visible; transition: opacity 0.4s ease 0.12s, visibility 0s; }
         #calendar-widget .cal-todo {
           font-size: calc(var(--cal-size, 84px) * 0.215); font-weight: 600; line-height: 1.3; letter-spacing: 0.005em;
           white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -1509,7 +1508,7 @@
             </div>
             <div class="settings-section">
                 <div class="setting-toggle"><label for="calendar-todos-toggle">Show to-dos</label><input type="checkbox" id="calendar-todos-toggle"></div>
-                <p class="calendar-hint">Writes the newest open to-dos from HomeDash's family list over the date, or under it when there is no room above. The text turns white or dark to suit the wallpaper behind it.</p>
+                <p class="calendar-hint">While the calendar is open, writes the newest open to-dos from HomeDash's family list over it, or under it when there is no room above. The text turns white or dark to suit the wallpaper behind it.</p>
             </div>
             <div class="settings-section">
                 <button id="calendar-lock-btn" type="button">Hide the calendar addon</button>
@@ -1538,8 +1537,8 @@
              opts.photoScale: number         photo window size factor (0.7 - 2.2, default 1)
              opts.onPhotoScale(scale)        called once at the end of each pinch / ctrl+wheel resize
              (optional) opts.slideMs: number   photo auto-advance interval (default 30000)
-             opts.showTodos: boolean         write the open to-dos (loadEvents' result.todos: [{ id, text }]) over the
-                                             tile, or under it when there is no room above
+             opts.showTodos: boolean         while the window is open, write the open to-dos (loadEvents' result.todos:
+                                             [{ id, text }]) over it, or under it when there is no room above
              opts.todoBackdrop(rect)         relative luminances (0-1) of what is behind a viewport rect, or null;
                                              picks white or dark to-do text (default: the host's .light-theme)
            controller: toggle(), open(), close(), refreshDate(), reload(), intro(),
@@ -2310,6 +2309,7 @@
             function openEnded() {
               state = 'open';
               makeReady();
+              placeTodos(true);                                         // the to-dos fade in by the settled window
               if (view === 'list') frost(true, reduced() ? 0 : 260);       // the slideshow covers the glass: no blur needed
               phTimerStart();
               if (pendingRelayout) { pendingRelayout = false; relayout(); }
@@ -3450,8 +3450,9 @@
             }
 
             // ------------------------------------------------------------------ to-dos
-            // The open to-dos as plain text, centred over the tile (under it when there is no room above), newest first,
-            // three at most plus "+N more". It fades away while the tile moves or the window is open. The colour is
+            // While the window is open: the open to-dos as plain text, centred over it (under it when there is no room
+            // above), newest first, three at most plus "+N more". They fade in once the window has settled and away as
+            // soon as anything moves (closing, a mode switch); while closed they are not shown. The colour is
             // picked from what is behind the text: against each backdrop sample, white and near-black text get their
             // contrast ratio, and whichever reads better in its worst 15% wins (white gets a small nudge, it reads better
             // on mid tones); the closer that worst case, the stronger the soft scrim behind the words.
@@ -3474,21 +3475,22 @@
               el.classList.add('cal-todos-on');
               placeTodos(true);
               // The widget can be dragged and the wallpaper changed or panned: check again now and then.
-              if (!todoTimer) todoTimer = setInterval(function () { if (!document.hidden && state === 'closed' && !cur) placeTodos(++todoTick % 6 === 0); }, 1500);
+              if (!todoTimer) todoTimer = setInterval(function () { if (!document.hidden && state === 'open' && !cur) placeTodos(++todoTick % 6 === 0); }, 1500);
             }
             function placeTodos(resample) {
               var el = E.todos;
               if (destroyed || !el.classList.contains('cal-todos-on')) return;
               var f = frame();
-              if (!f) return;
-              var T = f.T;
-              el.style.maxWidth = f2(Math.max(T * 2, Math.min(f.R - f.L, T * 4.4))) + 'px';
+              if (!f || state !== 'open') return;                      // only shown with the window open
+              var T = f.T, r = root.getBoundingClientRect(), pr = E.panel.getBoundingClientRect();
+              var pl = (pr.left - r.left) / f.k, pt = (pr.top - r.top) / f.k, pw = pr.width / f.k, ph = pr.height / f.k;   // the window, local px
+              el.style.maxWidth = f2(Math.min(f.R - f.L, Math.max(pw, T * 4.4))) + 'px';
               var w = el.offsetWidth, h = el.offsetHeight, gap = Math.round(T * 0.17);
-              var roomUp = 0 - f.TOP, roomDown = f.BOT - T;
+              var roomUp = pt - f.TOP, roomDown = f.BOT - (pt + ph);
               var up = roomUp >= h + gap ? true : roomDown >= h + gap ? false : roomUp >= roomDown;
-              var x = clamp(T / 2 - w / 2, f.L, Math.max(f.L, f.R - w)), y = up ? -gap - h : T + gap;
+              var x = clamp(pl + pw / 2 - w / 2, f.L, Math.max(f.L, f.R - w)), y = up ? pt - gap - h : pt + ph + gap;
               el.style.transform = 'translate(' + f2(x) + 'px,' + f2(y) + 'px)';
-              var r = root.getBoundingClientRect(), key = [f2(x), f2(y), w, h, f2(r.left), f2(r.top)].join(',');
+              var key = [f2(x), f2(y), w, h, f2(r.left), f2(r.top)].join(',');
               if (key === todoKey && !resample) return;
               todoKey = key;
               pickTodoInk();
