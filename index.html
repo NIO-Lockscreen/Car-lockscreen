@@ -513,12 +513,49 @@
           line-height: 1;
           font-variant-numeric: lining-nums;
         }
+        /* date drum: the day number / month spin through the dates in between (see rollTile) */
+        #calendar-widget .cal-month, #calendar-widget .cal-daynum { overflow: hidden; }
+        #calendar-widget .cal-reel { display: block; position: relative; width: 100%; height: 1em; will-change: transform; }
+        #calendar-widget .cal-reel > b { position: absolute; left: 0; right: 0; font-weight: inherit; text-align: center; white-space: nowrap; }
+        #calendar-widget .cal-rolling .cal-daynum {
+          -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 26%, #000 80%, transparent 100%);
+          mask-image: linear-gradient(180deg, transparent 0%, #000 26%, #000 80%, transparent 100%);
+        }
         #calendar-widget .cal-gloss {
           position: absolute; left: 0; top: 0; right: 0; bottom: 0;
           border-radius: inherit;
           background: linear-gradient(180deg, rgba(255, 255, 255, 0.18) 0%, rgba(255, 255, 255, 0) 38%);
           pointer-events: none;
         }
+
+        /* to-dos: plain centred text over (or under) the tile, on a soft blurred scrim; ink picked by pickTodoInk */
+        #calendar-widget .cal-todos {
+          position: absolute; left: 0; top: 0; z-index: 2;
+          width: max-content; max-width: 360px;
+          text-align: center;
+          color: #fff;
+          font-family: 'Roboto', system-ui, -apple-system, 'Segoe UI', sans-serif;
+          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6), 0 0 12px rgba(0, 0, 0, 0.45);
+          pointer-events: none;
+          opacity: 0; visibility: hidden;
+          transition: opacity 0.25s ease, visibility 0s linear 0.25s;
+        }
+        #calendar-widget .cal-todos::before {
+          content: ''; position: absolute; left: -16px; right: -16px; top: -8px; bottom: -8px; z-index: -1;
+          border-radius: 999px;
+          background: rgba(0, 0, 0, var(--cal-todo-scrim, 0.36));
+          filter: blur(14px);
+        }
+        #calendar-widget .cal-todos.cal-todos-dark { color: #1a1a1e; text-shadow: 0 1px 1px rgba(255, 255, 255, 0.55), 0 0 12px rgba(255, 255, 255, 0.6); }
+        #calendar-widget .cal-todos.cal-todos-dark::before { background: rgba(255, 255, 255, calc(var(--cal-todo-scrim, 0.36) + 0.1)); }
+        #calendar-widget .cal-todos.cal-todos-on { opacity: 1; visibility: visible; transition: opacity 0.4s ease 0.15s, visibility 0s; }
+        #calendar-widget.is-open .cal-todos.cal-todos-on,
+        #calendar-widget.is-busy .cal-todos.cal-todos-on { opacity: 0; visibility: hidden; transition: opacity 0.12s ease, visibility 0s linear 0.12s; }
+        #calendar-widget .cal-todo {
+          font-size: calc(var(--cal-size, 84px) * 0.215); font-weight: 600; line-height: 1.3; letter-spacing: 0.005em;
+          white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        #calendar-widget .cal-todo-more { font-size: calc(var(--cal-size, 84px) * 0.16); font-weight: 600; line-height: 1.35; opacity: 0.78; }
 
         /* drop shadow of the tile: its own layer so it stays "down" while the tile spins */
         #calendar-widget .cal-tshadow {
@@ -1471,6 +1508,10 @@
                 <p class="calendar-hint">The date rolls right and the window opens to its left. Near the right edge it still rolls left.</p>
             </div>
             <div class="settings-section">
+                <div class="setting-toggle"><label for="calendar-todos-toggle">Show to-dos</label><input type="checkbox" id="calendar-todos-toggle"></div>
+                <p class="calendar-hint">Writes the newest open to-dos from HomeDash's family list over the date, or under it when there is no room above. The text turns white or dark to suit the wallpaper behind it.</p>
+            </div>
+            <div class="settings-section">
                 <button id="calendar-lock-btn" type="button">Hide the calendar addon</button>
                 <p class="calendar-hint" style="text-align:center;">Type <b>admin</b> in the stock picker to bring it back.</p>
             </div>
@@ -1497,8 +1538,13 @@
              opts.photoScale: number         photo window size factor (0.7 - 2.2, default 1)
              opts.onPhotoScale(scale)        called once at the end of each pinch / ctrl+wheel resize
              (optional) opts.slideMs: number   photo auto-advance interval (default 30000)
+             opts.showTodos: boolean         write the open to-dos (loadEvents' result.todos: [{ id, text }]) over the
+                                             tile, or under it when there is no room above
+             opts.todoBackdrop(rect)         relative luminances (0-1) of what is behind a viewport rect, or null;
+                                             picks white or dark to-do text (default: the host's .light-theme)
            controller: toggle(), open(), close(), refreshDate(), reload(), intro(),
                        setAccent(hex), setMode(mode), setPreferRight(bool), setPhotoScale(s),
+                       setShowTodos(bool), refreshTodos() (the backdrop changed),
                        relayout(), destroy(), isOpen, isBusy, mode, state
 
            All motion is sampled from JS pose functions into Web Animations keyframes
@@ -1679,6 +1725,7 @@
                 '</div>' +
               '</div>' +
             '</div>' +
+            '<div class="cal-todos" role="note" aria-label="To do"></div>' +
             '<div class="cal-tshadow" aria-hidden="true"></div>' +
             '<div id="calendar-tile" class="cal-tile" role="button">' +
               '<div class="cal-face"><div class="cal-month"></div><div class="cal-daynum"></div><div class="cal-gloss"></div></div>' +
@@ -1698,7 +1745,7 @@
               tile: $('.cal-tile'), tsh: $('.cal-tshadow'), gsh: $('.cal-gshadow'),
               panel: $('.cal-panel'), glass: $('.cal-glass'), body: $('.cal-content'), band: $('.cal-band'),
               list: $('.cal-body'), title: $('.cal-band-title'), sub: $('.cal-band-sub'), note: $('.cal-band-note'),
-              month: $('.cal-month'), day: $('.cal-daynum'),
+              month: $('.cal-month'), day: $('.cal-daynum'), face: $('.cal-face'), todos: $('.cal-todos'),
               photo: $('.cal-photo'), slides: $('.cal-slides'), dots: $('.cal-ph-dots'), phStale: $('.cal-ph-stale')
             };
             var mq = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
@@ -2270,6 +2317,7 @@
             }
             function closeStarted() {
               frost(false);
+              if (mode === 'photo' && PH.shown !== 0) { PH.shown = 0; paintTile(); }   // the date rolls back while it closes
               E.panel.classList.remove('cal-ready');
               phTimerStop(); phStop(); phCancelDrag();
               pendingSwitch = false;
@@ -2663,7 +2711,8 @@
             // ================================================================= data
             function normalize(res) {
               var evs = res && Array.isArray(res.events) ? res.events.filter(function (e) { return e && typeof e === 'object'; }).slice(0, 20) : [];
-              return { events: evs, stale: !!(res && res.stale) };
+              var tds = res && Array.isArray(res.todos) ? res.todos.filter(function (t) { return t && typeof t.text === 'string' && t.text.trim(); }).slice(0, 50) : [];
+              return { events: evs, todos: tds, stale: !!(res && res.stale) };
             }
             function load(fresh) {
               if (destroyed || typeof opts.loadEvents !== 'function') {
@@ -2693,6 +2742,7 @@
             }
             function onData() {
               paintTile();
+              renderTodos();
               if (state === 'opening' && !revealed) renderContent(false);   // still rolling: swap hidden content
               else if (revealed) renderContent(true);
               else if (state === 'closed' && !cur) prerender();
@@ -3327,9 +3377,140 @@
                 var ed = evInfo(ev).d;
                 if (ed && dateKey(ed) > dateKey(now)) d = ed;
               }
+              E.tile.setAttribute('aria-label', 'Calendar, ' + (d !== now ? 'event on ' : '') + WDL[d.getDay()] + ' ' + d.getDate() + ' ' + MONL[d.getMonth()]);
+              setTileDate(d);
+            }
+
+            // When the date on the tile changes, the day number (and the month, when it passes one) spins like a drum
+            // through the dates in between: up going forward in time, down going back. Tomorrow is one quick click; a date
+            // weeks away spins longer and through more dates (at most 24 shown) and settles with a little springy
+            // overshoot onto the next date and back.
+            var tileShown = null, tileRoll = null;                   // day index on the tile (or the one a roll heads for)
+            function dayIndex(d) { return Math.round(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 864e5); }
+            function fromIndex(i) { var u = new Date(i * 864e5); return new Date(u.getUTCFullYear(), u.getUTCMonth(), u.getUTCDate()); }
+            function showDateNow(d) {
+              E.face.classList.remove('cal-rolling');
               E.month.textContent = MON[d.getMonth()].toUpperCase();
               E.day.textContent = String(d.getDate());
-              E.tile.setAttribute('aria-label', 'Calendar, ' + (d !== now ? 'event on ' : '') + WDL[d.getDay()] + ' ' + d.getDate() + ' ' + MONL[d.getMonth()]);
+            }
+            function setTileDate(d) {
+              var to = dayIndex(d);
+              if (tileRoll && tileRoll.to === to) return;              // already on its way there
+              var from = tileRoll ? stopTileRoll() : tileShown;      // carry on from the date it is passing
+              tileShown = to;
+              if (from == null || from === to || reduced() || destroyed) { showDateNow(d); return; }
+              rollTile(from, to);
+            }
+            // easeOutBack amount that overshoots by about `frac` of the travel
+            function backAmount(frac) {
+              var lo = 0, hi = 4;
+              for (var i = 0; i < 30; i++) { var m = (lo + hi) / 2; if (4 * m * m * m / (27 * (m + 1) * (m + 1)) < frac) lo = m; else hi = m; }
+              return lo;
+            }
+            function rollTile(from, to) {
+              var n = to - from, dir = n > 0 ? 1 : -1, an = Math.abs(n), i;
+              var K = Math.min(an, 24), dur = Math.min(1400, 300 + 200 * Math.log(an));
+              var idx = [];
+              for (i = 0; i <= K; i++) idx.push(from + Math.round(i * n / K));
+              idx.push(to + dir);                                    // the drum turns a touch past, then settles back
+              var dates = idx.map(fromIndex), mons = [], mi = [];
+              dates.forEach(function (dd) {
+                var key = dd.getFullYear() * 12 + dd.getMonth();
+                if (!mons.length || mons[mons.length - 1].k !== key) mons.push({ k: key, d: dd });
+                mi.push(mons.length - 1);
+              });
+              var S = 1.25, SM = 1.6;                               // label spacing (em) on the day / month drum
+              E.day.innerHTML = '<span class="cal-reel">' + dates.map(function (dd, j) { return '<b style="top:' + f2(dir * j * S) + 'em">' + dd.getDate() + '</b>'; }).join('') + '</span>';
+              E.month.innerHTML = '<span class="cal-reel">' + mons.map(function (m, j) { return '<b style="top:' + f2(dir * j * SM) + 'em">' + MON[m.d.getMonth()].toUpperCase() + '</b>'; }).join('') + '</span>';
+              E.face.classList.add('cal-rolling');
+              var sB = backAmount(0.22 / K);
+              function pos(t) { var v = clamp(t / dur, 0, 1) - 1; return K * (1 + (sB + 1) * v * v * v + sB * v * v); }   // fast start, eases in
+              function mpos(p) { var j = clamp(Math.floor(p), 0, mi.length - 1), j1 = Math.min(j + 1, mi.length - 1); return mi[j] + (mi[j1] - mi[j]) * clamp(p - j, 0, 1); }
+              var steps = Math.max(2, Math.ceil(dur / STEP) + 1), kd = [], km = [];
+              for (i = 0; i < steps; i++) {
+                var off = i / (steps - 1), p = pos(dur * off);
+                kd.push({ offset: off, transform: 'translateY(' + f4(-dir * p * S) + 'em)' });
+                km.push({ offset: off, transform: 'translateY(' + f4(-dir * mpos(p) * SM) + 'em)' });
+              }
+              var rec = { to: to, idx: idx, pos: pos, dur: dur, anims: [] };
+              rec.anims.push(E.day.firstChild.animate(kd, { duration: dur, easing: 'linear', fill: 'forwards' }));
+              rec.anims.push(E.month.firstChild.animate(km, { duration: dur, easing: 'linear', fill: 'forwards' }));
+              rec.anims[0].onfinish = function () { if (tileRoll !== rec) return; tileRoll = null; showDateNow(fromIndex(to)); };
+              tileRoll = rec;
+            }
+            // Stops a roll where it is; returns the date it was passing.
+            function stopTileRoll() {
+              var rec = tileRoll;
+              if (!rec) return tileShown;
+              var t = rec.anims[0].currentTime;
+              t = typeof t === 'number' && isFinite(t) ? t : rec.dur;
+              rec.anims.forEach(function (a) { a.onfinish = null; a.cancel(); });
+              tileRoll = null;
+              return rec.idx[clamp(Math.round(rec.pos(t)), 0, rec.idx.length - 2)];
+            }
+
+            // ------------------------------------------------------------------ to-dos
+            // The open to-dos as plain text, centred over the tile (under it when there is no room above), newest first,
+            // three at most plus "+N more". It fades away while the tile moves or the window is open. The colour is
+            // picked from what is behind the text: against each backdrop sample, white and near-black text get their
+            // contrast ratio, and whichever reads better in its worst 15% wins (white gets a small nudge, it reads better
+            // on mid tones); the closer that worst case, the stronger the soft scrim behind the words.
+            var TODO_LINES = 3, DARK_INK = 0.0103;                    // relative luminance of #1a1a1e
+            var showTodos = !!opts.showTodos, todoSig = '', todoKey = '', todoTimer = 0, todoTick = 0;
+            function renderTodos() {
+              var list = showTodos && known && known.todos ? known.todos : [], el = E.todos;
+              if (!list.length) {
+                el.classList.remove('cal-todos-on');
+                clearInterval(todoTimer); todoTimer = 0;
+                return;
+              }
+              var shown = list.slice(0, TODO_LINES), more = list.length - shown.length;
+              var sig = shown.map(function (t) { return t.text; }).join('\n') + '|' + more;
+              if (sig !== todoSig) {
+                todoSig = sig;
+                el.innerHTML = shown.map(function (t) { return '<div class="cal-todo">' + esc(t.text.trim()) + '</div>'; }).join('') +
+                  (more > 0 ? '<div class="cal-todo-more">+' + more + ' more</div>' : '');
+              }
+              el.classList.add('cal-todos-on');
+              placeTodos(true);
+              // The widget can be dragged and the wallpaper changed or panned: check again now and then.
+              if (!todoTimer) todoTimer = setInterval(function () { if (!document.hidden && state === 'closed' && !cur) placeTodos(++todoTick % 6 === 0); }, 1500);
+            }
+            function placeTodos(resample) {
+              var el = E.todos;
+              if (destroyed || !el.classList.contains('cal-todos-on')) return;
+              var f = frame();
+              if (!f) return;
+              var T = f.T;
+              el.style.maxWidth = f2(Math.max(T * 2, Math.min(f.R - f.L, T * 4.4))) + 'px';
+              var w = el.offsetWidth, h = el.offsetHeight, gap = Math.round(T * 0.17);
+              var roomUp = 0 - f.TOP, roomDown = f.BOT - T;
+              var up = roomUp >= h + gap ? true : roomDown >= h + gap ? false : roomUp >= roomDown;
+              var x = clamp(T / 2 - w / 2, f.L, Math.max(f.L, f.R - w)), y = up ? -gap - h : T + gap;
+              el.style.transform = 'translate(' + f2(x) + 'px,' + f2(y) + 'px)';
+              var r = root.getBoundingClientRect(), key = [f2(x), f2(y), w, h, f2(r.left), f2(r.top)].join(',');
+              if (key === todoKey && !resample) return;
+              todoKey = key;
+              pickTodoInk();
+            }
+            function pct(a, q) { a.sort(function (m, n) { return m - n; }); return a[Math.min(a.length - 1, Math.floor(a.length * q))]; }
+            function pickTodoInk() {
+              var el = E.todos, r = el.getBoundingClientRect(), lum = null, dark, scrim;
+              if (typeof opts.todoBackdrop === 'function' && r.width && r.height) {
+                try { lum = opts.todoBackdrop({ left: r.left, top: r.top, width: r.width, height: r.height }); } catch (e) { lum = null; }
+              }
+              if (lum && lum.length) {
+                var cw = [], cb = [];
+                for (var i = 0; i < lum.length; i++) { cw.push(1.05 / (lum[i] + 0.05)); cb.push((lum[i] + 0.05) / (DARK_INK + 0.05)); }
+                var w15 = pct(cw, 0.15), b15 = pct(cb, 0.15);
+                dark = b15 > w15 * 1.25;
+                scrim = clamp(0.62 - 0.064 * (dark ? b15 : w15), 0.18, 0.56);
+              } else {                                                  // can't see the backdrop: follow the host's theme
+                dark = !!(root.closest && root.closest('.light-theme'));
+                scrim = 0.36;
+              }
+              el.classList.toggle('cal-todos-dark', dark);
+              el.style.setProperty('--cal-todo-scrim', String(f4(scrim)));
             }
             var dayKey = '';
             function refreshDate() {
@@ -3370,7 +3551,7 @@
               phRedrawIfDue();
             }
             var rzTimer = 0;
-            function onResize() { clearTimeout(rzTimer); rzTimer = setTimeout(relayout, 140); }
+            function onResize() { clearTimeout(rzTimer); rzTimer = setTimeout(function () { relayout(); placeTodos(true); }, 140); }
 
             // ------------------------------------------------------------ listeners
             function onPanelClick(e) {
@@ -3429,13 +3610,15 @@
               setAccent: setAccent,
               setMode: setMode,
               setPreferRight: function (b) { preferRight = !!b; },   // used from the next opening on
+              setShowTodos: function (b) { showTodos = !!b; renderTodos(); },
+              refreshTodos: function () { placeTodos(true); },
               setPhotoScale: setPhotoScale,
               relayout: relayout,
               destroy: function () {
                 if (destroyed) return;
                 if (cur) interrupt();
                 destroyed = true;
-                clearTimeout(midTimer); clearTimeout(rzTimer); clearTimeout(frostTimer); clearTimeout(warmTimer); clearInterval(minuteTimer); clearInterval(refreshTimer);
+                clearTimeout(midTimer); clearTimeout(rzTimer); clearTimeout(frostTimer); clearTimeout(warmTimer); clearInterval(minuteTimer); clearInterval(refreshTimer); clearInterval(todoTimer);
                 phTimerStop(); phStop(); phCancelDrag(); stopScaleRaf();
                 if (PH.wheel) clearTimeout(PH.wheel.timer);
                 E.panel.removeEventListener('click', onPanelClick);
@@ -3473,7 +3656,8 @@
          *   window.homeDashCalendar.getUrl()            saved base URL, or the default
          *   window.homeDashCalendar.setUrl(input)       normalize + save ('' = back to default)
          *   window.homeDashCalendar.normalizeUrl(input)
-         *   window.homeDashCalendar.load({ fresh })     Promise<{ events: Item[], stale, fetchedAt, source }>
+         *   window.homeDashCalendar.load({ fresh })     Promise<{ events: Item[], todos: Todo[], stale, fetchedAt, source }>
+         *   window.homeDashCalendar.openTodos(rawTodos) pure -> Todo[]
          *   window.homeDashCalendar.upcoming(rawEvents, now, limit = 7, extras)  pure -> Item[]
          *
          * Item = { id, title, date ('YYYY-MM-DD', the local day it occurs), start (ISO),
@@ -3491,6 +3675,10 @@
          * and timed items still in progress. Ended items are left out (a task without
          * an end counts as one hour long, as in HomeDash). An empty array means
          * nothing is coming up - never placeholders.
+         * Todo = { id, text, createdAt } - HomeDash's to-do list (events.json `todos`:
+         * { items: { id: { text, scope, done, doneAt, createdAt, updatedAt } }, deleted }),
+         * as its family screen shows it: items not ticked off, scope 'family' or 'both'
+         * (work items only show on HomeDash screens in work mode), newest first.
          * load() source: 'api' (/api/events), 'blob' (the public Blob CDN copy of
          * events.json, used when the API cannot be read - e.g. no CORS header yet),
          * or 'cache' (stale: true, with .error saying why the network failed).
@@ -3997,6 +4185,26 @@
             return slim.map(function (entry) { return entry.copy; });
           }
 
+          var MAX_TODOS = 50;
+          function openTodos(raw) {
+            var items = raw && typeof raw === 'object' && raw.items && typeof raw.items === 'object' && !Array.isArray(raw.items) ? raw.items : {};
+            var list = [];
+            Object.keys(items).forEach(function (id) {
+              var item = items[id];
+              if (!item || typeof item !== 'object' || item.done === true) return;
+              var scope = String(item.scope || 'family').toLowerCase();
+              if (scope === 'work') return;
+              var text = String(item.text == null ? '' : item.text).replace(/\s+/g, ' ').trim().slice(0, 120);
+              if (!text) return;
+              list.push({ id: String(id).slice(0, 60), text: text, createdAt: String(item.createdAt || '').slice(0, 40) });
+            });
+            list.sort(function (a, b) { return b.createdAt < a.createdAt ? -1 : b.createdAt > a.createdAt ? 1 : 0; });
+            return list.slice(0, MAX_TODOS);
+          }
+          function cachedTodos(record) {
+            return record && Array.isArray(record.todos) ? record.todos.filter(function (t) { return t && typeof t.text === 'string' && t.text; }).slice(0, MAX_TODOS) : [];
+          }
+
           function readCache(base) {
             var raw = readStore(CACHE_KEY);
             if (!raw) return null;
@@ -4019,7 +4227,8 @@
               updatedAt: String(record.updatedAt || '').slice(0, 40),
               blobUrl: record.blobUrl || '',
               preferBlobUntil: record.preferBlobUntil || 0,
-              events: record.events.slice()
+              events: record.events.slice(),
+              todos: (record.todos || []).slice(0, MAX_TODOS)
             };
             var json = JSON.stringify(copy);
             // Still too big: drop one-offs from the far end until it fits.
@@ -4176,6 +4385,7 @@
               if (source === 'blob' && apiNetworkFailed) preferBlobUntil = fetchedAt + PREFER_BLOB_MS;
               else if (source === 'blob' && record) preferBlobUntil = record.preferBlobUntil || 0;
               var slim = slimEvents(doc.events, fetchedAt);
+              var todos = openTodos(doc.todos);
               writeCache({
                 base: base,
                 fetchedAt: fetchedAt,
@@ -4183,14 +4393,16 @@
                 updatedAt: doc.updatedAt,
                 blobUrl: learned || blobUrl,
                 preferBlobUntil: preferBlobUntil,
-                events: slim
+                events: slim,
+                todos: todos
               });
-              return { events: upcoming(doc.events, now, limit, extras), stale: false, fetchedAt: fetchedAt, source: source };
+              return { events: upcoming(doc.events, now, limit, extras), todos: todos, stale: false, fetchedAt: fetchedAt, source: source };
             }
 
             if (record) {
               return {
                 events: upcoming(record.events, now, limit, extras),
+                todos: cachedTodos(record),
                 stale: true,
                 fetchedAt: record.fetchedAt,
                 source: 'cache',
@@ -4206,6 +4418,7 @@
             normalizeUrl: normalizeUrl,
             load: load,
             upcoming: upcoming,
+            openTodos: openTodos,
             defaultUrl: normalizeUrl(DEFAULT_URL),
             storageKeys: { url: URL_KEY, cache: CACHE_KEY }
           };
@@ -6836,6 +7049,7 @@
                     const swatches = document.getElementById('calendar-swatches');
                     const modeChips = document.getElementById('calendar-mode-chips');
                     const preferRightToggle = document.getElementById('calendar-prefer-right-toggle');
+                    const todosToggle = document.getElementById('calendar-todos-toggle');
                     const data = window.homeDashCalendar;
                     let controller = null;
 
@@ -6851,6 +7065,7 @@
                             accent: /^#[0-9a-f]{6}$/i.test(saved.accent) ? saved.accent.toLowerCase() : DEFAULT_ACCENT,
                             mode: saved.mode === 'photo' ? 'photo' : 'list',
                             preferRight: saved.preferRight === true,
+                            showTodos: saved.showTodos === true,
                             photoScale: Number.isFinite(saved.photoScale) ? Math.max(0.5, Math.min(3, saved.photoScale)) : 1,
                         };
                     })();
@@ -6860,6 +7075,7 @@
                         swatches.querySelectorAll('.calendar-swatch').forEach((b) => b.classList.toggle('active', b.dataset.color === look.accent));
                         modeChips.querySelectorAll('.calendar-chip').forEach((b) => b.classList.toggle('active', b.dataset.mode === look.mode));
                         preferRightToggle.checked = look.preferRight;
+                        todosToggle.checked = look.showTodos;
                     }
                     function setAccent(color) {
                         look.accent = color.toLowerCase();
@@ -6877,9 +7093,41 @@
                             preferRight: look.preferRight,
                             photoScale: look.photoScale,
                             onPhotoScale: (scale) => { look.photoScale = scale; saveLook(); }, // pinched on the photo window
+                            showTodos: look.showTodos,
+                            todoBackdrop: wallpaperLuma,
                         });
                         window.calendarWidget = controller;
                     }
+                    // Relative luminance of the wallpaper pixels under a screen rect, so the to-do text can pick white or dark
+                    // ink. Null while the picture is loading or when it can't be read (served without CORS): the widget then
+                    // follows the light / dark theme.
+                    let lumaCanvas = null;
+                    const LIN = Array.from({ length: 256 }, (_, i) => { const v = i / 255; return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); });
+                    function wallpaperLuma(rect) {
+                        const img = currentWallpaperImg;
+                        if (window.wallpaperReady !== true || !img.naturalWidth || !img.naturalHeight) return null;
+                        const box = lockScreen.getBoundingClientRect(), sw = lockScreen.clientWidth, sh = lockScreen.clientHeight;
+                        if (!sw || !sh) return null;
+                        const iw = img.naturalWidth, ih = img.naturalHeight, k = Math.max(sw / iw, sh / ih);   // background-size: cover
+                        const pos = getComputedStyle(lockScreen).backgroundPosition.split(',')[0].trim().split(/\s+/);
+                        const at = (v, free) => (/%$/.test(v || '') ? free * parseFloat(v) / 100 : parseFloat(v) || 0);
+                        const ox = at(pos[0] || '50%', sw - iw * k), oy = at(pos[1] || '50%', sh - ih * k);
+                        const W = 40, H = 14;
+                        lumaCanvas = lumaCanvas || document.createElement('canvas');
+                        lumaCanvas.width = W; lumaCanvas.height = H;
+                        const ctx = lumaCanvas.getContext('2d', { willReadFrequently: true });
+                        ctx.clearRect(0, 0, W, H);
+                        ctx.drawImage(img, (rect.left - box.left - ox) / k, (rect.top - box.top - oy) / k, rect.width / k, rect.height / k, 0, 0, W, H);
+                        let px;
+                        try { px = ctx.getImageData(0, 0, W, H).data; } catch (e) { return null; } // CORS-tainted picture
+                        const lum = [];
+                        for (let i = 0; i < px.length; i += 4) {
+                            if (px[i + 3] < 128) continue; // outside the picture
+                            lum.push(0.2126 * LIN[px[i]] + 0.7152 * LIN[px[i + 1]] + 0.0722 * LIN[px[i + 2]]);
+                        }
+                        return lum.length ? lum : null;
+                    }
+                    currentWallpaperImg.addEventListener('load', () => { if (controller) setTimeout(() => controller.refreshTodos(), 60); });
                     function keepOnScreen() {
                         if (widget.classList.contains('hidden')) return;
                         const maxX = Math.max(0, lockScreen.clientWidth - widget.offsetWidth);
@@ -6951,6 +7199,11 @@
                         look.preferRight = preferRightToggle.checked;
                         saveLook();
                         if (controller) controller.setPreferRight(look.preferRight);
+                    });
+                    todosToggle.addEventListener('change', () => {
+                        look.showTodos = todosToggle.checked;
+                        saveLook();
+                        if (controller) controller.setShowTodos(look.showTodos);
                     });
                     // A tap on the date opens or closes the week. A drag (hasMoved) moves the widget instead.
                     widget.addEventListener('click', (e) => {
